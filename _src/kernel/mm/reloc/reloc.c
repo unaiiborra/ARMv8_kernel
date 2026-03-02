@@ -31,6 +31,26 @@ void mm_reloc_kernel()
 
 void reloc_cfg_end()
 {
+	mmu_mapping * const EARLY_MMU_MAPPINGS[2] = {
+		&early_lo_mapping,
+		&MM_MMU_KERNEL_MAPPING,
+	};
+
+	const mmu_mapping MMU_DEFAULT_KERNEL_MAPPING = mm_mmu_mapping_new(MMU_HI);
+
+	for (size_t i = 0; i < ARRAY_LEN(EARLY_MMU_MAPPINGS); i++) {
+		mmu_mapping_set_allocator(
+			EARLY_MMU_MAPPINGS[i],
+			mmu_mapping_get_allocator(&MMU_DEFAULT_KERNEL_MAPPING));
+
+		mmu_mapping_set_allocator_free(
+			EARLY_MMU_MAPPINGS[i],
+			mmu_mapping_get_allocator_free(&MMU_DEFAULT_KERNEL_MAPPING));
+
+		mmu_mapping_set_physmap_offset(EARLY_MMU_MAPPINGS[i], KERNEL_BASE);
+	}
+
+
 	// get first free heap va
 	early_memreg *mblcks;
 	size_t n;
@@ -39,12 +59,6 @@ void reloc_cfg_end()
 	v_uintptr free_heap_start =
 		mm_kpa_to_kva(mblcks[n - 1].addr + (mblcks[n - 1].pages * KPAGE_SIZE));
 
-
-#ifdef DEBUG
-	page_allocator_debug();
-	vmalloc_debug_free();
-	vmalloc_debug_reserved();
-#endif
 
 	mmu_core_handle *ch0 = mm_mmu_core_handler_get_self();
 
@@ -70,7 +84,7 @@ void reloc_cfg_end()
 	mmu_delete_mapping(&early_lo_mapping);
 
 	mmu_unmap(
-		&kernel_mmu_mapping,
+		&MM_MMU_KERNEL_MAPPING,
 		free_heap_start,
 		MEM_TiB,
 		NULL); // TODO: unmap from the actually reserved memory

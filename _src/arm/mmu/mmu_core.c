@@ -14,7 +14,7 @@
 
 const mmu_mapping MMU_NULL_MAPPING =
 {
-	.tbl_	= NULL_MAPPING_TBL,
+	.tbl_   = NULL_MAPPING_TBL,
 };
 
 
@@ -31,8 +31,8 @@ static inline bool set_coreid(mmu_core_handle *ch)
 
 	uint32 mpidr_aff =
 		((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8
-			| ((MPIDR_EL1 >> 16) & 0xFF) <<
-			16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
+		        | ((MPIDR_EL1 >> 16) & 0xFF) <<
+		        16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
 
 	ch->mpidr_aff = mpidr_aff;
 
@@ -47,8 +47,8 @@ static inline bool eq_caller_coreid(mmu_core_handle *ch)
 
 	uint32 mpidr_aff =
 		((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8
-			| ((MPIDR_EL1 >> 16) & 0xFF) <<
-			16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
+		        | ((MPIDR_EL1 >> 16) & 0xFF) <<
+		        16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
 
 	return ch->mpidr_aff == mpidr_aff;
 }
@@ -56,7 +56,6 @@ static inline bool eq_caller_coreid(mmu_core_handle *ch)
 bool mmu_core_set_mapping(mmu_core_handle *ch, mmu_mapping *t)
 {
 	ASSERT(ch);
-
 
 	uint64 sctlr = _mmu_get_SCTLR_EL1();
 
@@ -270,8 +269,8 @@ bool mmu_core_set_hi_granularity(mmu_core_handle *ch, mmu_granularity g)
 } /* mmu_core_set_hi_granularity */
 
 bool mmu_core_handle_new(mmu_core_handle *out, mmu_mapping *lo_mapping,
-			 mmu_mapping *hi_mapping, bool hi_enable, bool lo_enable, bool d_cache,
-			 bool i_cache, bool align_trap)
+                         mmu_mapping *hi_mapping, bool hi_enable, bool lo_enable, bool d_cache,
+                         bool i_cache, bool align_trap)
 {
 	ASSERT(lo_mapping && hi_mapping);
 

@@ -1,0 +1,101 @@
+# ===============================
+# Estilo moderno y legible C / C++
+# ===============================
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# ---- Longitud de línea ----
+ColumnLimit: 80
+PenaltyExcessCharacter: 100
+
+# ---- Parámetros / argumentos ----
+BinPackParameters: false
+BinPackArguments: false
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+PenaltyBreakBeforeFirstCallParameter: 0
+AlwaysBreakAfterDefinitionReturnType: None
+
+# ---- Indentación ----
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+IndentCaseLabels: true
+IndentCaseBlocks: false
+IndentGotoLabels: false
+IndentExternBlock: AfterExternBlock
+
+# ---- Llaves ----
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: false
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterUnion: false
+  BeforeElse: true
+  BeforeCatch: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# ---- Espacios ----
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+SpaceAfterCStyleCast: false
+SpacesInConditionalStatement: false
+
+# ---- Alineación ----
+AlignOperands: Align
+AlignTrailingComments: true
+AlignEscapedNewlines: Left
+
+# ---- Saltos de línea ----
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterColon
+
+# ---- Includes ----
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*>'
+    Priority: 1
+  - Regex: '^".*"'
+    Priority: 2
+
+# ---- Comentarios ----
+ReflowComments: true
+CommentPragmas: '^ IWYU pragma:'
+
+# ---- Punteros ----
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# ---- C++ ----
+Standard: Latest
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+
+# ---- Preprocesador ----
+IndentPPDirectives: AfterHash
+
+# ---- Misceláneo ----
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 2
+EmptyLineAfterAccessModifier: Always
+EmptyLineBeforeAccessModifier: LogicalBlock

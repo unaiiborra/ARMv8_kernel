@@ -6,7 +6,7 @@
 #define MM_MMU_LO_BITS    48
 #define MM_MMU_HI_BITS    48
 
-extern mmu_mapping kernel_mmu_mapping;
+extern mmu_mapping MM_MMU_KERNEL_MAPPING;
 
 extern mmu_mapping MM_MMU_UNMAPPED_LO;
 

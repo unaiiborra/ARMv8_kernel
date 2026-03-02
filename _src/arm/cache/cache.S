@@ -10,7 +10,7 @@ _cache_flush_range:
 
 1:
     cmp x1, x0
-    b.lt 2f
+    b.le 2f
 
     ic ivau, x0
     dc cvau, x0

@@ -64,7 +64,7 @@ void early_identity_mapping()
 		(void *)mm_as_kpa((uintptr)im_alloc),
 		(void *)mm_as_kpa((uintptr)im_free));
 
-	kernel_mmu_mapping = mmu_mapping_new(
+	MM_MMU_KERNEL_MAPPING = mmu_mapping_new(
 		MMU_HI,
 		MMU_GRANULARITY_4KB,
 		48,
@@ -107,7 +107,7 @@ void early_identity_mapping()
 		ASSERT(mres == MMU_MAP_OK);
 
 		mres = mmu_map(
-			&kernel_mmu_mapping,
+			&MM_MMU_KERNEL_MAPPING,
 			mm_as_kva(r.start),
 			mm_as_kpa(r.start),
 			r.size,
@@ -120,7 +120,7 @@ void early_identity_mapping()
 	bool result = mmu_core_handle_new(
 		core0_handle,
 		&early_lo_mapping,
-		&kernel_mmu_mapping,
+		&MM_MMU_KERNEL_MAPPING,
 		true,
 		true,
 		true,

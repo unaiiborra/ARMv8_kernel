@@ -109,7 +109,11 @@ void reserve_malloc_fill()
 
 
 			DEBUG_ASSERT(pv.pa != 0 && ptrs_are_kmapped(pv));
+			DEBUG_ASSERT(pv.pa % KPAGE_ALIGN == 0);
+
 			reserved_addr[i] = pv;
+
+			memzero64((void*)va, KPAGE_SIZE);
 
 			bitfield_set_high(reserved_pages, i);
 		}

@@ -13,7 +13,6 @@
 
 #include "../malloc/raw_kmalloc/raw_kmalloc.h"
 #include "../mm_info.h"
-#include "page.h"
 
 
 typedef uint32 node_data;
@@ -32,10 +31,10 @@ typedef uint32 node_data;
 #define IS_NULL_IDX(i)    (i == NULL_IDX)
 
 typedef struct page_node {
-	uint32		next;
-	uint32		prev;
-	node_data	node_data;
-	mm_page_data	page_data;
+	uint32 next;
+	uint32 prev;
+	node_data node_data;
+	mm_page_data page_data;
 } page_node;
 
 
@@ -437,7 +436,7 @@ void page_allocator_init()
 
 
 	pv_ptr pv = early_kalloc(align_up(free_list_bytes + nodes_bytes, KPAGE_SIZE), "page allocator",
-				 true, false);
+	                         true, false);
 
 	free_lists = (uint32 *)pv.va;
 	nodes = (page_node *)(pv.va + free_list_bytes);
@@ -532,7 +531,7 @@ void page_allocator_debug()
 			mm_page_data d = n->page_data;
 
 			kprintf("\t[R%d|%s|%p][%s%s] %dp, %p bytes \n\r", get_order(n), d.tag, addr,
-				d.permanent ? "!" : "-", d.device_mem ? "MMIO" : "RAM", pages, bytes);
+			        d.permanent ? "!" : "-", d.device_mem ? "MMIO" : "RAM", pages, bytes);
 		}
 
 		i += pages;
