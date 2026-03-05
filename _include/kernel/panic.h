@@ -131,5 +131,5 @@ void __attribute__((cold)) panicr(panic_info panic_info);
 #    define DEBUG_ASSERT(...) \
 	_ASSERT_SELECT(_, ## __VA_ARGS__, _DEBUG_ASSERT_2, _DEBUG_ASSERT_1)(__VA_ARGS__)
 #else
-#    define DEBUG_ASSERT(...)
+#    define DEBUG_ASSERT(...) 
 #endif

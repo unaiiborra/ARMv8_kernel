@@ -30,12 +30,6 @@ typedef enum {
 } mmu_descriptor_type;
 
 
-typedef enum {
-	MMU_SHAREABILITY_NON_SHAREABLE		= 0b00,
-	MMU_SHAREABILITY_RESERVED		= 0b01,
-	MMU_SHAREABILITY_OUTER_SHAREABLE	= 0b10,
-	MMU_SHAREABILITY_INNER_SHAREABLE	= 0b11,
-} mmu_shareability;
 
 
 #define max_level(g)    (g == MMU_GRANULARITY_64KB ? MMU_TBL_LV2 : MMU_TBL_LV3)

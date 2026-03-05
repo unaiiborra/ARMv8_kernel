@@ -119,7 +119,8 @@ isize_t kvec_pop(kvec* k, void* out)
     uintptr i_offset = k->i_ * k->T_size_;
     void* dst = (void*)((uintptr)k->container_ + i_offset);
 
-    memcpy(out, dst, k->T_size_);
+    if (out)
+        memcpy(out, dst, k->T_size_);
 
 
     size_t capacity = k->container_bytes_ / k->T_size_;

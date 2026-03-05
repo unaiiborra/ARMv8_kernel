@@ -2,6 +2,8 @@
 
 #include <kernel/process/process.h>
 
+#include "kernel/process/thread.h"
+
 
 /// Allocates the user region according to the provided usr_va. It also
 /// allocates a kernel region mapped to the same pa range used by the usr region
@@ -12,4 +14,8 @@ void* process_malloc_usr_region(
     proc* usr_proc,
     v_uintptr usr_va,
     size_t pages,
-    mmu_pg_cfg* usr_mmu_cfg);
+    const mmu_pg_cfg* mmu_cfg);
+
+// to be used by the pthread_delete fn
+void process_add_thread_ref(proc* usr_proc, thread* pth);
+void process_remove_thread_ref(proc* usr_proc, thread* pth);

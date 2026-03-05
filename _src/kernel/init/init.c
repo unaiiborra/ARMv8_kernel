@@ -5,8 +5,8 @@
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
+#include <kernel/process/process.h>
 #include <lib/stdint.h>
-
 
 extern kernel_initcall_t __kernel_init_stage0_start[];
 extern kernel_initcall_t __kernel_init_stage0_end[];
@@ -28,34 +28,42 @@ KERNEL_INITCALL(rust_kernel_initcalls_stage2, KERNEL_INITCALL_STAGE2);
 
 void kernel_init(void)
 {
-	io_init();      // init kprint, kprintf...
-	mm_init();      // init kmalloc, cache malloc, etc.
+    io_init(); // init kprint, kprintf...
+    mm_init(); // init kmalloc, cache malloc, etc.
+    pthread_ctrl_init();
+    usr_proc_ctrl_init();
 
 
-	// Stage 0 (pre irq initialization)
-	for (kernel_initcall_t *fn = __kernel_init_stage0_start; fn < __kernel_init_stage0_end; fn++)
-		(*fn)();
+    // Stage 0 (pre irq initialization)
+    for (kernel_initcall_t* fn = __kernel_init_stage0_start;
+         fn < __kernel_init_stage0_end;
+         fn++)
+        (*fn)();
 
-	arm_exceptions_set_status((arm_exception_status) {
-		.fiq = true,
-		.irq = true,
-		.serror = true,
-		.debug = true,
-	});
+    arm_exceptions_set_status((arm_exception_status) {
+        .fiq = true,
+        .irq = true,
+        .serror = true,
+        .debug = true,
+    });
 
 
-	GICV3_init_distributor(&GIC_DRIVER);
-	GICV3_init_cpu(&GIC_DRIVER, ARM_get_cpu_affinity().aff0);
+    GICV3_init_distributor(&GIC_DRIVER);
+    GICV3_init_cpu(&GIC_DRIVER, ARM_get_cpu_affinity().aff0);
 
-	for (kernel_initcall_t *fn = __kernel_init_stage1_start; fn < __kernel_init_stage1_end; fn++)
-		(*fn)();
+    for (kernel_initcall_t* fn = __kernel_init_stage1_start;
+         fn < __kernel_init_stage1_end;
+         fn++)
+        (*fn)();
 
-	for (kernel_initcall_t *fn = __kernel_init_stage2_start; fn < __kernel_init_stage2_end; fn++)
-		(*fn)();
+    for (kernel_initcall_t* fn = __kernel_init_stage2_start;
+         fn < __kernel_init_stage2_end;
+         fn++)
+        (*fn)();
 
 
 #ifdef DEBUG_DUMP
-	term_prints("Identity mapping mmu: \n\r");
-	mm_dbg_print_mmu();
+    term_prints("Identity mapping mmu: \n\r");
+    mm_dbg_print_mmu();
 #endif
 }

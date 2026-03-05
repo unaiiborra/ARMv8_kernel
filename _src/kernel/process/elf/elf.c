@@ -1,15 +1,15 @@
 #include "elf.h"
 
+#include <arm/mmu.h>
+#include <kernel/mm.h>
 #include <kernel/mm/vmalloc.h>
 #include <kernel/panic.h>
 #include <kernel/process/process.h>
 #include <lib/mem.h>
 #include <lib/stdint.h>
 
-#include "arm/mmu.h"
-#include "kernel/mm.h"
-#include "lib/math.h"
-#include "process.h"
+#include "../process/process.h"
+
 
 #define EI_NIDENT 16
 
@@ -55,8 +55,52 @@ typedef enum {
 } segtype;
 
 
+// elf p_flags bits
+#define PF_X_BIT 0 // execute
+#define PF_W_BIT 1 // write
+#define PF_R_BIT 2 // read
+#define PF_X (1ULL << PF_X_BIT)
+#define PF_W (1ULL << PF_W_BIT)
+#define PF_R (1ULL << PF_R_BIT)
+
+
 extern void _cache_flush_range(void* start, void* end);
 
+/// read-write
+static const mmu_pg_cfg USR_MMU_RW_CFG = (mmu_pg_cfg) {
+    .attr_index = 0,
+    .ap = MMU_AP_EL0_RW_EL1_RW,
+    .shareability = MMU_SH_INNER_SHAREABLE,
+    .non_secure = false,
+    .access_flag = 1,
+    .pxn = true,
+    .uxn = true,
+    .sw = 0,
+};
+
+/// read-only
+static const mmu_pg_cfg USR_MMU_RO_CFG = (mmu_pg_cfg) {
+    .attr_index = 0,
+    .ap = MMU_AP_EL0_RO_EL1_RO,
+    .shareability = MMU_SH_INNER_SHAREABLE,
+    .non_secure = false,
+    .access_flag = 1,
+    .pxn = true,
+    .uxn = true,
+    .sw = 0,
+};
+
+/// read-executable
+static const mmu_pg_cfg USR_MMU_RX_CFG = (mmu_pg_cfg) {
+    .attr_index = 0,
+    .ap = MMU_AP_EL0_RO_EL1_RO,
+    .shareability = MMU_SH_INNER_SHAREABLE,
+    .non_secure = false,
+    .access_flag = 1,
+    .pxn = true,
+    .uxn = false,
+    .sw = 0,
+};
 
 elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
 {
@@ -87,16 +131,6 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
     ph = (Elf64_Phdr*)((v_uintptr)elf + (v_uintptr)eh->e_phoff);
     ph_n = eh->e_phnum;
 
-    mmu_pg_cfg cfg = (mmu_pg_cfg) {
-        .attr_index = 0,
-        .ap = MMU_AP_EL0_NONE_EL1_RW,
-        .shareability = 0,
-        .non_secure = false,
-        .access_flag = 1,
-        .pxn = 0,
-        .uxn = 0,
-        .sw = 0,
-    };
 
     for (size_t i = 0; i < ph_n; i++) {
         if (ph[i].p_type != PT_LOAD)
@@ -104,13 +138,36 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
 
         ASSERT(ph[i].p_memsz % KPAGE_SIZE == 0);
         ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
+        ASSERT(ph[i].p_vaddr % KPAGE_SIZE == 0);
+        ASSERT(ph[i].p_align % KPAGE_SIZE == 0);
 
+        ASSERT(ph[i].p_flags & PF_R, "elf section marked as read disabled");
+
+        uint64 data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
+
+        const mmu_pg_cfg* MMU_CFG;
+        switch (data_flags) {
+            case PF_R | PF_W:
+                MMU_CFG = &USR_MMU_RW_CFG; // read-write
+                break;
+            case PF_R:
+                MMU_CFG = &USR_MMU_RO_CFG; // read-only
+                break;
+            case PF_R | PF_X:
+                MMU_CFG = &USR_MMU_RX_CFG; // read-executable
+                break;
+            case PF_R | PF_W | PF_X:
+                PANIC("elf region configured as executable and writable");
+            default:
+                PANIC();
+        }
 
         void* kva = process_malloc_usr_region(
             usr_proc,
             ph[i].p_vaddr,
             ph[i].p_memsz / KPAGE_SIZE,
-            &cfg);
+            MMU_CFG);
+
 
         memcpy64(kva, (uint8*)elf + ph[i].p_offset, ph[i].p_filesz);
 
@@ -118,7 +175,7 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
         if (ph[i].p_memsz > ph[i].p_filesz) {
             void* dst = (void*)((uintptr)kva + ph[i].p_filesz);
             size_t rem_size = ph[i].p_memsz - ph[i].p_filesz;
-            
+
             memzero(dst, rem_size);
         }
 

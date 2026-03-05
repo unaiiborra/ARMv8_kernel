@@ -13,11 +13,11 @@ typedef union {
 } thread_aff;
 
 typedef struct {
-    uint64 gpr[31];    // x0-x30
-    uint64 vec[32][2]; // v0-v31
-    uint32 fpcr;
-    uint32 fpsr;
+    uint64 fpcr;
+    uint64 fpsr;
     uint64 sp;
+    uint64 gpr[31];                 // x0-x30
+    _Alignas(16) uint64 vec[32][2]; // v0-v31
 } thread_regs;
 
 typedef struct {
@@ -52,11 +52,14 @@ typedef struct {
     thread_state th_state;
     uint64 th_last_ns;
     thread_ctx* th_ctx;
-} pthread;
+} thread;
 
 
 struct proc;
 
 
-pthread* pthread_new(struct proc* owner, v_uintptr entry, size_t stack_pages);
-void pthread_delete(thread_ctx* pth);
+void pthread_ctrl_init();
+
+thread* thread_new(struct proc* owner);
+bool thread_delete(thread* pth);
+bool thread_resume(thread* pth);

@@ -13,22 +13,11 @@
 
 #include "arm/cpu.h"
 #include "kernel/io/stdio.h"
+#include "kernel/process/embedded_examples.h"
 #include "kernel/process/process.h"
+#include "kernel/process/thread.h"
 #include "mm/mm_info.h"
-#include "mm/phys/page_allocator.h"
-#include "mm/virt/vmalloc.h"
 
-
-static void debug_allocators(bool mmu_dump)
-{
-    if (mmu_dump)
-        kprint("\n\r=== MMU ===\n\r");
-
-    kprint("\n\r=== PAGE ALLOCATOR ===\n\r");
-    page_allocator_debug();
-    vmalloc_debug_free();
-    vmalloc_debug_reserved();
-}
 
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
 _Noreturn void kernel_entry()
@@ -45,8 +34,17 @@ _Noreturn void kernel_entry()
     __attribute((unused)) mm_ksections y = MM_KSECTIONS;
 
 
-    kprint("\n\rSTART\n\r");
+    proc* p_usr;
+    bool res =
+        usr_proc_new(&p_usr, (void*)&SVC_ELF[0], SVC_ELF_SIZE, "svc elf");
+    ASSERT(res);
 
+    thread* th;
+    kvec_get_copy(&p_usr->threads.pthreads, 0, &th);
+    thread_resume(th);
+
+
+    kprint("\n\rSTART\n\r");
 
     loop asm volatile("wfi");
 } /* kernel_entry */

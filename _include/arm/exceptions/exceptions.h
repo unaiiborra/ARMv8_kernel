@@ -4,10 +4,10 @@
 #include <lib/stdint.h>
 
 typedef struct {
-	bool	fiq;
-	bool	irq;
-	bool	serror;
-	bool	debug;
+    bool fiq;
+    bool irq;
+    bool serror;
+    bool debug;
 } arm_exception_status;
 
 /// true means enabled

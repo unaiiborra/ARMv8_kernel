@@ -1,3 +1,8 @@
 #include <arm/exceptions/handlers/handlers_macros.h>
+#include <kernel/exception/handler.h>
 
-DECLARE_EL1_EXCEPTION_HANDLER_PANIC(low, a64, sync);
+
+void el1_low_a64_sync_handler(void)
+{
+    exception_handler_sync();
+}

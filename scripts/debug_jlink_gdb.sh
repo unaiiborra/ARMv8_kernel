@@ -4,7 +4,7 @@ DEVICE="MIMX8MN6_A53_0"
 SPEED=4000
 IFACE=JTAG
 ELF="/home/unab/files/master/tfm/imx8mp/project/bin/kernel.elf"
-GDB="gdb"
+GDB=gdb
 
 LOW_TEXT=0x40200000
 HIGH_TEXT=0xffff800040200000

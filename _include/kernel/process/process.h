@@ -2,13 +2,13 @@
 
 #include <arm/mmu.h>
 #include <kernel/lib/kvec.h>
-#include <kernel/process/pthread.h>
+#include <kernel/process/thread.h>
 #include <lib/stdint.h>
 
 
 typedef struct {
-    v_uintptr k_va; // kernel va
-    v_uintptr u_va; // user va
+    v_uintptr knl_va; // kernel va
+    v_uintptr usr_va; // user va
     size_t pages;
 } proc_map_info;
 
@@ -38,11 +38,6 @@ typedef struct proc {
 } proc;
 
 
-bool usr_proc_new(
-    proc* out,
-    void* elf,
-    size_t elf_size,
-    const char* pname,
-    size_t stack_pages);
+void usr_proc_ctrl_init();
 
-void usr_proc_resume(proc* up);
+bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname);
