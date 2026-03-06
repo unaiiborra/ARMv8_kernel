@@ -36,6 +36,9 @@ _start:
 setup_system:
     stp x29, x30, [sp, #-16]!
 
+    mov x0, #0
+    msr sp_el0, x0
+
     bl _init_gpr
 #ifdef TEST
     mrs x0, CurrentEL

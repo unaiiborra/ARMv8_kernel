@@ -1,23 +1,19 @@
 #pragma once
 
 #include <arm/cpu.h>
+#include <arm/exceptions/exceptions.h>
 #include <kernel/lib/kvec.h>
+#include <kernel/process/process.h>
+#include <lib/lock/corelock.h>
 #include <lib/mem.h>
 #include <lib/stdint.h>
 
 typedef uint64 thread_id;
 
-typedef union {
-    ARM_cpu_affinity arm_aff;
-    uint32 core_id;
-} thread_aff;
 
 typedef struct {
-    uint64 fpcr;
-    uint64 fpsr;
     uint64 sp;
-    uint64 gpr[31];                 // x0-x30
-    _Alignas(16) uint64 vec[32][2]; // v0-v31
+    arm_exception_ctx ectx;
 } thread_regs;
 
 typedef struct {
@@ -27,8 +23,8 @@ typedef struct {
 
 typedef struct {
     thread_id th_id;
-    thread_aff th_aff;
-    struct proc* owner;
+    uint32 th_aff;
+    proc* owner;
 
     v_uintptr pc;
     thread_stack stack;
@@ -49,8 +45,9 @@ typedef enum {
 
 typedef struct {
     uint32 th_flags;
+    corelock_t th_lock;
     thread_state th_state;
-    uint64 th_last_ns;
+    uint64 th_last_time_us;
     thread_ctx* th_ctx;
 } thread;
 
@@ -60,6 +57,30 @@ struct proc;
 
 void pthread_ctrl_init();
 
-thread* thread_new(struct proc* owner);
+
+thread* thread_new(struct proc* owner, bool acquire);
 bool thread_delete(thread* pth);
-bool thread_resume(thread* pth);
+bool thread_try_acquire(thread* pth);
+bool thread_resume();
+
+/// releases the resumed thread for other cores to be able to take it
+void thread_release_current();
+
+
+/// should be called after an exception entry from el0 that involves
+/// thread or process manipulation or will leave the thread free
+void thread_userspace_save(arm_exception_ctx* ectx);
+
+/// should be called when trying to return from kernel space to userspace after
+/// an exception has occured
+void thread_userspace_restore(arm_exception_ctx* ectx);
+
+
+/// returns the thread being executed by the caller thread. If a thread has been
+/// released returns NULL
+static inline thread* thread_get_current()
+{
+    uintptr p_th;
+    asm volatile("mrs %0, sp_el0" : "=r"(p_th));
+    return (thread*)p_th;
+}

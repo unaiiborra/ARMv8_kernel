@@ -9,6 +9,7 @@
 #include <lib/stdint.h>
 
 #include "../process/process.h"
+#include "lib/align.h"
 
 
 #define EI_NIDENT 16
@@ -133,11 +134,11 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
 
 
     for (size_t i = 0; i < ph_n; i++) {
-        if (ph[i].p_type != PT_LOAD)
+        if (ph[i].p_type != PT_LOAD || ph[i].p_memsz == 0)
             continue;
 
-        ASSERT(ph[i].p_memsz % KPAGE_SIZE == 0);
         ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
+        ASSERT(ph[i].p_memsz % KPAGE_SIZE == 0);
         ASSERT(ph[i].p_vaddr % KPAGE_SIZE == 0);
         ASSERT(ph[i].p_align % KPAGE_SIZE == 0);
 
@@ -169,7 +170,9 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
             MMU_CFG);
 
 
-        memcpy64(kva, (uint8*)elf + ph[i].p_offset, ph[i].p_filesz);
+        if (ph[i].p_filesz != 0)
+            memcpy(kva, (uint8*)elf + ph[i].p_offset, ph[i].p_filesz);
+
 
         // memzero the remaining area
         if (ph[i].p_memsz > ph[i].p_filesz) {
@@ -179,7 +182,9 @@ elf_load_result elf_load(void* elf, size_t size, proc* usr_proc)
             memzero(dst, rem_size);
         }
 
-        _cache_flush_range(kva, (void*)((uintptr)kva + ph[i].p_memsz));
+        _cache_flush_range(
+            align_down_ptr(kva, 64),
+            align_down_ptr((void*)((uintptr)kva + ph[i].p_memsz), 64));
     }
 
     usr_proc->entry = eh->e_entry;

@@ -6,6 +6,7 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/process/process.h>
+#include <kernel/process/thread.h>
 #include <lib/stdint.h>
 
 extern kernel_initcall_t __kernel_init_stage0_start[];

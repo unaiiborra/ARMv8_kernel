@@ -35,13 +35,15 @@ _Noreturn void kernel_entry()
 
 
     proc* p_usr;
-    bool res =
-        usr_proc_new(&p_usr, (void*)&SVC_ELF[0], SVC_ELF_SIZE, "svc elf");
+    bool res = usr_proc_new(
+        &p_usr,
+        (void*)&SYSC_PRINT_ELF[0],
+        SYSC_PRINT_ELF_SIZE,
+        "svc elf",
+        true);
     ASSERT(res);
 
-    thread* th;
-    kvec_get_copy(&p_usr->threads.pthreads, 0, &th);
-    thread_resume(th);
+    thread_resume();
 
 
     kprint("\n\rSTART\n\r");

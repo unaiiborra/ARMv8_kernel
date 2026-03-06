@@ -1,9 +1,10 @@
 #pragma once
 
 #include <kernel/process/thread.h>
+#include <lib/lock/corelock.h>
 #include <lib/mem.h>
+#include <lib/stdint.h>
 
-#include "lib/stdint.h"
 
 extern void _thread_switch_el0(
     v_uintptr pc,
@@ -14,8 +15,10 @@ extern void _thread_switch_el0(
     uint64 vec[32][2]);
 
 
-/// returns the last being executed thread of the fn caller core. If no thread
-/// is being executed or the thread has been destroyed returns NULL
-thread* thread_get_local();
-
-extern void _thread_save_state(void);
+/// for internal use of proc_new, where the thread needs to be locked but might
+/// not be needed to be acquired
+thread* thread_new_locked_unaquired(proc* owner);
+static inline void thread_unlock(thread* th)
+{
+    core_unlock(&th->th_lock);
+}

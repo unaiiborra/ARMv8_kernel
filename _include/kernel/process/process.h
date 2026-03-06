@@ -2,14 +2,17 @@
 
 #include <arm/mmu.h>
 #include <kernel/lib/kvec.h>
-#include <kernel/process/thread.h>
+#include <lib/mem.h>
 #include <lib/stdint.h>
 
 
 typedef struct {
     v_uintptr knl_va; // kernel va
     v_uintptr usr_va; // user va
-    size_t pages;
+    uint32 pages;
+    bool read;
+    bool write;
+    bool execute;
 } proc_map_info;
 
 
@@ -22,7 +25,7 @@ typedef struct {
 typedef struct {
     uint64 pthread_id_counter;
     size_t pthread_count;
-    kvec_T(pthread*) pthreads;
+    kvec_T(thread*) pthreads;
 } proc_threads;
 
 
@@ -40,4 +43,12 @@ typedef struct proc {
 
 void usr_proc_ctrl_init();
 
-bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname);
+bool usr_proc_new(
+    proc** out,
+    void* elf,
+    size_t elf_size,
+    const char* pname,
+    bool acquire_thread);
+
+
+bool proc_get_usrmap_info(proc* pr, v_uintptr usrva, proc_map_info* out);

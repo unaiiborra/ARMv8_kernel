@@ -1,6 +1,7 @@
 #include <arm/cpu.h>
 #include <arm/mmu.h>
 #include <kernel/lib/kvec.h>
+#include <kernel/lib/smp.h>
 #include <kernel/mm.h>
 #include <kernel/mm/vmalloc.h>
 #include <kernel/panic.h>
@@ -15,6 +16,8 @@
 #include <lib/unit/mem.h>
 
 #include "../elf/elf.h"
+#include "../thread/thread.h"
+
 
 static const mmu_pg_cfg USR_PROC_STACK_MMU_CFG = (mmu_pg_cfg) {
     .attr_index = 0,
@@ -32,7 +35,7 @@ void* process_malloc_usr_region(
     proc* usr_proc,
     v_uintptr usr_va,
     size_t pages,
-    const mmu_pg_cfg* mmu_cfg)
+    const mmu_pg_cfg* usr_mmu_cfg)
 {
     ASSERT(pages > 0);
 
@@ -60,7 +63,7 @@ void* process_malloc_usr_region(
             usr_va + offset,
             pa_info[i].pa,
             size,
-            *mmu_cfg,
+            *usr_mmu_cfg,
             NULL);
 
         ASSERT(map_res == MMU_MAP_OK);
@@ -97,6 +100,10 @@ void* process_malloc_usr_region(
             .knl_va = (v_uintptr)knl_va,
             .usr_va = usr_va,
             .pages = pages,
+            .read = usr_mmu_cfg->ap == MMU_AP_EL0_RO_EL1_RO ||
+                    usr_mmu_cfg->ap == MMU_AP_EL0_RW_EL1_RW,
+            .write = usr_mmu_cfg->ap == MMU_AP_EL0_RW_EL1_RW,
+            .execute = !usr_mmu_cfg->uxn,
         });
 
     return knl_va;
@@ -188,13 +195,39 @@ retry:
 uint64 pid_counter;
 kvec_T(proc*) procs;
 
+
+bool proc_get_usrmap_info(proc* pr, v_uintptr usrva, proc_map_info* out)
+{
+    const size_t N = kvec_len(pr->map.pmap_info);
+
+    for (size_t i = 0; i < N; i++) {
+        const proc_map_info* info;
+        bool res = kvec_get_mut(&pr->map.pmap_info, i, (void**)&info);
+        DEBUG_ASSERT(res);
+
+        if (usrva >= info->usr_va &&
+            usrva <= info->usr_va + info->pages * KPAGE_SIZE) {
+            *out = *info;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 void usr_proc_ctrl_init()
 {
     pid_counter = 0;
     procs = kvec_new(proc*);
 }
 
-bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname)
+bool usr_proc_new(
+    proc** out,
+    void* elf,
+    size_t elf_size,
+    const char* pname,
+    bool acquire_thread)
 {
     proc* p = kmalloc(sizeof(proc));
 
@@ -220,7 +253,9 @@ bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname)
     ASSERT(elfres == ELF_LOAD_OK);
 
 
-    thread* th = thread_new(p);
+    thread* th =
+        acquire_thread ? thread_new(p, true) : thread_new_locked_unaquired(p);
+
     thread_ctx* th_ctx = th->th_ctx;
     DEBUG_ASSERT(th_ctx->owner == p);
 
@@ -240,7 +275,7 @@ bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname)
 
     *th_ctx = (thread_ctx) {
         .th_id = th_ctx->th_id,
-        .th_aff = {.arm_aff = ARM_get_cpu_affinity()},
+        .th_aff = get_core_id(),
         .owner = th_ctx->owner,
         .pc = p->entry,
         .stack =
@@ -256,6 +291,9 @@ bool usr_proc_new(proc** out, void* elf, size_t elf_size, const char* pname)
     };
 
     *out = p;
+
+    if (!acquire_thread)
+        thread_unlock(th);
 
     return true;
 }
