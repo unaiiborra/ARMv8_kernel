@@ -2,6 +2,7 @@
 
 #include <arm/mmu.h>
 #include <kernel/hardware.h>
+#include <kernel/mm/mmu.h>
 #include <lib/stdmacros.h>
 
 #include "../init/mem_regions/early_kalloc.h"
@@ -11,8 +12,10 @@
 #include "lib/mem.h"
 #include "lib/stdint.h"
 
-mmu_mapping MM_MMU_KERNEL_MAPPING;
-mmu_mapping MM_MMU_UNMAPPED_LO;
+mmu_mapping KERNEL_MAPPING;
+mmu_mapping UNMAPPED_LO;
+mmu_mapping* const MM_MMU_KERNEL_MAPPING = &KERNEL_MAPPING;
+mmu_mapping* const MM_MMU_UNMAPPED_LO = &UNMAPPED_LO;
 
 
 static mmu_core_handle handles[NUM_CORES];
@@ -61,7 +64,7 @@ static void* unmapped_lo_allocator(size_t)
 
 void mm_mmu_early_init()
 {
-    MM_MMU_UNMAPPED_LO = mmu_mapping_new(
+    UNMAPPED_LO = mmu_mapping_new(
         MMU_LO,
         MMU_GRANULARITY_4KB,
         48,
@@ -69,7 +72,7 @@ void mm_mmu_early_init()
         unmapped_lo_allocator_first_tbl,
         NULL);
 
-    mmu_mapping_set_allocator(&MM_MMU_UNMAPPED_LO, unmapped_lo_allocator);
+    mmu_mapping_set_allocator(&UNMAPPED_LO, unmapped_lo_allocator);
 }
 
 

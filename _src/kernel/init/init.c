@@ -5,8 +5,6 @@
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
-#include <kernel/process/process.h>
-#include <kernel/process/thread.h>
 #include <lib/stdint.h>
 
 extern kernel_initcall_t __kernel_init_stage0_start[];
@@ -31,8 +29,6 @@ void kernel_init(void)
 {
     io_init(); // init kprint, kprintf...
     mm_init(); // init kmalloc, cache malloc, etc.
-    pthread_ctrl_init();
-    usr_proc_ctrl_init();
 
 
     // Stage 0 (pre irq initialization)

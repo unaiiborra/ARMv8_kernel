@@ -23,7 +23,7 @@ void fkprint(io_out io, const char* s);
 
 #ifdef DEBUG
 #    define dbg_printf(s, ...) fkprintf(IO_STDOUT, s, __VA_ARGS__)
-#    define dbg_print(s) fkprint(IO_STDOUT, s)
+#    define dbg_print(s) fkprint(IO_STDOUT, "\n\r[dbg] " s)
 #else
 #    define dbg_printf(s, ...)
 #    define dbg_print(s)

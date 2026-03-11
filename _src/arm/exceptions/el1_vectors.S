@@ -62,7 +62,7 @@ _el1_init_vector:
     msr FPCR, x0
     msr FPSR, x1
 
-    add x9, sp, ARM_STRUCT_ECTX_OFFSETOF_V
+    add x9, sp, #ARM_STRUCT_ECTX_OFFSETOF_V
 
     ld1 {v0.16b,  v1.16b},  [x9], #32
     ld1 {v2.16b,  v3.16b},  [x9], #32

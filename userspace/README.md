@@ -1,0 +1,1 @@
+This folder contains the userspace standard library files. It also provides a basic template (/template) for copying and setting a project quickly with access to the stl.

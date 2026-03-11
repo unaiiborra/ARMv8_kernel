@@ -13,9 +13,6 @@
 
 #include "arm/cpu.h"
 #include "kernel/io/stdio.h"
-#include "kernel/process/embedded_examples.h"
-#include "kernel/process/process.h"
-#include "kernel/process/thread.h"
 #include "mm/mm_info.h"
 
 
@@ -32,18 +29,6 @@ _Noreturn void kernel_entry()
     }
 
     __attribute((unused)) mm_ksections y = MM_KSECTIONS;
-
-
-    proc* p_usr;
-    bool res = usr_proc_new(
-        &p_usr,
-        (void*)&SYSC_PRINT_ELF[0],
-        SYSC_PRINT_ELF_SIZE,
-        "svc elf",
-        true);
-    ASSERT(res);
-
-    thread_resume();
 
 
     kprint("\n\rSTART\n\r");

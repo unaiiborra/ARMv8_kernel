@@ -1,7 +1,6 @@
 #include <arm/exceptions/handlers/handlers_macros.h>
 #include <kernel/exception/handler.h>
 #include <kernel/io/stdio.h>
-#include <kernel/process/thread.h>
 #include <lib/stdint.h>
 
 

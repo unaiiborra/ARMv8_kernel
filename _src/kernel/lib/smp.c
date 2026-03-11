@@ -7,15 +7,7 @@
 
 #include "lib/stdint.h"
 
-uint64 get_core_id()
-{
-    uint64 v = _ARM_MPIDR_EL1();
-    uint64 cpuid = v & 0xFF;
 
-    DEBUG_ASSERT(cpuid < NUM_CORES);
-
-    return cpuid;
-};
 
 
 bool wake_core(uint64 core_id, uintptr entry_addr, uint64 context)

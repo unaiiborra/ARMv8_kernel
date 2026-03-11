@@ -3,6 +3,7 @@
 #include <arm/mmu.h>
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
+#include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
 #include <lib/stdint.h>
@@ -10,7 +11,6 @@
 #include <lib/string.h>
 
 #include "../init/mem_regions/early_kalloc.h"
-#include "../mm_mmu/mm_mmu.h"
 #include "mem_regions/mem_regions.h"
 
 
@@ -64,7 +64,7 @@ void early_identity_mapping()
         (void*)mm_as_kpa((uintptr)im_alloc),
         (void*)mm_as_kpa((uintptr)im_free));
 
-    MM_MMU_KERNEL_MAPPING = mmu_mapping_new(
+    *MM_MMU_KERNEL_MAPPING = mmu_mapping_new(
         MMU_HI,
         MMU_GRANULARITY_4KB,
         48,
@@ -121,7 +121,7 @@ void early_identity_mapping()
         ASSERT(mres == MMU_MAP_OK);
 
         mres = mmu_map(
-            &MM_MMU_KERNEL_MAPPING,
+            MM_MMU_KERNEL_MAPPING,
             mm_as_kva(r.start),
             mm_as_kpa(r.start),
             r.size,
@@ -134,7 +134,7 @@ void early_identity_mapping()
     bool result = mmu_core_handle_new(
         core0_handle,
         &early_lo_mapping,
-        &MM_MMU_KERNEL_MAPPING,
+        MM_MMU_KERNEL_MAPPING,
         true,
         true,
         true,

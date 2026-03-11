@@ -2,6 +2,7 @@
 
 #include <arm/mmu.h>
 #include <kernel/mm.h>
+#include <kernel/mm/mmu.h>
 #include <kernel/mm/page_malloc.h>
 #include <kernel/mm/vmalloc.h>
 #include <kernel/panic.h>
@@ -12,7 +13,6 @@
 #include <lib/stdint.h>
 #include <lib/stdmacros.h>
 
-#include "../../mm_mmu/mm_mmu.h"
 #include "../internal/reserve_malloc.h"
 
 
@@ -106,7 +106,7 @@ static void* raw_kmalloc_kmap(
         cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
 
     mmu_map_result mmu_res = mmu_map(
-        &MM_MMU_KERNEL_MAPPING,
+        MM_MMU_KERNEL_MAPPING,
         va,
         pa,
         pages * KPAGE_SIZE,
@@ -169,7 +169,7 @@ static void* raw_kmalloc_dynamic(
          */
 
         bool mmu_res =
-            mmu_map(&MM_MMU_KERNEL_MAPPING, va, pa, order_bytes, *mmu_cfg, NULL);
+            mmu_map(MM_MMU_KERNEL_MAPPING, va, pa, order_bytes, *mmu_cfg, NULL);
         ASSERT(mmu_res == MMU_MAP_OK);
 
 
@@ -256,7 +256,7 @@ void raw_kfree(void* ptr)
 
             if (vinfo.pa_assigned) {
                 result = mmu_unmap(
-                    &MM_MMU_KERNEL_MAPPING,
+                    MM_MMU_KERNEL_MAPPING,
                     (v_uintptr)ptr,
                     bytes,
                     NULL);
@@ -279,7 +279,7 @@ void raw_kfree(void* ptr)
             size_t bytes = vfree(vtoken, NULL);
 
             result =
-                mmu_unmap(&MM_MMU_KERNEL_MAPPING, (v_uintptr)ptr, bytes, NULL);
+                mmu_unmap(MM_MMU_KERNEL_MAPPING, (v_uintptr)ptr, bytes, NULL);
             ASSERT(result);
         }
     }

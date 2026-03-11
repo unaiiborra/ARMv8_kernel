@@ -22,17 +22,18 @@ def main():
         out.write("/* Auto-generated from %s */\n" % os.path.basename(elf_path))
         out.write("/* Size: %d bytes */\n\n" % len(data))
 
-        out.write("const unsigned char test_elf[] = {\n")
+        out.write("const unsigned long test_elf_size = %d;\n" % len(data))
 
+        out.write("const unsigned char test_elf[] = {\n")
         for i, b in enumerate(data):
             out.write(f"0x{b:02x},")
             if (i + 1) % 16 == 0:
                 out.write("\n")
             else:
                 out.write(" ")
-
         out.write("\n};\n\n")
-        out.write("const unsigned long test_elf_size = %d;\n" % len(data))
+        
+
 
     print(f"Generated: {out_path}")
     print(f"Size: {len(data)} bytes")

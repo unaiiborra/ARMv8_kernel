@@ -13,4 +13,7 @@ typedef enum {
 typedef int64 (*syscall_handler)(const uint64 args[6]);
 
 
-void sysc64_dispatch(arm_exception_ctx* ectx);
+static inline void sysc64_dispatch(arm_exception_ctx* ectx)
+{
+    (void)ectx;
+};

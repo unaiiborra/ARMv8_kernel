@@ -1,13 +1,12 @@
-#include "sync.h"
-
+#include <arm/exceptions/sync.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/exception/handler.h>
-#include <kernel/process/thread.h>
 #include <kernel/syscall.h>
 #include <lib/stdint.h>
 
 #include "kernel/io/stdio.h"
 #include "kernel/panic.h"
+#include "kernel/scheduler.h"
 
 
 // https://developer.arm.com/documentation/102412/0103/Handling-excepcions/Exception-handling-examples
@@ -78,9 +77,9 @@ void exception_handler_sync(arm_exception_ctx* ectx)
 
         case ESR_EC_SVC_AARCH64:
             dbg_print("exception: ESR_EC_SVC_AARCH64\n\r");
-            thread_userspace_save(ectx);
+            scheduler_ectx_save(ectx);
             sysc64_dispatch(ectx);
-            thread_userspace_restore(ectx);
+            schedurer_ectx_restore(ectx);
             break;
 
         case ESR_EC_SYSREG_AARCH64:
