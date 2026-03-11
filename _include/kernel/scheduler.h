@@ -6,11 +6,11 @@
 #include <kernel/mm/umalloc.h>
 #include <lib/lock/spinlock.h>
 #include <lib/stdbitfield.h>
-#include <lib/stdint.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "arm/exceptions/exceptions.h"
 #include "kernel/lib/kvec.h"
-
 
 void scheduler_loop_cpu_enter();
 void scheduler_loop_cpu_exit();
@@ -29,7 +29,7 @@ typedef struct usr_region_node {
 
 
 typedef struct utask {
-    uint64 task_uid;
+    uint64_t task_uid;
     const char* task_name;
     spinlock_t lock;
 
@@ -40,7 +40,7 @@ typedef struct utask {
 
 
 typedef struct {
-    uint64 task_uid;
+    uint64_t task_uid;
     const char* task_name;
     spinlock_t lock;
     void (*fn)(void* args);
@@ -65,18 +65,17 @@ typedef enum {
 } thread_state;
 
 typedef struct thread {
-    uint64 th_uid;
+    uint64_t th_uid;
 
     union {
         ktask* ktask;
         utask* utask;
     } task;
 
-    uint64 sp;
-    uint64 pc;
+    uint64_t sp;
+    uint64_t pc;
     arm_exception_ctx ctx;
 
-    uint64 last_access_time_us;
-    uint32 th_flags;
+    uint64_t last_access_time_us;
+    uint32_t th_flags;
 } thread;
-

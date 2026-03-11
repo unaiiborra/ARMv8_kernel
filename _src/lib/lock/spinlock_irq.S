@@ -4,7 +4,7 @@
 
 .global _spin_lock_irqsave
 // x0 = spinlock_t *lock
-// return uint64 flags
+// return uint64_t flags
 _spin_lock_irqsave:
     mrs     x4, DAIF
     msr     DAIFSET, #0b10    // disable irq
@@ -19,7 +19,7 @@ _spin_lock_irqsave:
 
 .global _spin_unlock_irqrestore
 // x0 = spinlock_t *lock
-// x1 = uint64 flags
+// x1 = uint64_t flags
 _spin_unlock_irqrestore:
     mov     x4, x1
     

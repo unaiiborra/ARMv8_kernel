@@ -23,5 +23,5 @@
 #include <drivers/uart/raw/uart_utxd.h>
 
 
-extern const uint8 USR1_IRQ_W1C_BITS_[9];
-extern const uint8 USR2_IRQ_W2C_BITS_[8];
+extern const uint8_t USR1_IRQ_W1C_BITS_[9];
+extern const uint8_t USR2_IRQ_W2C_BITS_[8];

@@ -2,7 +2,8 @@
 #include <arm/sysregs/sysregs.h>
 #include <kernel/exception/handler.h>
 #include <kernel/syscall.h>
-#include <lib/stdint.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/io/stdio.h"
 #include "kernel/panic.h"
@@ -15,7 +16,7 @@
 
 void exception_handler_sync(arm_exception_ctx* ectx)
 {
-    uint64 esr_el1 = _ARM_ESR_EL1();
+    uint64_t esr_el1 = _ARM_ESR_EL1();
     esr_ec exception_class = ESR_EC(esr_el1);
 
     switch (exception_class) {

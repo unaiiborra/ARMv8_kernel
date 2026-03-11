@@ -9,9 +9,10 @@
 #include <lib/lock/corelock.h>
 #include <lib/math.h>
 #include <lib/mem.h>
-#include <lib/stdbool.h>
-#include <lib/stdint.h>
 #include <lib/stdmacros.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "../internal/reserve_malloc.h"
 
@@ -62,7 +63,7 @@ static corelock_t lock;
 
 
 static inline vmalloc_cfg
-vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg* cfg, p_uintptr kmap_pa)
+vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg* cfg, p_uintptr_t kmap_pa)
 {
     return (vmalloc_cfg) {
         .assing_pa = cfg->assign_pa,
@@ -89,7 +90,7 @@ static void* raw_kmalloc_kmap(
 
     size_t o = log2_floor(pages);
 
-    p_uintptr pa = page_malloc(
+    p_uintptr_t pa = page_malloc(
         o,
         (mm_page_data) {
             .tag = tag,
@@ -97,7 +98,7 @@ static void* raw_kmalloc_kmap(
             .permanent = cfg->permanent,
         });
 
-    v_uintptr va =
+    v_uintptr_t va =
         vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa), NULL);
 
     DEBUG_ASSERT(ptrs_are_kmapped(pv_ptr_new(pa, va)));
@@ -138,10 +139,10 @@ static void* raw_kmalloc_dynamic(
         cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
 
     vmalloc_token vtoken;
-    v_uintptr start =
+    v_uintptr_t start =
         vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0), &vtoken);
 
-    v_uintptr va = start;
+    v_uintptr_t va = start;
     size_t rem = pages;
 
     while (rem > 0) {
@@ -151,7 +152,7 @@ static void* raw_kmalloc_dynamic(
         /*
          *  get phys page
          */
-        p_uintptr pa = page_malloc(
+        p_uintptr_t pa = page_malloc(
             o,
             (mm_page_data) {
                 .tag = tag,
@@ -214,7 +215,7 @@ void* __raw_kmalloc(
         else
             va = raw_kmalloc_dynamic(pages, tag, cfg, info);
 
-        DEBUG_ASSERT((v_uintptr)va % KPAGE_ALIGN == 0);
+        DEBUG_ASSERT((v_uintptr_t)va % KPAGE_ALIGN == 0);
 
         if (cfg->fill_reserve)
             reserve_malloc_fill();
@@ -224,9 +225,9 @@ void* __raw_kmalloc(
         memzero64(va, pages * KPAGE_SIZE);
 
 #ifdef DEBUG
-        uint64* ptr = (uint64*)va;
-        DEBUG_ASSERT((uintptr)va % KPAGE_SIZE == 0);
-        for (size_t i = 0; i < (pages * KPAGE_SIZE) / sizeof(uint64); i++)
+        uint64_t* ptr = (uint64_t*)va;
+        DEBUG_ASSERT((uintptr_t)va % KPAGE_SIZE == 0);
+        for (size_t i = 0; i < (pages * KPAGE_SIZE) / sizeof(uint64_t); i++)
             DEBUG_ASSERT(ptr[i] == 0);
 #endif
     }
@@ -251,13 +252,13 @@ void raw_kfree(void* ptr)
 
             DEBUG_ASSERT(is_pow2(bytes));
 
-            page_free(mm_kva_to_kpa((v_uintptr)ptr));
+            page_free(kva_to_kpa((v_uintptr_t)ptr));
 
 
             if (vinfo.pa_assigned) {
                 result = mmu_unmap(
                     MM_MMU_KERNEL_MAPPING,
-                    (v_uintptr)ptr,
+                    (v_uintptr_t)ptr,
                     bytes,
                     NULL);
                 ASSERT(result);
@@ -279,7 +280,7 @@ void raw_kfree(void* ptr)
             size_t bytes = vfree(vtoken, NULL);
 
             result =
-                mmu_unmap(MM_MMU_KERNEL_MAPPING, (v_uintptr)ptr, bytes, NULL);
+                mmu_unmap(MM_MMU_KERNEL_MAPPING, (v_uintptr_t)ptr, bytes, NULL);
             ASSERT(result);
         }
     }

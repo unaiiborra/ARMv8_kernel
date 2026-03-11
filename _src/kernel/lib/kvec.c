@@ -4,10 +4,10 @@
 #include <kernel/panic.h>
 #include <lib/math.h>
 #include <lib/mem.h>
-#include <lib/stdbool.h>
-#include <lib/stdint.h>
 #include <lib/stdmacros.h>
-
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define MIN_VEC_ITEMS 8
 #define MIN_ORDER 6
@@ -92,15 +92,15 @@ static void downsize_vec(kvec* k)
 }
 
 
-isize_t kvec_push(kvec* k, const void* in)
+int64_t kvec_push(kvec* k, const void* in)
 {
-    uintptr i_offset = k->i_ * k->T_size_;
+    uintptr_t i_offset = k->i_ * k->T_size_;
 
     if (i_offset + k->T_size_ > k->container_bytes_)
         upsize_vec(k);
 
 
-    void* dst = (void*)((uintptr)k->container_ + i_offset);
+    void* dst = (void*)((uintptr_t)k->container_ + i_offset);
     memcpy(dst, in, k->T_size_);
 
 
@@ -108,7 +108,7 @@ isize_t kvec_push(kvec* k, const void* in)
 }
 
 
-isize_t kvec_pop(kvec* k, void* out)
+int64_t kvec_pop(kvec* k, void* out)
 {
     if (k->i_ == 0)
         return -1;
@@ -116,8 +116,8 @@ isize_t kvec_pop(kvec* k, void* out)
 
     k->i_--;
 
-    uintptr i_offset = k->i_ * k->T_size_;
-    void* dst = (void*)((uintptr)k->container_ + i_offset);
+    uintptr_t i_offset = k->i_ * k->T_size_;
+    void* dst = (void*)((uintptr_t)k->container_ + i_offset);
 
     if (out)
         memcpy(out, dst, k->T_size_);
@@ -139,12 +139,12 @@ bool kvec_set(const kvec* k, size_t i, const void* in, void* prev)
         return false;
 
     if (prev) {
-        void* src = (void*)((uintptr)k->container_ + i * k->T_size_);
+        void* src = (void*)((uintptr_t)k->container_ + i * k->T_size_);
         memcpy(prev, src, k->T_size_);
     }
 
 
-    void* dst = (void*)((uintptr)k->container_ + i * k->T_size_);
+    void* dst = (void*)((uintptr_t)k->container_ + i * k->T_size_);
     memcpy(dst, in, k->T_size_);
 
     return true;
@@ -156,7 +156,7 @@ bool kvec_get_copy(const kvec* k, size_t i, void* out)
     if (i >= k->i_ || !out)
         return false;
 
-    void* src = (void*)((uintptr)k->container_ + i * k->T_size_);
+    void* src = (void*)((uintptr_t)k->container_ + i * k->T_size_);
     memcpy(out, src, k->T_size_);
 
     return true;
@@ -168,7 +168,7 @@ bool kvec_get_mut(const kvec* k, size_t i, void** out)
     if (i >= k->i_ || !out)
         return false;
 
-    void* src = (void*)((uintptr)k->container_ + i * k->T_size_);
+    void* src = (void*)((uintptr_t)k->container_ + i * k->T_size_);
 
     *out = src;
 

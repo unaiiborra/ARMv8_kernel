@@ -1,9 +1,9 @@
 #pragma once
 
 #ifndef __ASSEMBLER__
-#    include <lib/stdbool.h>
-#    include <lib/stdint.h>
-
+#    include <stdbool.h>
+#    include <stddef.h>
+#    include <stdint.h>
 typedef struct {
     bool fiq;
     bool irq;
@@ -29,10 +29,10 @@ size_t arm_get_exception_level();
 
 
 typedef struct {
-    uint64 fpcr;
-    uint64 fpsr;
-    uint64 x[31];                 // x0-x30
-    _Alignas(16) uint64 v[32][2]; // v0-v31
+    uint64_t fpcr;
+    uint64_t fpsr;
+    uint64_t x[31];                 // x0-x30
+    _Alignas(16) uint64_t v[32][2]; // v0-v31
 } arm_exception_ctx;
 #endif
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <arm/exceptions/exceptions.h>
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 typedef enum {
     SYSC_PRINT = 0,
 
@@ -10,7 +10,7 @@ typedef enum {
 } syscall;
 
 
-typedef int64 (*syscall_handler)(const uint64 args[6]);
+typedef int64_t (*syscall_handler)(const uint64_t args[6]);
 
 
 static inline void sysc64_dispatch(arm_exception_ctx* ectx)

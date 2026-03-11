@@ -4,7 +4,7 @@
     Standard memcpy 
 */
 
-// void *_memcpy64(void *dst, void *src, uint64 size);
+// void *_memcpy64(void *dst, void *src, uint64_t size);
 .global _memcpy
 .align 4
 _memcpy:
@@ -139,7 +139,7 @@ hang:
     ----------------------------------------- 
 */
 
-// void *_memcpy64(void *dst, void *src, uint64 size);
+// void *_memcpy64(void *dst, void *src, uint64_t size);
 .global _memcpy64
 .align 4
 _memcpy64:
@@ -160,7 +160,7 @@ return64:
     mov     x0, x3
     ret
 
-// void *_memcpy32(void *dst, void *src, uint64 size);
+// void *_memcpy32(void *dst, void *src, uint64_t size);
 .global _memcpy32
 .align 4
 _memcpy32:
@@ -181,7 +181,7 @@ return32:
     mov     x0, x3
     ret
 
-// void *_memcpy16(void *dst, void *src, uint64 size);
+// void *_memcpy16(void *dst, void *src, uint64_t size);
 .global _memcpy16
 .align 4
 _memcpy16:
@@ -201,7 +201,7 @@ return16:
     mov     x0,x3
     ret
 
-// void *_memcpy8(void *dst, void *src, uint64 size);
+// void *_memcpy8(void *dst, void *src, uint64_t size);
 .global _memcpy8
 .align 4
 _memcpy8:
@@ -222,7 +222,7 @@ return8:
     mov     x0, x3
     ret
 
-// void *_memcpy4(void *dst, void *src, uint64 size);
+// void *_memcpy4(void *dst, void *src, uint64_t size);
 .global _memcpy4
 .align 4
 _memcpy4:
@@ -243,7 +243,7 @@ return4:
     mov     x0, x3
     ret
 
-// void *_memcpy2(void *dst, void *src, uint64 size);
+// void *_memcpy2(void *dst, void *src, uint64_t size);
 .global _memcpy2
 .align 4
 _memcpy2:
@@ -264,7 +264,7 @@ return2:
     mov     x0, x3
     ret
 
-// void *_memcpy1(void *dst, void *src, uint64 size);
+// void *_memcpy1(void *dst, void *src, uint64_t size);
 .global _memcpy1
 .align 4
 _memcpy1:

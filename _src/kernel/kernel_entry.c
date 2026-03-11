@@ -7,12 +7,13 @@
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
-#include <lib/stdint.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
+#include <stddef.h>
 
 #include "arm/cpu.h"
 #include "kernel/io/stdio.h"
+#include "kernel/scheduler.h"
 #include "mm/mm_info.h"
 
 
@@ -32,6 +33,9 @@ _Noreturn void kernel_entry()
 
 
     kprint("\n\rSTART\n\r");
+
+    scheduler_loop_cpu_enter();
+
 
     loop asm volatile("wfi");
 } /* kernel_entry */

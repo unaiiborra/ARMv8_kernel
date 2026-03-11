@@ -6,9 +6,11 @@
 #include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
-#include <lib/stdint.h>
+#include <lib/stdint_extra.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "mem_regions/mem_regions.h"
@@ -23,7 +25,7 @@ mmu_mapping early_lo_mapping;
 /// still enabled
 static void* im_alloc(size_t bytes)
 {
-    p_uintptr pa = early_kalloc(bytes, "mmu table", false, false).pa;
+    p_uintptr_t pa = early_kalloc(bytes, "mmu table", false, false).pa;
 
     memzero((void*)pa, bytes);
 
@@ -38,7 +40,7 @@ static void im_free(void* addr)
     char buf[200];
 
     stdint_to_ascii(
-        (STDINT_UNION) {.uint64 = (v_uintptr)addr},
+        (STDINT_UNION) {.uint64 = (v_uintptr_t)addr},
         STDINT_UINT64,
         buf,
         200,
@@ -61,16 +63,16 @@ void early_identity_mapping()
         MMU_GRANULARITY_4KB,
         48,
         0x0,
-        (void*)mm_as_kpa((uintptr)im_alloc),
-        (void*)mm_as_kpa((uintptr)im_free));
+        (void*)as_kpa((uintptr_t)im_alloc),
+        (void*)as_kpa((uintptr_t)im_free));
 
-    *MM_MMU_KERNEL_MAPPING = mmu_mapping_new(
+    *pt_as_kpa(MM_MMU_KERNEL_MAPPING) = mmu_mapping_new(
         MMU_HI,
         MMU_GRANULARITY_4KB,
         48,
         0x0,
-        (void*)mm_as_kpa((uintptr)im_alloc),
-        (void*)mm_as_kpa((uintptr)im_free));
+        (void*)as_kpa((uintptr_t)im_alloc),
+        (void*)as_kpa((uintptr_t)im_free));
 
 
     const mmu_pg_cfg DEVICE_CFG = mmu_pg_cfg_new(
@@ -95,7 +97,7 @@ void early_identity_mapping()
 
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
-        const mem_region r = mm_as_kpa_ptr(MEM_REGIONS.REGIONS)[i];
+        const mem_region r = pt_as_kpa(MEM_REGIONS.REGIONS)[i];
 
         const mmu_pg_cfg* CFG;
         switch (r.type) {
@@ -113,17 +115,17 @@ void early_identity_mapping()
         mmu_map_result mres;
         mres = mmu_map(
             &early_lo_mapping,
-            mm_as_kpa(r.start),
-            mm_as_kpa(r.start),
+            as_kpa(r.start),
+            as_kpa(r.start),
             r.size,
             *CFG,
             NULL);
         ASSERT(mres == MMU_MAP_OK);
 
         mres = mmu_map(
-            MM_MMU_KERNEL_MAPPING,
-            mm_as_kva(r.start),
-            mm_as_kpa(r.start),
+            pt_as_kpa(MM_MMU_KERNEL_MAPPING),
+            as_kva(r.start),
+            as_kpa(r.start),
             r.size,
             *CFG,
             NULL);
@@ -134,7 +136,7 @@ void early_identity_mapping()
     bool result = mmu_core_handle_new(
         core0_handle,
         &early_lo_mapping,
-        MM_MMU_KERNEL_MAPPING,
+        pt_as_kpa(MM_MMU_KERNEL_MAPPING),
         true,
         true,
         true,

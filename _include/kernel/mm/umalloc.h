@@ -3,27 +3,27 @@
 #include <arm/mmu.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 struct utask;
 
 
 typedef struct {
-    uint32 pages;
-    uint32 flags;
+    uint32_t pages;
+    uint32_t flags;
 
-    v_uintptr usr_start;
-    v_uintptr knl_start; // zero if no pa has been assigned
+    v_uintptr_t usr_start;
+    v_uintptr_t knl_start; // zero if no pa has been assigned
 
     bitfield64 assigned_pa; // max of 64 pages
 } usr_region_small;
 
 typedef struct {
-    uint32 pages;
-    uint32 flags;
+    uint32_t pages;
+    uint32_t flags;
 
-    v_uintptr usr_start;
-    v_uintptr knl_start; // zero if no pa has been assigned
+    v_uintptr_t usr_start;
+    v_uintptr_t knl_start; // zero if no pa has been assigned
 
     bitfield64* pt_assigned_pa; // [ceil(pages / 64)]
 } usr_region_big;
@@ -33,11 +33,11 @@ typedef union {
     struct {
         // pages determines whether a region is small or big depending if
         // it has more than 64 pages
-        uint32 pages;
-        uint32 flags;
-        v_uintptr usr_start;
-        v_uintptr knl_start;
-        uint64 _;
+        uint32_t pages;
+        uint32_t flags;
+        v_uintptr_t usr_start;
+        v_uintptr_t knl_start;
+        uint64_t _;
     } any;
 
     usr_region_small sm;
@@ -49,8 +49,8 @@ typedef union {
 /// permanent
 void* umalloc(
     struct utask* t,
-    uintptr usr_va,
-    uint32 pages,
+    uintptr_t usr_va,
+    uint32_t pages,
     bool read,
     bool write,
     bool execute,
@@ -58,7 +58,7 @@ void* umalloc(
     // be assigned without need for waiting for data aborts
     bool permanent);
 
-void* umalloc_assign_pa(struct utask* t, uintptr usr_va, uint32 pages);
+void* umalloc_assign_pa(struct utask* t, uintptr_t usr_va, uint32_t pages);
 
 
-void ufree(struct utask* t, uintptr usr_va);
+void ufree(struct utask* t, uintptr_t usr_va);

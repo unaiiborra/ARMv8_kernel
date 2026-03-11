@@ -5,9 +5,10 @@
 
 #include <lib/lock/spinlock.h>
 #include <lib/mem.h>
-#include <lib/stdbool.h>
-#include <lib/stdint.h>
 #include <lib/unit/mem.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/panic.h"
 #include "lib/stdmacros.h"
@@ -68,13 +69,13 @@ typedef enum {
 /// provided mmu physmap offset
 typedef void* (*mmu_allocator)(size_t bytes);
 typedef void (*mmu_allocator_free)(void* addr);
-typedef uint16 (*mmu_coreid)(void);
+typedef uint16_t (*mmu_coreid)(void);
 
 typedef struct {
     mmu_tbl_rng rng_;
     mmu_granularity g_;
     size_t va_addr_bits_;
-    uint64 physmap_offset_;
+    uint64_t physmap_offset_;
     void* tbl_;
     mmu_allocator allocator_;
     mmu_allocator_free allocator_free_;
@@ -98,7 +99,7 @@ static inline size_t mmu_mapping_get_va_addr_bits(const mmu_mapping* m)
     return m->va_addr_bits_;
 }
 
-static inline uint64 mmu_mapping_get_physmap_offset(const mmu_mapping* m)
+static inline uint64_t mmu_mapping_get_physmap_offset(const mmu_mapping* m)
 {
     return m->physmap_offset_;
 }
@@ -128,7 +129,7 @@ static inline bool mmu_mapping_is_valid(const mmu_mapping* m)
 }
 
 static inline void
-mmu_mapping_set_physmap_offset(mmu_mapping* m, uint64 physmap_offset)
+mmu_mapping_set_physmap_offset(mmu_mapping* m, uint64_t physmap_offset)
 {
     m->physmap_offset_ = physmap_offset;
 }
@@ -154,8 +155,8 @@ UNSAFE_mmu_mapping_set_tbl_address(mmu_mapping* m, void* addr)
 typedef struct {
     mmu_mapping* lo_mapping;
     mmu_mapping* hi_mapping;
-    uint32 mpidr_aff;
-    uint64 flags;
+    uint32_t mpidr_aff;
+    uint64_t flags;
 } mmu_core_handle;
 
 
@@ -208,12 +209,12 @@ static inline bool mmu_core_get_hi_enabled(const mmu_core_handle* ch)
     return (ch->flags >> COREH_HI_ENABLE_SHIFT) & 1ULL;
 }
 
-static inline uint8 mmu_core_get_lo_va_bits(const mmu_core_handle* ch)
+static inline uint8_t mmu_core_get_lo_va_bits(const mmu_core_handle* ch)
 {
     return (ch->flags >> COREH_LO_BITS_SHIFT) & COREH_VA_BITS_MASK;
 }
 
-static inline uint8 mmu_core_get_hi_va_bits(const mmu_core_handle* ch)
+static inline uint8_t mmu_core_get_hi_va_bits(const mmu_core_handle* ch)
 {
     return (ch->flags >> COREH_HI_BITS_SHIFT) & COREH_VA_BITS_MASK;
 }
@@ -221,7 +222,7 @@ static inline uint8 mmu_core_get_hi_va_bits(const mmu_core_handle* ch)
 static inline mmu_granularity
 mmu_core_get_lo_granularity(const mmu_core_handle* ch)
 {
-    uint64 tg0 =
+    uint64_t tg0 =
         (ch->flags >> COREH_LO_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
 
     switch (tg0) {
@@ -241,7 +242,7 @@ mmu_core_get_lo_granularity(const mmu_core_handle* ch)
 static inline mmu_granularity
 mmu_core_get_hi_granularity(const mmu_core_handle* ch)
 {
-    uint64 tg1 =
+    uint64_t tg1 =
         (ch->flags >> COREH_HI_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
 
     switch (tg1) {
@@ -258,7 +259,7 @@ mmu_core_get_hi_granularity(const mmu_core_handle* ch)
     PANIC();
 }
 
-static inline uint32 mmu_core_get_coreid(const mmu_core_handle* ch)
+static inline uint32_t mmu_core_get_coreid(const mmu_core_handle* ch)
 {
     return ch->mpidr_aff;
 }
@@ -270,8 +271,8 @@ bool mmu_core_set_i_cache(mmu_core_handle* ch, bool v);
 bool mmu_core_set_align_trap(mmu_core_handle* ch, bool v);
 bool mmu_core_set_lo_enabled(mmu_core_handle* ch, bool v);
 bool mmu_core_set_hi_enabled(mmu_core_handle* ch, bool v);
-bool mmu_core_set_lo_va_bits(mmu_core_handle* ch, uint8 bits);
-bool mmu_core_set_hi_va_bits(mmu_core_handle* ch, uint8 bits);
+bool mmu_core_set_lo_va_bits(mmu_core_handle* ch, uint8_t bits);
+bool mmu_core_set_hi_va_bits(mmu_core_handle* ch, uint8_t bits);
 bool mmu_core_set_lo_granularity(mmu_core_handle* ch, mmu_granularity g);
 bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g);
 
@@ -280,7 +281,7 @@ static inline mmu_mapping mmu_mapping_new(
     mmu_tbl_rng rng,
     mmu_granularity g,
     size_t va_addr_bits,
-    uintptr physmap_offset,
+    uintptr_t physmap_offset,
     mmu_allocator allocator,
     mmu_allocator_free allocator_free)
 {
@@ -288,7 +289,7 @@ static inline mmu_mapping mmu_mapping_new(
 
     void* tbl = allocator(g);
 
-    ASSERT(tbl && (v_uintptr)tbl % g == 0);
+    ASSERT(tbl && (v_uintptr_t)tbl % g == 0);
 
     return (mmu_mapping) {
         .rng_ = rng,
@@ -379,14 +380,14 @@ typedef enum {
 
 
 typedef struct {
-    _Alignas(4) uint8 attr_index;
+    _Alignas(4) uint8_t attr_index;
     mmu_access_permission ap;
-    uint8 shareability;
+    uint8_t shareability;
     _Alignas(4) bool non_secure;
     _Alignas(4) bool access_flag;
     _Alignas(4) bool pxn;
     _Alignas(4) bool uxn;
-    _Alignas(4) uint8 sw;
+    _Alignas(4) uint8_t sw;
 } mmu_pg_cfg;
 
 typedef struct {
@@ -407,14 +408,14 @@ static inline mmu_op_info mmu_op_info_new()
 }
 
 static inline mmu_pg_cfg mmu_pg_cfg_new(
-    uint8 attr_index,
+    uint8_t attr_index,
     mmu_access_permission ap,
-    uint8 shareability,
+    uint8_t shareability,
     bool non_secure,
     bool access_flag,
     bool pxn,
     bool uxn,
-    uint8 sw)
+    uint8_t sw)
 {
     return (mmu_pg_cfg) {
         .attr_index = attr_index,
@@ -430,8 +431,8 @@ static inline mmu_pg_cfg mmu_pg_cfg_new(
 
 mmu_map_result mmu_map(
     const mmu_mapping* m,
-    v_uintptr va,
-    p_uintptr pa,
+    v_uintptr_t va,
+    p_uintptr_t pa,
     size_t size,
     mmu_pg_cfg cfg,
     mmu_op_info* info);
@@ -442,6 +443,6 @@ typedef enum {
 } mmu_unmap_result;
 
 mmu_unmap_result
-mmu_unmap(const mmu_mapping* m, v_uintptr va, size_t size, mmu_op_info* info);
+mmu_unmap(const mmu_mapping* m, v_uintptr_t va, size_t size, mmu_op_info* info);
 
 bool mmu_is_active();

@@ -16,7 +16,7 @@ _reloc_cfg_end:
     isb
 
 
-    mov x0, sp      //  (p_uintptr pa)
+    mov x0, sp      //  (p_uintptr_t pa)
     bl _mm_kpa_to_kva    //  return pa + KERNEL_BASE
     mov sp, x0      //  sp = remap res
 

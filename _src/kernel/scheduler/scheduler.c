@@ -1,21 +1,22 @@
 #include <arm/exceptions/exceptions.h>
+#include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
 #include <kernel/lib/smp.h>
 #include <kernel/scheduler.h>
-#include <lib/stdbool.h>
-#include <lib/stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "arm/sysregs/sysregs.h"
 #include "thread.h"
 
 
 extern void _scheduler_loop_cpu_enter(
     arm_exception_ctx* el0_ctx,
-    uint64 sp_el0,
-    uint64 pc,
-    uint64 el1_ctx[2]);
+    uint64_t sp_el0,
+    uint64_t pc,
+    uint64_t el1_ctx[4]);
 
-extern void _scheduler_loop_cpu_exit(uint64 el1_ctx[2]);
+extern void _scheduler_loop_cpu_exit(uint64_t el1_ctx[4]);
 
 
 typedef struct thread_node {
@@ -29,7 +30,7 @@ typedef struct {
 } scheduler_t;
 
 
-_Alignas(16) static uint64 local_el1_ctx[NUM_CORES][2];
+_Alignas(16) static uint64_t local_el1_ctx[NUM_CORES][4];
 static scheduler_t scheduler[NUM_CORES];
 
 
@@ -54,12 +55,14 @@ void scheduler_loop_cpu_enter()
 {
     static bool sched_init = false;
 
+    __attribute((unused)) uint64_t i;
+
     if (!sched_init) {
         scheduler_init();
         sched_init = true;
     }
 
-    uint64 cpuid = get_cpuid();
+    uint64_t cpuid = get_cpuid();
 
     thread_node* list = scheduler[cpuid].list;
 
@@ -99,7 +102,7 @@ static thread* schedule()
 void scheduler_ectx_save(arm_exception_ctx* ectx)
 {
     // restore into sp_el0 the active thread
-    uint64 sp;
+    uint64_t sp;
     thread* cur = restore_current_thread(&sp);
     cur->pc = _ARM_ELR_EL1();
     cur->sp = sp;

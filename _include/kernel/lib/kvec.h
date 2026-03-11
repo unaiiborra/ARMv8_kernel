@@ -1,7 +1,8 @@
 #pragma once
 
-#include <lib/stdint.h>
 #include <lib/stdmacros.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/mm.h"
 #include "kernel/panic.h"
@@ -51,11 +52,11 @@ static inline size_t kvec_len(kvec k)
 
 /// Pushes a new item to the end of the vector. It returns the item idx. It deep
 /// copies the provided in
-isize_t kvec_push(kvec* k, const void* in);
+int64_t kvec_push(kvec* k, const void* in);
 
 /// Removes the last item. It returns the idx of the removed element or -1 if
 /// the vec is empty
-isize_t kvec_pop(kvec* k, void* out);
+int64_t kvec_pop(kvec* k, void* out);
 
 
 bool kvec_set(const kvec* k, size_t i, const void* in, void* prev);

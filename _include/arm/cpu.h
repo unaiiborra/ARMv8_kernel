@@ -1,27 +1,26 @@
 #pragma once
 
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 typedef struct {
-	_Alignas(4) uint8 aff3;
-	uint8	aff2;
-	uint8	aff1;
-	uint8	aff0;
+    _Alignas(4) uint8_t aff3;
+    uint8_t aff2;
+    uint8_t aff1;
+    uint8_t aff0;
 } ARM_cpu_affinity;
 
 ARM_cpu_affinity ARM_get_cpu_affinity();
 
-#define CPU_AFFINITY_FROM_U32(x)              \
-	((ARM_cpu_affinity) {                 \
-		.aff0 = (uint8)((x) & 0xFF),         \
-		.aff1 = (uint8)(((x) >> 8) & 0xFF),  \
-		.aff2 = (uint8)(((x) >> 16) & 0xFF), \
-		.aff3 = (uint8)(((x) >> 24) & 0xFF), \
-	})
+#define CPU_AFFINITY_FROM_U32(x)               \
+    ((ARM_cpu_affinity) {                      \
+        .aff0 = (uint8_t)((x) & 0xFF),         \
+        .aff1 = (uint8_t)(((x) >> 8) & 0xFF),  \
+        .aff2 = (uint8_t)(((x) >> 16) & 0xFF), \
+        .aff3 = (uint8_t)(((x) >> 24) & 0xFF), \
+    })
 
-#define U32_FROM_CPU_AFFINITY(x)                                    \
-	(uint32)(                                                  \
-		((uint32)(x).aff3 << 24) | ((uint32)(x).aff2 << 16) | \
-		((uint32)(x).aff1 << 8) | ((uint32)(x).aff0))
+#define U32_FROM_CPU_AFFINITY(x)                                         \
+    (uint32_t)(((uint32_t)(x).aff3 << 24) | ((uint32_t)(x).aff2 << 16) | \
+               ((uint32_t)(x).aff1 << 8) | ((uint32_t)(x).aff0))
 
-extern uint64 _ARM_get_sp();
+extern uint64_t _ARM_get_sp();

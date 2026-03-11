@@ -1,7 +1,8 @@
 #include <kernel/mm/mmu.h>
 #include <kernel/mm/umalloc.h>
 #include <kernel/scheduler.h>
-#include <lib/stdint.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "arm/mmu.h"
 #include "kernel/mm.h"
@@ -11,7 +12,6 @@
 #include "lib/math.h"
 #include "lib/mem.h"
 #include "lib/stdbitfield.h"
-#include "lib/stdint.h"
 #include "lib/stdmacros.h"
 
 
@@ -42,7 +42,7 @@ static const mmu_pg_cfg KNL_MMU_CFG = (mmu_pg_cfg) {
     .sw = 0,
 };
 
-static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32 flags)
+static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
 {
     switch (flags & 0b111U) {
         case BIT(F_READ) | BIT(F_WRITE):
@@ -87,8 +87,7 @@ static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32 flags)
 /// pushes the new region ordered by usr address
 static void push_usr_region_to_task(utask* utask, usr_region region)
 {
-    uintptr new_start = region.any.usr_start;
-    uintptr new_end = region.any.usr_start + region.any.pages * KPAGE_SIZE;
+    uintptr_t new_start = region.any.usr_start;
 
     usr_region_node* prev = NULL;
     usr_region_node* cur = utask->regions;
@@ -99,9 +98,11 @@ static void push_usr_region_to_task(utask* utask, usr_region region)
     }
 
 #ifdef DEBUG
+    uintptr_t new_end = region.any.usr_start + region.any.pages * KPAGE_SIZE;
+
     // check overlap with prev
     if (prev) {
-        uintptr prev_end =
+        uintptr_t prev_end =
             prev->region.any.usr_start + prev->region.any.pages * KPAGE_SIZE;
 
         if (prev_end > new_start)
@@ -110,7 +111,7 @@ static void push_usr_region_to_task(utask* utask, usr_region region)
 
     // check overlap with next
     if (cur) {
-        uintptr cur_start = cur->region.any.usr_start;
+        uintptr_t cur_start = cur->region.any.usr_start;
 
         if (new_end > cur_start)
             PANIC("user regions overlaps");
@@ -132,8 +133,8 @@ static void umalloc_subregion(
     mmu_mapping* mapping,
     usr_region* region,
     const char* tag,
-    uintptr subregion_start,
-    uint32 pages)
+    uintptr_t subregion_start,
+    uint32_t pages)
 {
     DEBUG_ASSERT(region->any.knl_start != 0);
     DEBUG_ASSERT(
@@ -143,16 +144,17 @@ static void umalloc_subregion(
         "umalloc_subregion: subregion out of region");
 
 
-    uintptr knl_subregion_start =
+    uintptr_t knl_subregion_start =
         region->any.knl_start + (subregion_start - region->any.usr_start);
 
-    uint32 remaining_pages = pages;
+    uint32_t remaining_pages = pages;
 
     while (remaining_pages) {
-        uintptr offset = (pages - remaining_pages) * KPAGE_SIZE;
+        uintptr_t offset = (pages - remaining_pages) * KPAGE_SIZE;
         size_t order = log2_floor_u64(pages);
 
-        p_uintptr pa = page_malloc(order, mm_page_data_new(tag, false, false));
+        p_uintptr_t pa =
+            page_malloc(order, mm_page_data_new(tag, false, false));
 
         mmu_map_result mres;
         // map kernel access
@@ -182,8 +184,8 @@ static void umalloc_subregion(
 
 void* umalloc(
     struct utask* t,
-    uintptr usr_va,
-    uint32 pages,
+    uintptr_t usr_va,
+    uint32_t pages,
     bool read,
     bool write,
     bool execute,
@@ -239,7 +241,7 @@ void* umalloc(
 
 
     // allocate the kernel access and assign the pa
-    ur.any.knl_start = (v_uintptr)
+    ur.any.knl_start = (v_uintptr_t)
         raw_kmalloc(pages, t->task_name, &RAW_KMALLOC_DYNAMIC_CFG, &kinfo);
 
 
@@ -286,14 +288,14 @@ void* umalloc(
 }
 
 
-void* umalloc_assign_pa(struct utask* t, uintptr usr_va, uint32 pages)
+void* umalloc_assign_pa(struct utask* t, uintptr_t usr_va, uint32_t pages)
 {
     // find the usr va node
     usr_region_node* cur = t->regions;
 
     ASSERT(cur, "umalloc_assign_pa: task has no allocated regions");
 
-    uintptr start, end, cur_start, cur_end;
+    uintptr_t start, end, cur_start, cur_end;
     start = usr_va;
     end = usr_va + pages * KPAGE_SIZE;
 
@@ -345,7 +347,7 @@ void* umalloc_assign_pa(struct utask* t, uintptr usr_va, uint32 pages)
 }
 
 
-void ufree(struct utask* t, uintptr usr_va)
+void ufree(struct utask* t, uintptr_t usr_va)
 {
     usr_region_node* cur = t->regions;
     usr_region_node* prev = NULL;

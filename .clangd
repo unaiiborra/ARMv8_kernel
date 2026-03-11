@@ -8,6 +8,5 @@ CompileFlags:
     "-Werror",
     "-DDRIVERS",
     "-nostdlib",
-    "-nostdinc",
     "-nostartfiles",
   ]

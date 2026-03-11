@@ -5,8 +5,8 @@
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 extern kernel_initcall_t __kernel_init_stage0_start[];
 extern kernel_initcall_t __kernel_init_stage0_end[];
 

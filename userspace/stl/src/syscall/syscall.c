@@ -1,5 +1,5 @@
+#include <stddef.h>#include <syscall.h>
 #include <stdint.h>
-#include <syscall.h>
 
 typedef enum {
     SYSC_PRINT = 0,
@@ -10,18 +10,18 @@ typedef enum {
 
 
 extern int64 _syscall(
-    uint64 arg0,
-    uint64 arg1,
-    uint64 arg2,
-    uint64 arg3,
-    uint64 arg4,
-    uint64 arg5,
+    uint64_t arg0,
+    uint64_t arg1,
+    uint64_t arg2,
+    uint64_t arg3,
+    uint64_t arg4,
+    uint64_t arg5,
     syscall sysc);
 
 
 sysc_print_results syscall_print(const void* buf, size_t size)
 {
-    int64 result = _syscall((uint64)buf, size, 0, 0, 0, 0, SYSC_PRINT);
+    int64 result = _syscall((uint64_t)buf, size, 0, 0, 0, 0, SYSC_PRINT);
 
     if (result != SYSC_PRINT_OK && result != SYSC_PRINT_INVALID_BUF) {
         // TODO: syscall_exit()

@@ -2,7 +2,7 @@
 
 #define UNLOCKED_VALUE 0xFFFFFFFF
 
-// void _core_lock(volatile uint32* l);
+// void _core_lock(volatile uint32_t* l);
 .global _core_lock
 _core_lock:
     mrs     x2, MPIDR_EL1
@@ -35,7 +35,7 @@ _core_lock:
     b       0b
 
 
-// void _core_unlock(volatile uint32* l);
+// void _core_unlock(volatile uint32_t* l);
 .global _core_unlock
 _core_unlock:
     mrs     x2, MPIDR_EL1
@@ -57,7 +57,7 @@ _core_unlock:
     b       0b
 
 
-// void _core_try_lock(volatile uint32* l);
+// void _core_try_lock(volatile uint32_t* l);
 .global _core_try_lock
 _core_try_lock:
     mrs     x2, MPIDR_EL1

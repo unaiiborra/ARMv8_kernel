@@ -1,12 +1,12 @@
 #pragma once
 
-#include <lib/stdbool.h>
-#include <lib/stdint.h>
-
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
-    uint32 n;
-    volatile uint32 l;
+    uint32_t n;
+    volatile uint32_t l;
 } corelock_t;
 
 void corelock_init(corelock_t* l);

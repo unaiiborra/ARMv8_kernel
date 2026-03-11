@@ -1,6 +1,7 @@
-BIN_DIR    	:= bin
-SRC_DIR     := _src
-INCLUDE_DIR := _include
-MAP_DIR		:= $(BIN_DIR)
-OBJ_DIR		:= $(BIN_DIR)/obj
-RS_LIB_DIR  = target/$(RS_TARGET)/release/libimx8mp_kernel.a
+BIN_DIR    		:= bin
+SRC_DIR     	:= _src
+INCLUDE_DIR 	:= _include
+MAP_DIR			:= $(BIN_DIR)
+OBJ_DIR			:= $(BIN_DIR)/obj
+RS_LIB_DIR  	:= target/$(RS_TARGET)/release/libimx8mp_kernel.a
+COMPILER_DIR	?= /opt/aarch64-none-elf/lib/gcc/aarch64-none-elf/15.2.0

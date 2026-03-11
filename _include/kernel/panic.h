@@ -2,8 +2,8 @@
 
 #include <arm/exceptions/exceptions.h>
 #include <lib/branch.h>
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 typedef enum {
     PANIC_REASON_UNDEFINED = 0,
     PANIC_REASON_EXCEPTION = 1,
@@ -23,8 +23,8 @@ typedef enum {
 
 typedef struct {
     const char* file;
-    int32 line; // -1 = unknown
-    int32 col;  // -1 = unknown
+    int32_t line; // -1 = unknown
+    int32_t col;  // -1 = unknown
 } panic_location;
 
 

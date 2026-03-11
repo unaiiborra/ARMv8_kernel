@@ -1,8 +1,8 @@
 #pragma once
 #include <kernel/devices/device.h>
 #include <lib/lock/spinlock.h>
-#include <lib/stdint.h>
-
+#include <stddef.h>
+#include <stdint.h>
 
 void AGT_init_stage0(const driver_handle* h);
 void AGT_handle_irq(const driver_handle* h);
@@ -11,18 +11,18 @@ void AGT_handle_irq(const driver_handle* h);
  *      Counter
  */
 
-uint64 AGT_ns_to_cycles(uint64 ns);
-uint64 AGT_us_to_cycles(uint64 us);
+uint64_t AGT_ns_to_cycles(uint64_t ns);
+uint64_t AGT_us_to_cycles(uint64_t us);
 
 // Raw counter (ticks)
-uint64 AGT_cnt_cycles(void);
+uint64_t AGT_cnt_cycles(void);
 
 // Counter frequency (Hz)
-uint64 AGT_cnt_freq(void);
+uint64_t AGT_cnt_freq(void);
 
-uint64 AGT_cnt_time_ns(void);
+uint64_t AGT_cnt_time_ns(void);
 
-uint64 AGT_cnt_time_us(void);
+uint64_t AGT_cnt_time_us(void);
 
 /*
  *      Timer
@@ -50,7 +50,7 @@ typedef struct {
         bool under_cb_scheduled;
         timer_cb_t under_cb_timer_cb;
         timer_arg under_cb_arg;
-        uint64 cycles_v;
+        uint64_t cycles_v;
     } defer_cb;
 } agt_state;
 
@@ -58,7 +58,7 @@ typedef struct {
 /// overrided.
 bool AGT_timer_schedule_delta(
     const driver_handle* h,
-    uint64 delta_ns,
+    uint64_t delta_ns,
     timer_cb_t cb,
     timer_arg arg);
 
@@ -66,7 +66,7 @@ bool AGT_timer_schedule_delta(
 /// overrided.
 bool AGT_timer_schedule_cycles(
     const driver_handle* h,
-    uint64 cycles,
+    uint64_t cycles,
     timer_cb_t cb,
     timer_arg arg);
 

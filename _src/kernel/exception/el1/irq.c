@@ -3,8 +3,9 @@
 #include <kernel/exception/interrupts.h>
 #include <kernel/init.h>
 #include <kernel/panic.h>
-#include <lib/stdint.h>
 #include <lib/stdmacros.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "drivers/interrupts/gicv3/gicv3.h"

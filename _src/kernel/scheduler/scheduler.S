@@ -5,9 +5,9 @@
 /*
 extern void _scheduler_loop_cpu_enter(
     x0: arm_exception_ctx* el0_ctx,
-    x1: uint64 sp_el0,
-    x2: uint64 pc
-    x3: uint64 el1_ctx[2],
+    x1: uint64_t sp_el0,
+    x2: uint64_t pc
+    x3: uint64_t el1_ctx[2],
     );
 */
 .global _scheduler_loop_cpu_enter
@@ -15,9 +15,11 @@ _scheduler_loop_cpu_enter:
     msr SP_EL0, x1
     msr ELR_EL1, x2
 
-    // save fp and lr in el1 ctx just in case a
+    // save fp and lr and stack in el1 ctx just in case a
     // future exit from the scheduler mode is needed
     stp x29, x30, [x3]
+    mov x4, sp
+    stp  x4, xzr, [x3, #16]
 
     // load el0 ctx
     ldp x2, x3, [x0]
@@ -67,11 +69,15 @@ _scheduler_loop_cpu_enter:
 
     
 
-// _Noreturn void _scheduler_loop_cpu_exit(uint64 el1_ctx[2]);
+// _Noreturn void _scheduler_loop_cpu_exit(uint64_t el1_ctx[2]);
 .global _scheduler_loop_cpu_exit
 _scheduler_loop_cpu_exit:
     ldp x29, x30, [x0]
+    ldr x1,       [x0, #16]
+    mov sp, x1
+
     stp xzr, xzr, [x0]
+    stp xzr, xzr, [x0, #16]
 
     msr ELR_EL1, x30
     msr SP_EL0, xzr

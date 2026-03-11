@@ -4,13 +4,10 @@
 #include <kernel/hardware.h>
 #include <kernel/lib/smp.h>
 #include <kernel/panic.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "lib/stdint.h"
-
-
-
-
-bool wake_core(uint64 core_id, uintptr entry_addr, uint64 context)
+bool wake_core(uint64_t core_id, uintptr_t entry_addr, uint64_t context)
 {
     smccc_res_t res = _smc_call(
         PSCI_CPU_ON_FID64,

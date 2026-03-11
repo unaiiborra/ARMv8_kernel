@@ -4,13 +4,14 @@
 #include <kernel/hardware.h>
 #include <kernel/mm/mmu.h>
 #include <lib/stdmacros.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/internal/reserve_malloc.h"
 #include "kernel/mm.h"
 #include "kernel/panic.h"
 #include "lib/mem.h"
-#include "lib/stdint.h"
 
 mmu_mapping KERNEL_MAPPING;
 mmu_mapping UNMAPPED_LO;
@@ -76,7 +77,7 @@ void mm_mmu_early_init()
 }
 
 
-mmu_core_handle* mm_mmu_core_handler_get(uint32 coreid)
+mmu_core_handle* mm_mmu_core_handler_get(uint32_t coreid)
 {
     if (coreid >= NUM_CORES)
         return NULL;
@@ -87,11 +88,11 @@ mmu_core_handle* mm_mmu_core_handler_get(uint32 coreid)
 
 mmu_core_handle* mm_mmu_core_handler_get_self()
 {
-    uint64 MPIDR_EL1;
+    uint64_t MPIDR_EL1;
 
     asm volatile("mrs %0, mpidr_el1" : "=r"(MPIDR_EL1) : : "memory");
 
-    uint32 mpidr_aff =
+    uint32_t mpidr_aff =
         ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
         ((MPIDR_EL1 >> 16) & 0xFF) << 16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
 

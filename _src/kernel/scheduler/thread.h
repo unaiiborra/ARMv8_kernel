@@ -7,7 +7,7 @@
 
 static inline thread* get_current_thread(void)
 {
-    uintptr th;
+    uintptr_t th;
 
     asm volatile("mrs %0, sp_el0" : "=r"(th) : : "memory");
 
@@ -24,4 +24,4 @@ static inline void set_current_thread(thread* th)
 
 
 void save_current_thread();
-thread* restore_current_thread(uint64* old_sp0);
+thread* restore_current_thread(uint64_t* old_sp0);
