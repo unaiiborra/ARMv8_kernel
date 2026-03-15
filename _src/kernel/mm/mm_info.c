@@ -1,6 +1,5 @@
 #include "mm_info.h"
 
-#include <frdm_imx8mp.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/math.h>
@@ -11,37 +10,37 @@
 #include "init/mem_regions/mem_regions.h"
 
 
-extern v_uintptr_t __text_start[];
-extern v_uintptr_t __text_end[];
+extern vuintptr_t __text_start[];
+extern vuintptr_t __text_end[];
 extern size_t __text_size[];
 
-extern v_uintptr_t __rodata_start[];
-extern v_uintptr_t __rodata_end[];
+extern vuintptr_t __rodata_start[];
+extern vuintptr_t __rodata_end[];
 extern size_t __rodata_size[];
 
-extern v_uintptr_t __data_start[];
-extern v_uintptr_t __data_end[];
+extern vuintptr_t __data_start[];
+extern vuintptr_t __data_end[];
 extern size_t __data_size[];
 
-extern v_uintptr_t __bss_start[];
-extern v_uintptr_t __bss_end[];
+extern vuintptr_t __bss_start[];
+extern vuintptr_t __bss_end[];
 extern size_t __bss_size[];
 
-extern v_uintptr_t __stacks_start[];
-extern v_uintptr_t __stacks_end[];
+extern vuintptr_t __stacks_start[];
+extern vuintptr_t __stacks_end[];
 extern size_t __stacks_size[];
 
-extern v_uintptr_t __heap_start[];
-extern v_uintptr_t __heap_end[];
+extern vuintptr_t __heap_start[];
+extern vuintptr_t __heap_end[];
 extern size_t __heap_size[];
 
 
-#define BUILD_KSECTION(section)                    \
-    (mm_ksection)                                  \
-    {                                              \
-        .start = (v_uintptr_t)__##section##_start, \
-        .end = (v_uintptr_t)__##section##_end,     \
-        .size = (size_t)__##section##_size,        \
+#define BUILD_KSECTION(section)                   \
+    (mm_ksection)                                 \
+    {                                             \
+        .start = (vuintptr_t)__##section##_start, \
+        .end = (vuintptr_t)__##section##_end,     \
+        .size = (size_t)__##section##_size,       \
     }
 
 const mm_ksections MM_KSECTIONS = (mm_ksections) {
@@ -54,9 +53,9 @@ const mm_ksections MM_KSECTIONS = (mm_ksections) {
 
 
 static size_t mm_ddr_size_;
-static p_uintptr_t mm_ddr_start_;
-static p_uintptr_t mm_ddr_end_;
-static p_uintptr_t mm_kernel_start_;
+static puintptr_t mm_ddr_start_;
+static puintptr_t mm_ddr_end_;
+static puintptr_t mm_kernel_start_;
 static size_t mm_page_count_;
 static size_t mm_addr_space_;
 
@@ -108,7 +107,7 @@ void mm_info_init()
         mm_addr_space_ = max(r.start + r.size, mm_addr_space_);
     }
 
-    mm_kernel_start_ = (p_uintptr_t)_start;
+    mm_kernel_start_ = (puintptr_t)_start;
     ASSERT(mm_kernel_start_ >= mm_ddr_start_ && mm_kernel_start_ < mm_ddr_end_);
 
     mm_page_count_ = div_ceil(mm_addr_space_, KPAGE_SIZE);
@@ -130,17 +129,17 @@ size_t mm_info_ddr_size(void)
     return mm_ddr_size_;
 }
 
-p_uintptr_t mm_info_ddr_start(void)
+puintptr_t mm_info_ddr_start(void)
 {
     return mm_ddr_start_;
 }
 
-p_uintptr_t mm_info_ddr_end(void)
+puintptr_t mm_info_ddr_end(void)
 {
     return mm_ddr_end_;
 }
 
-p_uintptr_t mm_info_kernel_start(void)
+puintptr_t mm_info_kernel_start(void)
 {
     return mm_kernel_start_;
 }

@@ -7,8 +7,8 @@
 
 
 typedef struct {
-    v_uintptr_t start;
-    v_uintptr_t end;
+    vuintptr_t start;
+    vuintptr_t end;
     size_t size;
 } mm_ksection;
 

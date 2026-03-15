@@ -1,4 +1,4 @@
-#include <frdm_imx8mp.h>
+
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
@@ -12,53 +12,50 @@
 #include "../phys/page_allocator.h"
 #include "../reloc/reloc.h"
 #include "../virt/vmalloc.h"
-#include "arm/mmu.h"
 #include "identity_mapping.h"
-#include "lib/stdmacros.h"
 
 
 void mm_early_init()
 {
-	mm_info_init();
+    mm_info_init();
 
-	// init early kalloc
-	early_kalloc_init();
+    // init early kalloc
+    early_kalloc_init();
 
-	// init MM_MMU_UNMAPPED_LO
-	mm_mmu_early_init();
+    // init MM_MMU_UNMAPPED_LO
+    mm_mmu_early_init();
 
-	// init identity mapping
-	early_identity_mapping();
+    // init identity mapping
+    early_identity_mapping();
 
-	// page allocator
-	page_allocator_init();
+    // page allocator
+    page_allocator_init();
 
-	// virtual allocator
-	vmalloc_init();
+    // virtual allocator
+    vmalloc_init();
 
-	// reserve allocator
-	reserve_malloc_init();
-
-
-	early_memreg *mregs;
-	size_t n;
-	early_kalloc_get_memregs(&mregs, &n);
+    // reserve allocator
+    reserve_malloc_init();
 
 
-	page_allocator_update_memregs(mregs, n);
-	vmalloc_update_memregs(mregs, n);
+    early_memreg* mregs;
+    size_t n;
+    early_kalloc_get_memregs(&mregs, &n);
 
 
+    page_allocator_update_memregs(mregs, n);
+    vmalloc_update_memregs(mregs, n);
 
-	// reloc kernel: returns to the kernel_entry() with the kernel relocated and
-	// the sp resetted
-	mm_reloc_kernel();
+
+    // reloc kernel: returns to the kernel_entry() with the kernel relocated and
+    // the sp resetted
+    mm_reloc_kernel();
 }
 
 
 void mm_init()
 {
-	raw_kmalloc_init();
+    raw_kmalloc_init();
 
-	cache_malloc_init();
+    cache_malloc_init();
 }

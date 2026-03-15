@@ -3,6 +3,7 @@
 #include <kernel/io/stdio.h>
 #include <kernel/io/term.h>
 #include <kernel/mm.h>
+#include <stdarg.h>
 #include <stddef.h>
 
 #include "../devices/device_map.h"
@@ -47,7 +48,7 @@ void fkprintf(io_out io, const char* s, ...)
 {
     va_list va;
 
-    va_start(va, s);
+    __builtin_va_start(va, s);
 
     term_printf(STDIO_OUTPUTS[io], s, va);
 

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 typedef struct {
-    _Alignas(16) p_uintptr_t addr;
+    _Alignas(16) puintptr_t addr;
     _Alignas(16) size_t pages;
     _Alignas(16) bool free;
     _Alignas(16) const char* tag;

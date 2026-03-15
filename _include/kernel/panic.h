@@ -4,6 +4,8 @@
 #include <lib/branch.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdnoreturn.h>
+
 typedef enum {
     PANIC_REASON_UNDEFINED = 0,
     PANIC_REASON_EXCEPTION = 1,
@@ -64,7 +66,7 @@ typedef struct {
 
 
 /// non recoverable panic
-_Noreturn __attribute__((cold)) void panic(panic_info panic_info);
+noreturn __attribute__((cold)) void panic(panic_info panic_info);
 
 /// recoverable panic
 void __attribute__((cold)) panicr(panic_info panic_info);

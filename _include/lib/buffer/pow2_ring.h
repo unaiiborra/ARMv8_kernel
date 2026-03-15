@@ -1,7 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
+
+
 typedef struct pow2_ring_buffer {
     void* buf;     // backing buffer
     size_t size;   // number of elements (power of 2)

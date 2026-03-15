@@ -3,10 +3,18 @@
 #include <kernel/hardware.h>
 #include <kernel/lib/smp.h>
 #include <kernel/scheduler.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arm/mmu.h"
+#include "kernel/mm.h"
+#include "kernel/mm/mmu.h"
+#include "kernel/panic.h"
+#include "lib/lock/_lock_types.h"
+#include "lib/lock/spinlock.h"
+#include "task.h"
 #include "thread.h"
 
 
@@ -15,6 +23,7 @@ extern void _scheduler_loop_cpu_enter(
     uint64_t sp_el0,
     uint64_t pc,
     uint64_t el1_ctx[4]);
+
 
 extern void _scheduler_loop_cpu_exit(uint64_t el1_ctx[4]);
 
@@ -27,11 +36,14 @@ typedef struct thread_node {
 
 typedef struct {
     _Alignas(CACHE_LINE) thread_node* list;
+    spinlock_t lock;
 } scheduler_t;
 
 
 _Alignas(16) static uint64_t local_el1_ctx[NUM_CORES][4];
 static scheduler_t scheduler[NUM_CORES];
+
+static atomic_ulong thread_uid_counter;
 
 
 static inline thread_node* node_from_thread(thread* th)
@@ -40,29 +52,28 @@ static inline thread_node* node_from_thread(thread* th)
 }
 
 
-static void scheduler_init()
+void scheduler_init()
 {
-    asm volatile("msr sp_el0, xzr");
+    sysreg_write(sp_el0, 0);
+
+    atomic_init(&thread_uid_counter, 0);
 
     for (size_t i = 0; i < NUM_CORES; i++) {
         scheduler[i].list = NULL;
-        local_el1_ctx[i][0] = 0;
-        local_el1_ctx[i][1] = 0;
+        spinlock_init(&scheduler[i].lock);
+
+        for (size_t j = 0; j < 4; j++)
+            local_el1_ctx[i][j] = 0;
     }
+
+    task_ctl_init();
+    thread_ctl_init();
 }
+
 
 void scheduler_loop_cpu_enter()
 {
-    static bool sched_init = false;
-
-    __attribute((unused)) uint64_t i;
-
-    if (!sched_init) {
-        scheduler_init();
-        sched_init = true;
-    }
-
-    uint64_t cpuid = get_cpuid();
+    cpuid_t cpuid = get_cpuid();
 
     thread_node* list = scheduler[cpuid].list;
 
@@ -74,6 +85,12 @@ void scheduler_loop_cpu_enter()
 
     set_current_thread(th);
     save_current_thread();
+
+    bool res = mmu_core_set_mapping(
+        mm_mmu_core_handler_get_self(),
+        &th->task.utask->mapping);
+    ASSERT(res);
+
 
     _scheduler_loop_cpu_enter(
         &th->ctx,
@@ -87,7 +104,6 @@ void scheduler_loop_cpu_exit()
 {
     _scheduler_loop_cpu_exit(&local_el1_ctx[get_cpuid()][0]);
 }
-
 
 static thread* schedule()
 {
@@ -104,7 +120,7 @@ void scheduler_ectx_save(arm_exception_ctx* ectx)
     // restore into sp_el0 the active thread
     uint64_t sp;
     thread* cur = restore_current_thread(&sp);
-    cur->pc = _ARM_ELR_EL1();
+    cur->pc = sysreg_read(elr_el1);
     cur->sp = sp;
     cur->ctx = *ectx;
 }
@@ -119,8 +135,62 @@ void schedurer_ectx_restore(arm_exception_ctx* ectx)
 
     *ectx = cur->ctx;
 
-    asm volatile("msr sp_el0, %0" : : "r"(cur->pc) : "memory");
-    asm volatile("msr sp_el0, %0" : : "r"(cur->sp) : "memory");
+
+    sysreg_write(elr_el1, cur->pc);
+    sysreg_write(sp_el0, cur->sp);
+
 
     save_current_thread();
 }
+
+
+/// creates a new thread and adds it to the scheduler
+void schedule_thread(utask* owner, uintptr_t entry)
+{
+    cpuid_t cpuid = get_cpuid();
+
+    spin_lock(&owner->lock);
+    spin_lock(&scheduler[cpuid].lock); // TOOD: dynamic core selection
+
+
+    thread_node* node = kmalloc(sizeof(thread_node));
+
+    node->th = (thread) {
+        .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
+        .task = {.utask = owner},
+        .sp = 0x0,
+        .pc = entry,
+        .ctx = {.fpcr = 0, .fpsr = 0, .x = {}, .v = {}},
+        .last_access_time_us = 0,
+        .th_flags = 0,
+    };
+
+
+    thread_node** first = &scheduler[cpuid].list;
+
+    if (*first == NULL) {
+        *first = node;
+        node->prev = node;
+        node->next = node;
+    }
+    else {
+        thread_node* last = (*first)->prev;
+
+        node->next = *first;
+        node->prev = last;
+
+        last->next = node;
+        (*first)->prev = node;
+    }
+
+
+    thread_assign_stack(&node->th);
+
+
+    spin_unlock(&scheduler[cpuid].lock);
+    spin_unlock(&owner->lock);
+}
+
+
+/// deletes a thread and unschedules it
+void unschedule_thread(utask* owner, uintptr_t entry);

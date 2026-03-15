@@ -7,6 +7,8 @@
 #include <kernel/panic.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "kernel/scheduler.h"
 extern kernel_initcall_t __kernel_init_stage0_start[];
 extern kernel_initcall_t __kernel_init_stage0_end[];
 
@@ -29,7 +31,7 @@ void kernel_init(void)
 {
     io_init(); // init kprint, kprintf...
     mm_init(); // init kmalloc, cache malloc, etc.
-
+    scheduler_init();
 
     // Stage 0 (pre irq initialization)
     for (kernel_initcall_t* fn = __kernel_init_stage0_start;

@@ -89,5 +89,5 @@ void arm_exceptions_disable(bool fiq, bool irq, bool serror, bool debug)
 
 size_t arm_get_exception_level()
 {
-    return (size_t)_ARM_currentEL();
+    return (size_t)sysreg_read(currentel);
 }

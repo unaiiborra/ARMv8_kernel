@@ -5,6 +5,8 @@
 #include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
+
+
 struct utask;
 
 
@@ -12,8 +14,8 @@ typedef struct {
     uint32_t pages;
     uint32_t flags;
 
-    v_uintptr_t usr_start;
-    v_uintptr_t knl_start; // zero if no pa has been assigned
+    vuintptr_t usr_start;
+    vuintptr_t knl_start; // zero if no pa has been assigned
 
     bitfield64 assigned_pa; // max of 64 pages
 } usr_region_small;
@@ -22,8 +24,8 @@ typedef struct {
     uint32_t pages;
     uint32_t flags;
 
-    v_uintptr_t usr_start;
-    v_uintptr_t knl_start; // zero if no pa has been assigned
+    vuintptr_t usr_start;
+    vuintptr_t knl_start; // zero if no pa has been assigned
 
     bitfield64* pt_assigned_pa; // [ceil(pages / 64)]
 } usr_region_big;
@@ -35,8 +37,8 @@ typedef union {
         // it has more than 64 pages
         uint32_t pages;
         uint32_t flags;
-        v_uintptr_t usr_start;
-        v_uintptr_t knl_start;
+        vuintptr_t usr_start;
+        vuintptr_t knl_start;
         uint64_t _;
     } any;
 
@@ -56,9 +58,23 @@ void* umalloc(
     bool execute,
     // permanent for all the task life. The pa will automatically
     // be assigned without need for waiting for data aborts
-    bool permanent);
+    bool static_lifetime);
 
 void* umalloc_assign_pa(struct utask* t, uintptr_t usr_va, uint32_t pages);
 
 
 void ufree(struct utask* t, uintptr_t usr_va);
+
+
+bool uregion_is_allocated(
+    struct utask* t,
+    uintptr_t start,
+    size_t size,
+    usr_region** region);
+
+
+bool uregion_is_assigned(
+    struct utask* t,
+    uintptr_t start,
+    size_t size,
+    usr_region** region);

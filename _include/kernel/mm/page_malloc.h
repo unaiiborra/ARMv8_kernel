@@ -24,15 +24,15 @@ mm_page_data_new(const char* tag, bool device_mem, bool permanent)
 }
 
 typedef struct {
-    p_uintptr_t pa;
+    puintptr_t pa;
     mm_page_data data;
 } mm_page;
 
 
-p_uintptr_t page_malloc(uint8_t order, mm_page_data p);
-void page_free(p_uintptr_t pa);
-const char* page_allocator_update_tag(p_uintptr_t pa, const char* new_tag);
+puintptr_t page_malloc(uint8_t order, mm_page_data p);
+void page_free(puintptr_t pa);
+const char* page_allocator_update_tag(puintptr_t pa, const char* new_tag);
 
 // copies the data from the page to the provided address
-bool page_allocator_get_data(p_uintptr_t pa, mm_page_data* data);
-bool page_allocator_set_data(p_uintptr_t pa, mm_page_data data);
+bool page_allocator_get_data(puintptr_t pa, mm_page_data* data);
+bool page_allocator_set_data(puintptr_t pa, mm_page_data data);

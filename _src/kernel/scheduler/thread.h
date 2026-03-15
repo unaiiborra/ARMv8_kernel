@@ -5,23 +5,15 @@
 #include <kernel/scheduler.h>
 
 
-static inline thread* get_current_thread(void)
-{
-    uintptr_t th;
-
-    asm volatile("mrs %0, sp_el0" : "=r"(th) : : "memory");
-
-    DEBUG_ASSERT((th & KERNEL_BASE) == KERNEL_BASE || th == 0);
-
-    return (thread*)th;
-}
+void thread_ctl_init();
 
 
-static inline void set_current_thread(thread* th)
-{
-    asm volatile("msr sp_el0, %0" : : "r"(th) : "memory");
-}
-
-
+/// stores the current set thread for restoring after returning from el0.
 void save_current_thread();
+
+/// restores the thread that was being executed in el0 into the sp0 fast access.
+/// Returns the restored thread ptr
 thread* restore_current_thread(uint64_t* old_sp0);
+
+
+void thread_assign_stack(thread* th);

@@ -16,7 +16,7 @@
 
 void exception_handler_sync(arm_exception_ctx* ectx)
 {
-    uint64_t esr_el1 = _ARM_ESR_EL1();
+    uint64_t esr_el1 = sysreg_read(esr_el1);
     esr_ec exception_class = ESR_EC(esr_el1);
 
     switch (exception_class) {

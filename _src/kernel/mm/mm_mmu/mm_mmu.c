@@ -9,6 +9,7 @@
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/internal/reserve_malloc.h"
+#include "arm/sysregs/sysregs.h"
 #include "kernel/mm.h"
 #include "kernel/panic.h"
 #include "lib/mem.h"
@@ -19,7 +20,12 @@ mmu_mapping* const MM_MMU_KERNEL_MAPPING = &KERNEL_MAPPING;
 mmu_mapping* const MM_MMU_UNMAPPED_LO = &UNMAPPED_LO;
 
 
-static mmu_core_handle handles[NUM_CORES];
+typedef struct {
+    // for avoiding false sharing
+    _Alignas(64) mmu_core_handle handle;
+} local_mmu_core_handle;
+
+static local_mmu_core_handle handles[NUM_CORES];
 
 
 static void* mm_mmu_default_allocator(size_t bytes)
@@ -47,8 +53,9 @@ mmu_mapping mm_mmu_mapping_new(mmu_tbl_rng rng)
 }
 
 
-static void* unmapped_lo_allocator_first_tbl(size_t)
+static void* unmapped_lo_allocator_first_tbl(size_t _)
 {
+    (void)_;
     pv_ptr pv = early_kalloc(
         MMU_GRANULARITY_4KB,
         "MM_MMU_UNMAPPED_LO table",
@@ -58,10 +65,13 @@ static void* unmapped_lo_allocator_first_tbl(size_t)
     return (void*)pv.va;
 }
 
-static void* unmapped_lo_allocator(size_t)
+
+static void* unmapped_lo_allocator(size_t _)
 {
+    (void)_;
     PANIC("MM_MMU_UNMAPPED_LO should allways stay unmapped");
 }
+
 
 void mm_mmu_early_init()
 {
@@ -82,15 +92,13 @@ mmu_core_handle* mm_mmu_core_handler_get(uint32_t coreid)
     if (coreid >= NUM_CORES)
         return NULL;
 
-    return &handles[coreid];
+    return &handles[coreid].handle;
 }
 
 
 mmu_core_handle* mm_mmu_core_handler_get_self()
 {
-    uint64_t MPIDR_EL1;
-
-    asm volatile("mrs %0, mpidr_el1" : "=r"(MPIDR_EL1) : : "memory");
+    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
 
     uint32_t mpidr_aff =
         ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
@@ -98,5 +106,5 @@ mmu_core_handle* mm_mmu_core_handler_get_self()
 
     DEBUG_ASSERT(mpidr_aff < NUM_CORES);
 
-    return &handles[mpidr_aff];
+    return &handles[mpidr_aff].handle;
 }

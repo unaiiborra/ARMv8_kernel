@@ -100,12 +100,12 @@ void reserve_malloc_fill()
             if (bitfield_get(reserved_pages, i))
                 continue;
 
-            v_uintptr_t va = (v_uintptr_t)raw_kmalloc(
+            vuintptr_t va = (vuintptr_t)raw_kmalloc(
                 1,
                 RESERVE_MALLOC_TAG,
                 &cfg); // it can actually get a new idx from the reserve,
                        // thats why the for loop is inside a while
-            p_uintptr_t pa = kva_to_kpa(va);
+            puintptr_t pa = kva_to_kpa(va);
             pv_ptr pv = pv_ptr_new(pa, va);
 
 

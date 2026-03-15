@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kernel/scheduler/process.h>
+#include <kernel/scheduler.h>
 
 typedef enum {
     ELF_LOAD_OK,
@@ -8,4 +8,4 @@ typedef enum {
     ELF_LOAD_BAD_HDR,
 } elf_load_result;
 
-elf_load_result elf_load(void* elf, size_t size, proc* usr_proc);
+elf_load_result elf_load(utask* usr_proc, void* elf, size_t size);

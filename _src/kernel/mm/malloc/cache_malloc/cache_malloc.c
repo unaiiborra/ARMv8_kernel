@@ -269,7 +269,7 @@ static inline void* new_cache(cache_malloc_size size, void* prev)
 
     // set the page allocator data
     mm_page_data data;
-    p_uintptr_t pa = (p_uintptr_t)kva_to_kpa_pt(ptr);
+    puintptr_t pa = (puintptr_t)kva_to_kpa_pt(ptr);
 
 
     raw_kmalloc_lock();
@@ -368,7 +368,7 @@ void* cache_malloc(cache_malloc_size size)
 
     size_t entry = bf_n * BF_BITS + bf_i;
     result = &c.buf[entry * ENTRY_SIZE(size)];
-    DEBUG_ASSERT((p_uintptr_t)result % size == 0);
+    DEBUG_ASSERT((puintptr_t)result % size == 0);
 
     DEBUG_ASSERT(s->first_cache);
 
@@ -423,7 +423,7 @@ void cache_free(cache_malloc_size size, void* ptr)
     size_t i = cache_idx_from_size(size);
     cache_malloc_state* s = &state[i];
 
-    void* cache_ptr = align_down_ptr(ptr, CACHE_PAGES[i] * KPAGE_SIZE);
+    void* cache_ptr = align_down_pt(ptr, CACHE_PAGES[i] * KPAGE_SIZE);
     cache_fields f = get_generic_fields(size, cache_ptr);
 
     DEBUG_ASSERT(((uintptr_t)ptr - (uintptr_t)&f.buf[0]) % size == 0);
@@ -512,10 +512,10 @@ static const size_t CACHE_PAGE_SIZES[2] = {4, 8};
 bool cache_malloc_size_from_ptr(void* ptr, cache_malloc_size* out)
 {
     for (size_t i = 0; i < ARRAY_LEN(CACHE_PAGE_SIZES); i++) {
-        void* base = align_down_ptr(ptr, KPAGE_SIZE * CACHE_PAGE_SIZES[i]);
+        void* base = align_down_pt(ptr, KPAGE_SIZE * CACHE_PAGE_SIZES[i]);
 
         mm_page_data data;
-        bool result = page_allocator_get_data((p_uintptr_t)base, &data);
+        bool result = page_allocator_get_data((puintptr_t)base, &data);
 
         if (!result)
             continue;

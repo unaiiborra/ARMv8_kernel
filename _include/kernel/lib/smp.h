@@ -6,12 +6,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static inline uint64_t get_cpuid()
-{
-    uintptr_t v;
-    asm volatile("mrs %0, sp_el0" : "=r"(v) : : "memory");
+#include "arm/sysregs/sysregs.h"
 
-    uint64_t cpuid = v & 0xFF;
+
+typedef uint64_t cpuid_t;
+
+
+static inline cpuid_t get_cpuid()
+{
+    uint64_t cpuid = sysreg_read(mpidr_el1) & 0xFF;
 
     DEBUG_ASSERT(cpuid < NUM_CORES);
 

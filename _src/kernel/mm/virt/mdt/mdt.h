@@ -51,5 +51,5 @@ _Static_assert(
 
 void vmalloc_pa_mdt_init();
 
-void vmalloc_pa_mdt_push(rva_node* n, size_t o, p_uintptr_t pa, v_uintptr_t va);
+void vmalloc_pa_mdt_push(rva_node* n, size_t o, puintptr_t pa, vuintptr_t va);
 void vmalloc_pa_mdt_free(rva_node* n);

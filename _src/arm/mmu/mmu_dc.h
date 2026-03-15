@@ -158,7 +158,7 @@ static inline bool dc_get_access_flag(const mmu_hw_dc dc)
     return (bool)((dc.v >> MMU_DC_AF_SHIFT) & MMU_DC_BITS(MMU_DC_AF_WIDTH));
 }
 
-static inline p_uintptr_t
+static inline puintptr_t
 dc_get_output_address(const mmu_hw_dc dc, mmu_granularity g)
 {
     return dc.v & output_address_mask_(g);
@@ -231,7 +231,7 @@ static inline void dc_set_access_flag(mmu_hw_dc* dc, bool access_flag)
 }
 
 static inline void
-dc_set_output_address(mmu_hw_dc* dc, p_uintptr_t output_address)
+dc_set_output_address(mmu_hw_dc* dc, puintptr_t output_address)
 {
     dc->v &= ~MMU_DC_OUTPUT_ADDR_MASK;
     dc->v |= output_address & MMU_DC_OUTPUT_ADDR_MASK;
@@ -263,7 +263,7 @@ static inline mmu_hw_dc td_build(const mmu_mapping* m, mmu_tbl next)
 {
     mmu_hw_dc dc = (mmu_hw_dc) {0};
 
-    p_uintptr_t tbl_pa = (v_uintptr_t)next.dcs - m->physmap_offset_;
+    puintptr_t tbl_pa = (vuintptr_t)next.dcs - m->physmap_offset_;
 
     dc_set_type(&dc, MMU_DESCRIPTOR_TABLE);
     dc_set_output_address(&dc, tbl_pa);
@@ -274,7 +274,7 @@ static inline mmu_hw_dc td_build(const mmu_mapping* m, mmu_tbl next)
 
 static inline mmu_hw_dc bd_build(
     mmu_pg_cfg cfg,
-    p_uintptr_t output_address,
+    puintptr_t output_address,
     mmu_granularity g,
     mmu_tbl_level l)
 {

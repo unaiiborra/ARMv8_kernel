@@ -13,7 +13,7 @@
 
 
 typedef struct {
-    p_uintptr_t early_base;
+    puintptr_t early_base;
     bitfield32 irq_status;
 
     _Alignas(64) struct {
@@ -38,7 +38,7 @@ void uart_tx_empty_barrier(const driver_handle* h);
 /*
  *  Early init features
  */
-void uart_early_init(p_uintptr_t base);
+void uart_early_init(puintptr_t base);
 
 term_out_result uart_putc_early(const char c);
 

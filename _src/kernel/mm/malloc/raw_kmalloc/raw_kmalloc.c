@@ -63,7 +63,7 @@ static corelock_t lock;
 
 
 static inline vmalloc_cfg
-vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg* cfg, p_uintptr_t kmap_pa)
+vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg* cfg, puintptr_t kmap_pa)
 {
     return (vmalloc_cfg) {
         .assing_pa = cfg->assign_pa,
@@ -90,7 +90,7 @@ static void* raw_kmalloc_kmap(
 
     size_t o = log2_floor(pages);
 
-    p_uintptr_t pa = page_malloc(
+    puintptr_t pa = page_malloc(
         o,
         (mm_page_data) {
             .tag = tag,
@@ -98,7 +98,7 @@ static void* raw_kmalloc_kmap(
             .permanent = cfg->permanent,
         });
 
-    v_uintptr_t va =
+    vuintptr_t va =
         vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa), NULL);
 
     DEBUG_ASSERT(ptrs_are_kmapped(pv_ptr_new(pa, va)));
@@ -139,10 +139,10 @@ static void* raw_kmalloc_dynamic(
         cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
 
     vmalloc_token vtoken;
-    v_uintptr_t start =
+    vuintptr_t start =
         vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0), &vtoken);
 
-    v_uintptr_t va = start;
+    vuintptr_t va = start;
     size_t rem = pages;
 
     while (rem > 0) {
@@ -152,7 +152,7 @@ static void* raw_kmalloc_dynamic(
         /*
          *  get phys page
          */
-        p_uintptr_t pa = page_malloc(
+        puintptr_t pa = page_malloc(
             o,
             (mm_page_data) {
                 .tag = tag,
@@ -215,7 +215,7 @@ void* __raw_kmalloc(
         else
             va = raw_kmalloc_dynamic(pages, tag, cfg, info);
 
-        DEBUG_ASSERT((v_uintptr_t)va % KPAGE_ALIGN == 0);
+        DEBUG_ASSERT((vuintptr_t)va % KPAGE_ALIGN == 0);
 
         if (cfg->fill_reserve)
             reserve_malloc_fill();
@@ -252,13 +252,13 @@ void raw_kfree(void* ptr)
 
             DEBUG_ASSERT(is_pow2(bytes));
 
-            page_free(kva_to_kpa((v_uintptr_t)ptr));
+            page_free(kva_to_kpa((vuintptr_t)ptr));
 
 
             if (vinfo.pa_assigned) {
                 result = mmu_unmap(
                     MM_MMU_KERNEL_MAPPING,
-                    (v_uintptr_t)ptr,
+                    (vuintptr_t)ptr,
                     bytes,
                     NULL);
                 ASSERT(result);
@@ -280,7 +280,7 @@ void raw_kfree(void* ptr)
             size_t bytes = vfree(vtoken, NULL);
 
             result =
-                mmu_unmap(MM_MMU_KERNEL_MAPPING, (v_uintptr_t)ptr, bytes, NULL);
+                mmu_unmap(MM_MMU_KERNEL_MAPPING, (vuintptr_t)ptr, bytes, NULL);
             ASSERT(result);
         }
     }

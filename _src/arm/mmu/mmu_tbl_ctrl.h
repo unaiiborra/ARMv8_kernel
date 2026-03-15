@@ -50,8 +50,8 @@ tbl_from_td(const mmu_mapping* m, mmu_hw_dc dc, mmu_tbl_level l)
 {
     ASSERT(dc_get_type(dc, m->g_, l) == MMU_DESCRIPTOR_TABLE);
 
-    p_uintptr_t pa = dc_get_output_address(dc, m->g_);
-    v_uintptr_t va = pa + m->physmap_offset_;
+    puintptr_t pa = dc_get_output_address(dc, m->g_);
+    vuintptr_t va = pa + m->physmap_offset_;
 
     DEBUG_ASSERT(pa && pa % m->g_ == 0);
 
@@ -62,7 +62,7 @@ tbl_from_td(const mmu_mapping* m, mmu_hw_dc dc, mmu_tbl_level l)
 
 
 static inline size_t
-table_index(p_uintptr_t va, mmu_granularity g, mmu_tbl_level l)
+table_index(puintptr_t va, mmu_granularity g, mmu_tbl_level l)
 {
     size_t index_bits = log2_floor_u64(g) - 3;
     size_t mask = (1ULL << index_bits) - 1;
@@ -100,7 +100,7 @@ alloc_tbl(const mmu_mapping* m, bool init_null, mmu_op_info* info)
         .dcs = m->allocator_(sizeof(mmu_hw_dc) * tbl_entries(m->g_)),
     };
 
-    ASSERT((v_uintptr_t)tbl.dcs % m->g_ == 0);
+    ASSERT((vuintptr_t)tbl.dcs % m->g_ == 0);
 
     if (init_null)
         tbl_init_null(tbl, m->g_);
@@ -128,7 +128,7 @@ static inline mmu_tbl split_block(
     // create the new blocks
     if (dc_get_valid(old)) {
         mmu_pg_cfg cfg = cfg_from_dc(old);
-        p_uintptr_t pa = dc_get_output_address(old, g);
+        puintptr_t pa = dc_get_output_address(old, g);
         size_t new_l_bytes = dc_cover_bytes(g, l + 1);
         ASSERT(pa % dc_cover_bytes(g, l) == 0);
 

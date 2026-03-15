@@ -19,7 +19,7 @@ typedef bitfield8 bf;
 typedef struct fva_node {
     struct fva_node* next;
 
-    v_uintptr_t start;
+    vuintptr_t start;
     size_t size;
 } fva_node;
 
@@ -27,7 +27,7 @@ typedef struct fva_node {
 typedef struct rva_node {
     struct rva_node* next;
 
-    v_uintptr_t start;
+    vuintptr_t start;
     size_t size;
     vmalloc_mdt mdt;
 } rva_node;

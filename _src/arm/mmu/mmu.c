@@ -1,46 +1,70 @@
+#include <stdint.h>
 #define __MMU_INTERNAL
 
 #include <arm/mmu.h>
 #include <lib/mem.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #include "mmu_tbl_ctrl.h"
 #include "mmu_types.h"
 #include "regs/mmu_sysregs.h"
 
 
-static inline bool
-is_in_range(const mmu_mapping* m, v_uintptr_t va, size_t size)
+static inline bool is_in_range(const mmu_mapping* m, vuintptr_t va, size_t size)
 {
     if (!m || size == 0)
         return false;
 
-    const size_t bits = m->va_addr_bits_;
-    const mmu_tbl_rng rng = m->rng_;
+    const uint64_t VA_BITS = m->va_addr_bits_;
+    const uint64_t SIGN_BIT = VA_BITS - 1;
 
-    const bool is_hi = (va >> 63) != 0;
+    const uint64_t SIGN_MASK = 1ULL << SIGN_BIT;
+    const uint64_t CANON_MASK = ~((1ULL << VA_BITS) - 1);
 
-    if ((rng == MMU_LO && is_hi) || (rng == MMU_HI && !is_hi))
-        return false;
+    uint64_t sign = (va >> SIGN_BIT) & 1;
+    uint64_t upper = va & CANON_MASK;
 
-    v_uintptr_t end = va + size - 1;
+    if (sign) {
+        if (upper != CANON_MASK)
+            return false;
+    }
+    else {
+        if (upper != 0)
+            return false;
+    }
+
+    vuintptr_t end = va + size - 1;
+
+
     if (end < va)
         return false;
 
+    sign = (end >> SIGN_BIT) & 1;
+    upper = end & CANON_MASK;
 
-    if (rng == MMU_LO) {
-        const v_uintptr_t limit =
-            (bits == 64) ? ~(v_uintptr_t)0 : ((v_uintptr_t)1 << bits);
-
-        return end < limit;
+    if (sign) {
+        if (upper != CANON_MASK)
+            return false;
     }
     else {
-        const v_uintptr_t base =
-            (bits == 64) ? 0 : (~((v_uintptr_t)1 << bits) + 1);
-        return va >= base;
+        if (upper != 0)
+            return false;
     }
+
+    const bool is_hi = (va & SIGN_MASK) != 0;
+    const bool end_hi = (end & SIGN_MASK) != 0;
+
+    if (is_hi != end_hi)
+        return false;
+
+    if (m->rng_ == MMU_LO)
+        return !is_hi;
+
+    if (m->rng_ == MMU_HI)
+        return is_hi;
+
+    return false;
 }
 
 
@@ -49,8 +73,8 @@ static inline void get_target_lvl(
     size_t* cover,
     size_t size,
     mmu_granularity g,
-    v_uintptr_t va,
-    p_uintptr_t pa)
+    vuintptr_t va,
+    puintptr_t pa)
 {
     mmu_tbl_level l;
     size_t c;
@@ -77,8 +101,8 @@ bool mmu_is_active()
 
 mmu_map_result mmu_map(
     const mmu_mapping* m,
-    v_uintptr_t va,
-    p_uintptr_t pa,
+    vuintptr_t va,
+    puintptr_t pa,
     size_t size,
     mmu_pg_cfg cfg,
     mmu_op_info* info)
@@ -97,8 +121,8 @@ mmu_map_result mmu_map(
         return MMU_MAP_MAP_NOT_IN_RANGE;
 
 #ifdef DEBUG
-    p_uintptr_t expected_phys_end = pa + size;
-    v_uintptr_t expected_virt_end = va + size;
+    puintptr_t expected_phys_end = pa + size;
+    vuintptr_t expected_virt_end = va + size;
 #endif
 
     const mmu_tbl TBL0 = mmu_mapping_get_tbl(m);
@@ -178,7 +202,7 @@ mmu_map_result mmu_map(
 
 
 mmu_unmap_result
-mmu_unmap(const mmu_mapping* m, v_uintptr_t va, size_t size, mmu_op_info* info)
+mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info)
 {
     size_t cover;
     size_t i;
@@ -189,7 +213,7 @@ mmu_unmap(const mmu_mapping* m, v_uintptr_t va, size_t size, mmu_op_info* info)
         return MMU_UNMAP_OK;
 
 #ifdef DEBUG
-    v_uintptr_t expected_virt_end = va + size;
+    vuintptr_t expected_virt_end = va + size;
 #endif
 
     const mmu_tbl TBL0 = mmu_mapping_get_tbl(m);

@@ -289,7 +289,7 @@ static inline mmu_mapping mmu_mapping_new(
 
     void* tbl = allocator(g);
 
-    ASSERT(tbl && (v_uintptr_t)tbl % g == 0);
+    ASSERT(tbl && (vuintptr_t)tbl % g == 0);
 
     return (mmu_mapping) {
         .rng_ = rng,
@@ -431,8 +431,8 @@ static inline mmu_pg_cfg mmu_pg_cfg_new(
 
 mmu_map_result mmu_map(
     const mmu_mapping* m,
-    v_uintptr_t va,
-    p_uintptr_t pa,
+    vuintptr_t va,
+    puintptr_t pa,
     size_t size,
     mmu_pg_cfg cfg,
     mmu_op_info* info);
@@ -443,6 +443,6 @@ typedef enum {
 } mmu_unmap_result;
 
 mmu_unmap_result
-mmu_unmap(const mmu_mapping* m, v_uintptr_t va, size_t size, mmu_op_info* info);
+mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info);
 
 bool mmu_is_active();

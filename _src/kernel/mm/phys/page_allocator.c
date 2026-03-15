@@ -276,7 +276,7 @@ static void try_merge(uint32_t i)
 }
 
 
-p_uintptr_t page_malloc(uint8_t order, mm_page_data p)
+puintptr_t page_malloc(uint8_t order, mm_page_data p)
 {
     DEBUG_ASSERT(order <= MAX_ORDER);
 
@@ -307,7 +307,7 @@ p_uintptr_t page_malloc(uint8_t order, mm_page_data p)
 }
 
 
-void page_free(p_uintptr_t pa)
+void page_free(puintptr_t pa)
 {
     uint32_t i = pa / KPAGE_SIZE;
     page_node* n = get_node(i);
@@ -327,7 +327,7 @@ void page_free(p_uintptr_t pa)
 }
 
 
-const char* page_allocator_update_tag(p_uintptr_t pa, const char* new_tag)
+const char* page_allocator_update_tag(puintptr_t pa, const char* new_tag)
 {
     uint32_t i = pa / KPAGE_SIZE;
     page_node* n = get_node(i);
@@ -342,7 +342,7 @@ const char* page_allocator_update_tag(p_uintptr_t pa, const char* new_tag)
 }
 
 
-bool page_allocator_get_data(p_uintptr_t pa, mm_page_data* data)
+bool page_allocator_get_data(puintptr_t pa, mm_page_data* data)
 {
     uint32_t i = pa / KPAGE_SIZE;
     page_node* n = get_node(i);
@@ -365,7 +365,7 @@ bool page_allocator_get_data(p_uintptr_t pa, mm_page_data* data)
 }
 
 
-bool page_allocator_set_data(p_uintptr_t pa, mm_page_data data)
+bool page_allocator_set_data(puintptr_t pa, mm_page_data data)
 {
     uint32_t i = pa / KPAGE_SIZE;
     page_node* n = get_node(i);
@@ -451,8 +451,8 @@ void page_allocator_init()
     free_lists = (uint32_t*)pv.va;
     nodes = (page_node*)(pv.va + free_list_bytes);
 
-    ASSERT((v_uintptr_t)free_lists % _Alignof(uint32_t) == 0);
-    ASSERT((v_uintptr_t)nodes % _Alignof(page_node) == 0);
+    ASSERT((vuintptr_t)free_lists % _Alignof(uint32_t) == 0);
+    ASSERT((vuintptr_t)nodes % _Alignof(page_node) == 0);
 
 
     size_t i;
@@ -524,7 +524,7 @@ void page_allocator_debug()
 {
     size_t i = 0;
 
-    p_uintptr_t addr;
+    puintptr_t addr;
     size_t bytes, pages;
 
     while (i < N) {

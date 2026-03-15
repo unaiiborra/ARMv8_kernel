@@ -167,7 +167,8 @@ void print_esr(exception_reason_sysregs* r, panic_exception_type type)
         "(https://developer.arm.com/documentation/111107/2025-12/"
         "AArch64-Registers/"
         "ESR-EL1--Exception-Syndrome-Register--EL1-)]\n",
-        (int)_ARM_currentEL());
+        (int)sysreg_read(currentel));
+
     fkprintf(IO_STDPANIC, "\traw: %p\n\t(%b)\n", esr, esr);
 
     /* IRQ / FIQ: ESR no es diagnóstico */

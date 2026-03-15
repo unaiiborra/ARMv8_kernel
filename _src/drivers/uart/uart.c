@@ -535,8 +535,8 @@ term_out_result uart_putc(const driver_handle* h, const char c)
  *  Uart early
  */
 
-static p_uintptr_t early_base;
-void uart_early_init(p_uintptr_t base)
+static puintptr_t early_base;
+void uart_early_init(puintptr_t base)
 {
     early_base = base;
 

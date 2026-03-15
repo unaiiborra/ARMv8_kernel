@@ -25,7 +25,7 @@ mmu_mapping early_lo_mapping;
 /// still enabled
 static void* im_alloc(size_t bytes)
 {
-    p_uintptr_t pa = early_kalloc(bytes, "mmu table", false, false).pa;
+    puintptr_t pa = early_kalloc(bytes, "mmu table", false, false).pa;
 
     memzero((void*)pa, bytes);
 
@@ -40,7 +40,7 @@ static void im_free(void* addr)
     char buf[200];
 
     stdint_to_ascii(
-        (STDINT_UNION) {.uint64 = (v_uintptr_t)addr},
+        (STDINT_UNION) {.uint64 = (vuintptr_t)addr},
         STDINT_UINT64,
         buf,
         200,

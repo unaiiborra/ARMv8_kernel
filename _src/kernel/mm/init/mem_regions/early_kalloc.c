@@ -9,7 +9,6 @@
 #include "early_kalloc.h"
 
 #include <arm/mmu.h>
-#include <frdm_imx8mp.h>
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
@@ -20,7 +19,6 @@
 #include <lib/stdbitfield.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #include "../../mm_info.h"
 #include "mem_regions.h"
@@ -43,12 +41,12 @@ static early_memreg* memregs_buf;
 static size_t memreg_count;
 
 
-static inline p_uintptr_t node_start(ek_node* n)
+static inline puintptr_t node_start(ek_node* n)
 {
     return as_kpa(n->memreg.addr);
 }
 
-static inline p_uintptr_t node_end(ek_node* n)
+static inline puintptr_t node_end(ek_node* n)
 {
     return as_kpa(n->memreg.addr) + n->memreg.pages * KPAGE_SIZE;
 }
@@ -59,7 +57,7 @@ static ek_node* alloc_node()
 
     memreg_count++;
 
-    ASSERT((p_uintptr_t)n >= mm_info_ddr_start());
+    ASSERT((puintptr_t)n >= mm_info_ddr_start());
 
     return n;
 }
@@ -73,13 +71,13 @@ static void reserve_memreg(
     ASSERT(!e.free);
     e.addr = as_kpa(e.addr);
 
-    p_uintptr_t end = e.addr + e.pages * KPAGE_SIZE;
+    puintptr_t end = e.addr + e.pages * KPAGE_SIZE;
 
     ek_node* c = first_node;
 
     while (c) {
-        p_uintptr_t c_start = node_start(c);
-        p_uintptr_t c_end = node_end(c);
+        puintptr_t c_start = node_start(c);
+        puintptr_t c_end = node_end(c);
 
         if ((replace_all || c->memreg.free) && c_start <= e.addr &&
             end <= c_end) {
@@ -153,7 +151,7 @@ static void reserve_memreg(
 void early_kalloc_init()
 {
     next_allocation_node =
-        (ek_node*)(align_down_ptr(mm_info_ddr_end(), _Alignof(ek_node))) - 1;
+        (ek_node*)(align_down_pt(mm_info_ddr_end(), _Alignof(ek_node))) - 1;
     first_node = alloc_node();
     first_node->next = NULL;
 
@@ -210,7 +208,7 @@ void early_kalloc_init()
                 (MM_KSECTIONS.section.start + MM_KSECTIONS.section.size)); \
         reserve_memreg(                                                    \
             (early_memreg) {                                               \
-                .addr = as_kpa(MM_KSECTIONS.section.start),             \
+                .addr = as_kpa(MM_KSECTIONS.section.start),                \
                 .pages = MM_KSECTIONS.section.size / KPAGE_SIZE,           \
                 .free = false,                                             \
                 .tag = #section,                                           \
@@ -252,7 +250,7 @@ early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
             continue;
         }
 
-        p_uintptr_t addr = c->memreg.addr;
+        puintptr_t addr = c->memreg.addr;
 
         reserve_memreg(
             (early_memreg) {

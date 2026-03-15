@@ -1,3 +1,4 @@
+#include "arm/sysregs/sysregs.h"
 #define __MMU_INTERNAL
 
 #include <arm/cpu.h>
@@ -25,9 +26,8 @@ static inline bool mmu_on(uint64_t sctlr)
 
 static inline bool set_coreid(mmu_core_handle* ch)
 {
-    uint64_t MPIDR_EL1;
+    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
 
-    asm volatile("mrs %0, mpidr_el1" : "=r"(MPIDR_EL1) : : "memory");
 
     uint32_t mpidr_aff =
         ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
@@ -40,9 +40,8 @@ static inline bool set_coreid(mmu_core_handle* ch)
 
 static inline bool eq_caller_coreid(mmu_core_handle* ch)
 {
-    uint64_t MPIDR_EL1;
+    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
 
-    asm volatile("mrs %0, mpidr_el1" : "=r"(MPIDR_EL1) : : "memory");
 
     uint32_t mpidr_aff =
         ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
@@ -51,7 +50,8 @@ static inline bool eq_caller_coreid(mmu_core_handle* ch)
     return ch->mpidr_aff == mpidr_aff;
 }
 
-bool mmu_core_set_mapping(mmu_core_handle* ch, mmu_mapping* t)
+
+bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
 {
     ASSERT(ch);
 
@@ -68,14 +68,14 @@ bool mmu_core_set_mapping(mmu_core_handle* ch, mmu_mapping* t)
             case MMU_LO:
                 ch->lo_mapping = t;
                 _mmu_set_TTBR0_EL1(
-                    (v_uintptr_t)ch->lo_mapping->tbl_ -
+                    (vuintptr_t)ch->lo_mapping->tbl_ -
                     ch->lo_mapping->physmap_offset_);
                 break;
 
             case MMU_HI:
                 ch->hi_mapping = t;
                 _mmu_set_TTBR1_EL1(
-                    (v_uintptr_t)ch->hi_mapping->tbl_ -
+                    (vuintptr_t)ch->hi_mapping->tbl_ -
                     ch->hi_mapping->physmap_offset_);
                 break;
 

@@ -26,10 +26,10 @@ vmalloc_container_new(vmalloc_container* last, vmalloc_container_enum e)
 {
     DEBUG_ASSERT(last);
 
-    v_uintptr_t va = reserve_malloc(
-                         e == VMALLOC_FVA ? "vmalloc node container fva"
-                                          : "vmalloc node container rva")
-                         .va;
+    vuintptr_t va = reserve_malloc(
+                        e == VMALLOC_FVA ? "vmalloc node container fva"
+                                         : "vmalloc node container rva")
+                        .va;
 
     DEBUG_ASSERT(last->undef.hdr.next == NULL);
     DEBUG_ASSERT((va & (KPAGE_SIZE - 1)) == 0);
@@ -151,7 +151,7 @@ fva_node* get_new_fva_node()
 {
     fva_node* fva = vmaloc_node_new(first_fva_container, VMALLOC_FVA);
 
-    DEBUG_ASSERT((v_uintptr_t)fva % _Alignof(fva_node) == 0);
+    DEBUG_ASSERT((vuintptr_t)fva % _Alignof(fva_node) == 0);
 
     return fva;
 }
@@ -161,7 +161,7 @@ rva_node* get_new_rva_node()
 {
     rva_node* rva = vmaloc_node_new(first_rva_container, VMALLOC_RVA);
 
-    DEBUG_ASSERT((v_uintptr_t)rva % _Alignof(rva_node) == 0);
+    DEBUG_ASSERT((vuintptr_t)rva % _Alignof(rva_node) == 0);
 
     return rva;
 }
@@ -171,7 +171,7 @@ void free_fva_node(fva_node* node)
 {
     // get container by aligning down to 4096
     vmalloc_container* container =
-        (vmalloc_container*)((v_uintptr_t)node & ~(KPAGE_SIZE - 1ULL));
+        (vmalloc_container*)((vuintptr_t)node & ~(KPAGE_SIZE - 1ULL));
 
     fva_container_data* d = (fva_container_data*)&container->fva.data;
 
@@ -207,7 +207,7 @@ void free_rva_node(rva_node* node)
 {
     // get container by aligning down to 4096
     vmalloc_container* container =
-        (vmalloc_container*)((v_uintptr_t)node & ~(KPAGE_SIZE - 1ULL));
+        (vmalloc_container*)((vuintptr_t)node & ~(KPAGE_SIZE - 1ULL));
 
     rva_container_data* c = (rva_container_data*)&container->rva.data;
 

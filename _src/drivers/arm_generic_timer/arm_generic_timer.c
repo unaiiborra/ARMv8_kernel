@@ -1,4 +1,4 @@
-#include <arm/sysregs/arm_generic_timer.h>
+#include <arm/sysregs/sysregs.h>
 #include <drivers/arm_generic_timer/arm_generic_timer.h>
 #include <lib/lock/spinlock.h>
 #include <lib/lock/spinlock_irq.h>
@@ -9,8 +9,8 @@
 #include "kernel/devices/device.h"
 #include "lib/lock/_lock_types.h"
 
-#define cycles() _ARM_CNTVCT_EL0_get()
-#define freq() _ARM_CNTFRQ_EL0_get()
+#define cycles() sysreg_read(CNTVCT_EL0)
+#define freq() sysreg_read(CNTFRQ_EL0)
 
 uint64_t AGT_ns_to_cycles(uint64_t ns)
 {
@@ -64,10 +64,11 @@ static inline agt_state* get_state_(const driver_handle* h)
     return (agt_state*)h->state;
 }
 
+
 // ENABLE (bit 0)
-#define timer_is_enabled() (bool)(_ARM_CNTV_CTL_EL0_get() & 0b1ul)
-#define enable_timer() _ARM_CNTV_CTL_EL0_set(1)
-#define disable_timer() _ARM_CNTV_CTL_EL0_set(0)
+#define timer_is_enabled() (bool)(sysreg_read(CNTV_CTL_EL0) & 0b1ul)
+#define enable_timer() sysreg_write(CNTV_CTL_EL0, 1)
+#define disable_timer() sysreg_write(CNTV_CTL_EL0, 0)
 
 // ISTATUS (bit 2)
 #define timer_fired() ((bool)((_ARM_CNTV_CTL_EL0_get() >> 2) & 0b1ul))
@@ -90,7 +91,8 @@ static inline bool UNLOCKED_timer_schedule_(
     state->arg = arg;
     state->timer_fired = false;
 
-    _ARM_CNTV_CVAL_EL0_set(cycles);
+
+    sysreg_write(CNTV_CVAL_EL0, cycles);
 
     enable_timer();
 

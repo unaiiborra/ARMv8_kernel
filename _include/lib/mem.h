@@ -7,27 +7,27 @@
 #include "kernel/panic.h"
 
 // phys address uintptr_t
-typedef uintptr_t p_uintptr_t;
+typedef uintptr_t puintptr_t;
 
 // virt address uintptr_t
-typedef uintptr_t v_uintptr_t;
+typedef uintptr_t vuintptr_t;
 
 
 typedef struct {
-    p_uintptr_t pa;
-    v_uintptr_t va;
+    puintptr_t pa;
+    vuintptr_t va;
 } pv_ptr;
 
-static inline pv_ptr pv_ptr_new(p_uintptr_t pa, v_uintptr_t va)
+static inline pv_ptr pv_ptr_new(puintptr_t pa, vuintptr_t va)
 {
     return (pv_ptr) {pa, va};
 }
 
 #define uintptr_t_p_to_ptr(type, uintptr_t_phys) ((type*)(uintptr_t_phys))
-#define PTR_TO_UINTPTR_P(ptr) ((p_uintptr_t)(ptr))
+#define PTR_TO_UINTPTR_P(ptr) ((puintptr_t)(ptr))
 
 #define UINTPTR_V_TO_PTR(type, uintptr_t_virt) ((type*)(uintptr_t_virt))
-#define PTR_TO_UINTPTR_V(ptr) ((v_uintptr_t)(ptr))
+#define PTR_TO_UINTPTR_V(ptr) ((vuintptr_t)(ptr))
 
 
 size_t pa_supported_bits();
@@ -52,7 +52,7 @@ address_is_valid(uintptr_t a, size_t bits, bool sign_extended)
                           : (a & upper_mask) == 0;
 }
 
-static inline v_uintptr_t va_sign_extend(v_uintptr_t va, size_t bits)
+static inline vuintptr_t va_sign_extend(vuintptr_t va, size_t bits)
 {
     if (bits == 64)
         return va;
@@ -63,14 +63,14 @@ static inline v_uintptr_t va_sign_extend(v_uintptr_t va, size_t bits)
     uint64_t sign_bit = 1ULL << (bits - 1);
     uint64_t mask = ~((1ULL << bits) - 1);
 
-    v_uintptr_t a = (va & sign_bit) ? (va | mask) : va;
+    vuintptr_t a = (va & sign_bit) ? (va | mask) : va;
 
     DEBUG_ASSERT(address_is_valid(a, bits, true));
 
     return a;
 }
 
-static inline v_uintptr_t va_zero_extend(v_uintptr_t va, size_t bits)
+static inline vuintptr_t va_zero_extend(vuintptr_t va, size_t bits)
 {
     if (bits == 64)
         return va;
@@ -78,7 +78,7 @@ static inline v_uintptr_t va_zero_extend(v_uintptr_t va, size_t bits)
     ASSERT(bits > 0 && bits < 64);
     ASSERT(address_is_valid(va, bits, true));
 
-    v_uintptr_t a = va & ((1ULL << bits) - 1);
+    vuintptr_t a = va & ((1ULL << bits) - 1);
 
     DEBUG_ASSERT(address_is_valid(a, bits, false));
 

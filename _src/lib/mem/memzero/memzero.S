@@ -1,7 +1,7 @@
 .section .text
 
 
-// void* _memzero(v_uintptr_t dst, size_t size)
+// void* _memzero(vuintptr_t dst, size_t size)
 .global _memzero
 .align 4
 _memzero:
@@ -117,7 +117,7 @@ hang:
 
 
 
-// void* _memzero(v_uintptr_t dst, size_t size)
+// void* _memzero(vuintptr_t dst, size_t size)
 .global  _memzero64
 _memzero64:
     cbz x1, 1f

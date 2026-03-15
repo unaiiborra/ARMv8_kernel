@@ -19,7 +19,7 @@
 static vmalloc_mdt_container* container_list;
 
 
-static inline v_uintptr_t vsign(v_uintptr_t va)
+static inline vuintptr_t vsign(vuintptr_t va)
 {
     return va_sign_extend(va, MM_MMU_HI_BITS);
 }
@@ -29,7 +29,7 @@ static inline void
 init_container(vmalloc_mdt_container* c, vmalloc_mdt_container* prev)
 {
     DEBUG_ASSERT(c);
-    DEBUG_ASSERT((v_uintptr_t)c % KPAGE_ALIGN == 0);
+    DEBUG_ASSERT((vuintptr_t)c % KPAGE_ALIGN == 0);
 
     c->hdr.next = NULL;
     c->hdr.prev = prev;
@@ -91,7 +91,7 @@ static vmalloc_mdt_container* pa_mdt_container_new(vmalloc_mdt_container* prev)
     DEBUG_ASSERT(prev);
     DEBUG_ASSERT(prev->hdr.next == NULL);
 
-    v_uintptr_t va = reserve_malloc("vmalloc mdt container").va;
+    vuintptr_t va = reserve_malloc("vmalloc mdt container").va;
 
     DEBUG_ASSERT((va & (KPAGE_SIZE - 1)) == 0);
 
@@ -141,7 +141,7 @@ static bool mdt_is_valid(rva_node* n)
         return true; // no pa assigned
 
     vmalloc_pa_mdt *c, *p;
-    v_uintptr_t start, end, cur_start, cur_end, prev_end;
+    vuintptr_t start, end, cur_start, cur_end, prev_end;
 
     start = vsign(n->start);
     end = vsign(n->start + n->size);
@@ -186,7 +186,7 @@ static bool mdt_is_valid(rva_node* n)
 #endif
 
 
-void vmalloc_pa_mdt_push(rva_node* n, size_t o, p_uintptr_t pa, v_uintptr_t va)
+void vmalloc_pa_mdt_push(rva_node* n, size_t o, puintptr_t pa, vuintptr_t va)
 {
     vmalloc_pa_mdt *cur, *prev, *node;
 
@@ -239,7 +239,7 @@ void vmalloc_pa_mdt_free(rva_node* n)
 
     while (cur) {
         vmalloc_mdt_container* c =
-            (void*)align_down((v_uintptr_t)cur, KPAGE_ALIGN);
+            (void*)align_down((vuintptr_t)cur, KPAGE_ALIGN);
         vmalloc_pa_mdt* next = cur->next;
 
         vmalloc_pa_mdt* base = &c->entries[0];

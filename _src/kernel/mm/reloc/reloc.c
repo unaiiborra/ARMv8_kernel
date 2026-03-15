@@ -12,8 +12,8 @@
 #include "../init/mem_regions/early_kalloc.h"
 #include "kernel/mm/mmu.h"
 
-extern _Noreturn void _jmp_to_with_offset(void* to, size_t offset);
-extern _Noreturn void _reloc_cfg_end(void);
+extern noreturn void _jmp_to_with_offset(void* to, size_t offset);
+extern noreturn void _reloc_cfg_end(void);
 
 
 void mm_reloc_kernel()
@@ -54,7 +54,7 @@ void reloc_cfg_end()
     size_t n;
 
     early_kalloc_get_memregs(&mblcks, &n);
-    v_uintptr_t free_heap_start =
+    vuintptr_t free_heap_start =
         kpa_to_kva(mblcks[n - 1].addr + (mblcks[n - 1].pages * KPAGE_SIZE));
 
 
@@ -84,6 +84,6 @@ void reloc_cfg_end()
         NULL); // TODO: unmap from the actually reserved memory
 
 
-    extern _Noreturn void _return_to_kernel_entry(size_t physmap_offset);
+    extern noreturn void _return_to_kernel_entry(size_t physmap_offset);
     _return_to_kernel_entry(KERNEL_BASE);
 }

@@ -12,13 +12,12 @@
 #include "lib/math.h"
 #include "lib/mem.h"
 #include "lib/stdbitfield.h"
-#include "lib/stdmacros.h"
 
 
 #define F_READ 0
 #define F_WRITE 1
 #define F_EXEC 2
-#define F_PERMANENT 3
+#define F_STATIC_LIFETIME 3
 #define F_FULL_MAPPED 4
 #define F_PARTIALLY_MAPPED 5
 
@@ -151,10 +150,9 @@ static void umalloc_subregion(
 
     while (remaining_pages) {
         uintptr_t offset = (pages - remaining_pages) * KPAGE_SIZE;
-        size_t order = log2_floor_u64(pages);
+        size_t order = log2_floor(remaining_pages);
 
-        p_uintptr_t pa =
-            page_malloc(order, mm_page_data_new(tag, false, false));
+        puintptr_t pa = page_malloc(order, mm_page_data_new(tag, false, false));
 
         mmu_map_result mres;
         // map kernel access
@@ -162,7 +160,7 @@ static void umalloc_subregion(
             MM_MMU_KERNEL_MAPPING,
             knl_subregion_start + offset,
             pa,
-            power_of2(order),
+            power_of2(order) * KPAGE_SIZE,
             KNL_MMU_CFG,
             NULL);
         ASSERT(mres == MMU_MAP_OK);
@@ -172,8 +170,8 @@ static void umalloc_subregion(
             mapping,
             subregion_start + offset,
             pa,
-            power_of2(order),
-            KNL_MMU_CFG,
+            power_of2(order) * KPAGE_SIZE,
+            usr_mmu_cfg_from_flags(region->any.flags),
             NULL);
         ASSERT(mres == MMU_MAP_OK);
 
@@ -189,11 +187,9 @@ void* umalloc(
     bool read,
     bool write,
     bool execute,
-    bool assign_pa)
+    bool static_lifetime)
 {
     ASSERT(pages > 0);
-
-    mmu_mapping* mapping = &t->mapping;
 
 
     // if pages > 64 the assigned pa bitfield is saved as an allocated array of
@@ -213,12 +209,12 @@ void* umalloc(
     SET_FLAG(ur.any.flags, F_READ, read);
     SET_FLAG(ur.any.flags, F_WRITE, write);
     SET_FLAG(ur.any.flags, F_EXEC, execute);
-    SET_FLAG(ur.any.flags, F_PERMANENT, assign_pa);
-    SET_FLAG(ur.any.flags, F_FULL_MAPPED, assign_pa);
+    SET_FLAG(ur.any.flags, F_STATIC_LIFETIME, static_lifetime);
+    SET_FLAG(ur.any.flags, F_FULL_MAPPED, static_lifetime);
     SET_FLAG(ur.any.flags, F_PARTIALLY_MAPPED, false);
 
 
-    if (!assign_pa) {
+    if (!static_lifetime) {
         push_usr_region_to_task(t, ur);
         return NULL;
     }
@@ -231,8 +227,9 @@ void* umalloc(
 
     if (pages > 64) {
         // big
-        ur.bg.pt_assigned_pa =
-            kmalloc(DIV_CEIL(pages, BITFIELD_CAPACITY(bitfield64)));
+        ur.bg.pt_assigned_pa = kmalloc(
+            DIV_CEIL(pages, BITFIELD_CAPACITY(bitfield64)) *
+            sizeof(bitfield64));
 
         assigned_pa = ur.bg.pt_assigned_pa;
     }
@@ -241,7 +238,7 @@ void* umalloc(
 
 
     // allocate the kernel access and assign the pa
-    ur.any.knl_start = (v_uintptr_t)
+    ur.any.knl_start = (vuintptr_t)
         raw_kmalloc(pages, t->task_name, &RAW_KMALLOC_DYNAMIC_CFG, &kinfo);
 
 
@@ -257,10 +254,10 @@ void* umalloc(
         size_t offset = pa_info[i].va - pa_info[0].va;
 
         mmu_map_result mres = mmu_map(
-            mapping,
+            &t->mapping,
             usr_va + offset,
             pa_info[i].pa,
-            pa_info[i].order * KPAGE_SIZE,
+            power_of2(pa_info[i].order) * KPAGE_SIZE,
             usr_mmu_cfg_from_flags(ur.any.flags),
             NULL);
 
@@ -268,7 +265,7 @@ void* umalloc(
 
 
         // mark the pages as allocated
-        size_t count = power_of2(pa_info->order);
+        size_t count = power_of2(pa_info[i].order);
         size_t idx = offset / KPAGE_SIZE;
 
         for (size_t j = 0; j < count; j++) {
@@ -380,4 +377,80 @@ void ufree(struct utask* t, uintptr_t usr_va)
     }
 
     PANIC("ufree: region not found");
+}
+
+
+bool uregion_is_allocated(
+    struct utask* t,
+    uintptr_t start,
+    size_t size,
+    usr_region** region)
+{
+    if (size == 0)
+        return false;
+
+    uintptr_t end = start + size;
+
+    usr_region_node* cur = t->regions;
+
+    while (cur) {
+        uintptr_t r_start = cur->region.any.usr_start;
+        uintptr_t r_end = r_start + cur->region.any.pages * KPAGE_SIZE;
+
+        if (r_start <= start && r_end >= end) {
+            if (region)
+                *region = &cur->region;
+
+            return true;
+        }
+
+        cur = cur->next;
+    }
+
+    return false;
+}
+
+
+bool uregion_is_assigned(
+    struct utask* t,
+    uintptr_t start,
+    size_t size,
+    usr_region** region)
+{
+    usr_region* r;
+
+    if (!uregion_is_allocated(t, start, size, &r))
+        return false;
+
+    if (region)
+        *region = r;
+
+    if (GET_FLAG(r->any.flags, F_FULL_MAPPED))
+        return true;
+
+    if (r->any.knl_start == 0)
+        return false;
+
+    uintptr_t r_start = r->any.usr_start;
+
+    size_t first_page = (start - r_start) / KPAGE_SIZE;
+    size_t pages = DIV_CEIL(size, KPAGE_SIZE);
+
+    bitfield64* assigned_pa;
+
+    if (r->any.pages > 64)
+        assigned_pa = r->bg.pt_assigned_pa;
+    else
+        assigned_pa = &r->sm.assigned_pa;
+
+    for (size_t i = 0; i < pages; i++) {
+        size_t idx = first_page + i;
+        size_t bf_n = idx / 64;
+        size_t bf_i = idx % 64;
+
+        if (!bitfield_get(assigned_pa[bf_n], bf_i))
+            return false;
+    }
+
+    return true;
 }

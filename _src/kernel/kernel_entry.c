@@ -1,4 +1,5 @@
 #include <arm/exceptions/exceptions.h>
+#include <arm/sysregs/sysregs.h>
 #include <arm/tfa/smccc.h>
 #include <drivers/arm_generic_timer/arm_generic_timer.h>
 #include <drivers/interrupts/gicv3/gicv3.h>
@@ -7,18 +8,22 @@
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
+#include <kernel/userspace_embedded_examples.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>
+#include <stdnoreturn.h>
 
 #include "arm/cpu.h"
+#include "arm/mmu.h"
 #include "kernel/io/stdio.h"
+#include "kernel/mm/elf.h"
 #include "kernel/scheduler.h"
+#include "lib/unit/mem.h"
 #include "mm/mm_info.h"
 
-
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
-_Noreturn void kernel_entry()
+noreturn void kernel_entry()
 {
     size_t coreid = ARM_get_cpu_affinity().aff0;
 
@@ -34,8 +39,23 @@ _Noreturn void kernel_entry()
 
     kprint("\n\rSTART\n\r");
 
+    utask* ut = utask_new("testing", 4 * MEM_KiB);
+
+
+    bool res =
+        mmu_core_set_mapping(mm_mmu_core_handler_get_self(), &ut->mapping);
+    ASSERT(res);
+
+
+    elf_load_result elf_res =
+        elf_load(ut, (void*)HELLO_WORLD_ELF, HELLO_WORLD_ELF_SIZE);
+    ASSERT(elf_res == ELF_LOAD_OK);
+
+
+    schedule_thread(ut, ut->entry);
+
     scheduler_loop_cpu_enter();
 
 
     loop asm volatile("wfi");
-} /* kernel_entry */
+}

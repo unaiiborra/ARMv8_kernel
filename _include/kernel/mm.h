@@ -36,21 +36,21 @@ void mm_dbg_print_mmu();
 bool mm_kernel_is_relocated();
 
 
-static inline p_uintptr_t kva_to_kpa(v_uintptr_t va)
+static inline puintptr_t kva_to_kpa(vuintptr_t va)
 {
     DEBUG_ASSERT((va & ~KERNEL_BASE) == (va - KERNEL_BASE));
 
     return va & ~KERNEL_BASE;
 }
 
-#    define kva_to_kpa_pt(va) (void*)kva_to_kpa((v_uintptr_t)(va))
+#    define kva_to_kpa_pt(va) (void*)kva_to_kpa((vuintptr_t)(va))
 
-static inline v_uintptr_t kpa_to_kva(p_uintptr_t pa)
+static inline vuintptr_t kpa_to_kva(puintptr_t pa)
 {
     return pa | KERNEL_BASE;
 }
 
-#    define kpa_to_kva_pt(pa) (void*)kpa_to_kva((p_uintptr_t)(pa))
+#    define kpa_to_kva_pt(pa) (void*)kpa_to_kva((puintptr_t)(pa))
 
 
 static inline bool is_kva_ptr(const void* a)
@@ -64,12 +64,12 @@ static inline bool is_kva_uintptr_t(uintptr_t a)
 }
 
 
-static inline v_uintptr_t as_kva(uintptr_t ptr)
+static inline vuintptr_t as_kva(uintptr_t ptr)
 {
     return is_kva_uintptr_t(ptr) ? ptr : kpa_to_kva(ptr);
 }
 
-static inline p_uintptr_t as_kpa(uintptr_t ptr)
+static inline puintptr_t as_kpa(uintptr_t ptr)
 {
     return is_kva_uintptr_t(ptr) ? kva_to_kpa(ptr) : ptr;
 }

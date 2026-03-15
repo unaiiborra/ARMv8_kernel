@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct {
     const char* tag;
-    p_uintptr_t start;
+    puintptr_t start;
     size_t size;
     mem_regions_type type;
 } mem_region;

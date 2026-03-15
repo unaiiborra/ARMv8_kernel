@@ -4,7 +4,7 @@
 
 
 .global _jmp_to_with_offset
-// _Noreturn void _jmp_to_with_offset(void* to, size_t offset);
+// noreturn void _jmp_to_with_offset(void* to, size_t offset);
 _jmp_to_with_offset:
     add x0, x0, x1  // to += offset
     br  x0
@@ -16,7 +16,7 @@ _reloc_cfg_end:
     isb
 
 
-    mov x0, sp      //  (p_uintptr_t pa)
+    mov x0, sp      //  (puintptr_t pa)
     bl _mm_kpa_to_kva    //  return pa + KERNEL_BASE
     mov sp, x0      //  sp = remap res
 

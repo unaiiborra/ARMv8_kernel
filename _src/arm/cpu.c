@@ -4,7 +4,7 @@
 #include <stdint.h>
 ARM_cpu_affinity ARM_get_cpu_affinity()
 {
-    uint64_t v = _ARM_MPIDR_EL1();
+    uint64_t v = sysreg_read(mpidr_el1);
     ARM_cpu_affinity cpuid = {
         .aff0 = (v & 0xFFUL),
         .aff1 = ((v >> 8) & 0xFFUL),

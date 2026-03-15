@@ -69,7 +69,7 @@ _scheduler_loop_cpu_enter:
 
     
 
-// _Noreturn void _scheduler_loop_cpu_exit(uint64_t el1_ctx[2]);
+// noreturn void _scheduler_loop_cpu_exit(uint64_t el1_ctx[2]);
 .global _scheduler_loop_cpu_exit
 _scheduler_loop_cpu_exit:
     ldp x29, x30, [x0]

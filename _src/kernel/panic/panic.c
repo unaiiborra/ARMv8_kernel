@@ -159,7 +159,7 @@ static void handle_panic(panic_info* info, panic_recovery recovery)
 }
 
 
-_Noreturn __attribute__((cold)) void panic(panic_info panic_info)
+noreturn __attribute__((cold)) void panic(panic_info panic_info)
 {
     handle_panic(&panic_info, PANIC_UNRECOVERABLE);
 

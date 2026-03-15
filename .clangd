@@ -9,4 +9,10 @@ CompileFlags:
     "-DDRIVERS",
     "-nostdlib",
     "-nostartfiles",
+    "--gcc-toolchain=/opt/aarch64-none-elf/lib/gcc/aarch64-none-elf/15.2.0"
   ]
+
+Diagnostics:
+  Suppress:
+    - atomic_op_needs_trivial_copy
+    - atomic_op_needs_atomic_int_ptr_or_fp

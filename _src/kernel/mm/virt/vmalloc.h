@@ -6,4 +6,4 @@
 
 
 void vmalloc_init();
-v_uintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n);
+vuintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n);
