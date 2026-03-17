@@ -1,18 +1,12 @@
 #include <kernel/panic.h>
 #include <lib/lock.h>
 
+
 #define UNLOCKED_VALUE ~(uint32_t)0
 
 extern void _core_lock(volatile uint32_t* l);
 extern void _core_unlock(volatile uint32_t* l);
 extern bool _core_try_lock(volatile uint32_t* l);
-
-
-void corelock_init(corelock_t* l)
-{
-    l->l = UNLOCKED_VALUE;
-    l->n = 0;
-}
 
 
 void core_lock(corelock_t* l)

@@ -39,12 +39,8 @@ noreturn void kernel_entry()
 
     kprint("\n\rSTART\n\r");
 
+
     utask* ut = utask_new("testing", 4 * MEM_KiB);
-
-
-    bool res =
-        mmu_core_set_mapping(mm_mmu_core_handler_get_self(), &ut->mapping);
-    ASSERT(res);
 
 
     elf_load_result elf_res =
