@@ -6,7 +6,7 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
-#include <lib/lock/spinlock.h>
+#include <lib/lock.h>
 #include <stddef.h>
 #include <stdint.h>
 

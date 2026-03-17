@@ -1,13 +1,11 @@
 #include <arm/sysregs/sysregs.h>
 #include <drivers/arm_generic_timer/arm_generic_timer.h>
-#include <lib/lock/spinlock.h>
-#include <lib/lock/spinlock_irq.h>
+#include <kernel/devices/device.h>
+#include <lib/lock.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kernel/devices/device.h"
-#include "lib/lock/_lock_types.h"
 
 #define cycles() sysreg_read(CNTVCT_EL0)
 #define freq() sysreg_read(CNTFRQ_EL0)

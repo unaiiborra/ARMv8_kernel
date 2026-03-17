@@ -1,5 +1,5 @@
 #include <kernel/panic.h>
-#include <lib/lock/corelock.h>
+#include <lib/lock.h>
 
 #define UNLOCKED_VALUE ~(uint32_t)0
 

@@ -1,8 +1,7 @@
 #include "kernel/io/term.h"
 
 #include <lib/branch.h>
-#include <lib/lock/irqlock.h>
-#include <lib/lock/spinlock_irq.h>
+#include <lib/lock.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>
@@ -11,7 +10,6 @@
 #include "buffers.h"
 #include "kernel/mm.h"
 #include "kernel/panic.h"
-#include "lib/lock/corelock.h"
 
 
 static uint64_t uniqueid_count;
@@ -67,7 +65,6 @@ static inline void putc(term_handle* h, char c)
 void term_printc(term_handle* h, const char c)
 {
     irqlock_t f = irq_lock();
-
     core_lock(&h->lock_);
 
     putc(h, c);
@@ -79,7 +76,6 @@ void term_printc(term_handle* h, const char c)
 void term_prints(term_handle* h, const char* s)
 {
     irqlock_t f = irq_lock();
-
     core_lock(&h->lock_);
 
     while (*s)

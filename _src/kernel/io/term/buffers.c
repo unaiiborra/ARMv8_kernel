@@ -3,13 +3,13 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/align.h>
-#include <lib/lock/corelock.h>
+#include <lib/lock.h>
 #include <lib/math.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
+
 
 static inline void alloc_tail(term_buffer_handle* h, size_t size)
 {

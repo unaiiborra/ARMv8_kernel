@@ -3,15 +3,13 @@
 // https://github.com/bztsrc/raspi3-tutorial/blob/master/10_virtualmemory/mmu.c
 // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b?mapping=
 
-#include <lib/lock/spinlock.h>
+#include <kernel/panic.h>
+#include <lib/lock.h>
 #include <lib/mem.h>
 #include <lib/unit/mem.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#include "kernel/panic.h"
-#include "lib/stdmacros.h"
 
 
 /*

@@ -1,7 +1,7 @@
 #include <drivers/tmu/tmu.h>
 #include <drivers/tmu/tmu_raw.h>
 #include <kernel/panic.h>
-#include <lib/lock/spinlock_irq.h>
+#include <lib/lock.h>
 #include <lib/stdmacros.h>
 
 const int8_t TMU_MAX_SENSOR_TEMP_C = 125;

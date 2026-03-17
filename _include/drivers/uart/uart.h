@@ -1,7 +1,7 @@
 #pragma once
 #include <kernel/devices/device.h>
 #include <kernel/io/term.h>
-#include <lib/lock/spinlock.h>
+#include <lib/lock.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
 #include <stdbool.h>

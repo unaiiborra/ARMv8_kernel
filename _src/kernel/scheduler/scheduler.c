@@ -12,8 +12,7 @@
 #include "kernel/mm.h"
 #include "kernel/mm/mmu.h"
 #include "kernel/panic.h"
-#include "lib/lock/_lock_types.h"
-#include "lib/lock/spinlock.h"
+#include "lib/lock.h"
 #include "task.h"
 #include "thread.h"
 

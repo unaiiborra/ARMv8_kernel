@@ -6,7 +6,7 @@
 #include <kernel/mm/page_malloc.h>
 #include <kernel/mm/vmalloc.h>
 #include <kernel/panic.h>
-#include <lib/lock/corelock.h>
+#include <lib/lock.h>
 #include <lib/math.h>
 #include <lib/mem.h>
 #include <lib/stdmacros.h>

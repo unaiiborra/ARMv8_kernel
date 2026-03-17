@@ -3,7 +3,7 @@
 #include <arm/exceptions/exceptions.h>
 #include <arm/mmu.h>
 #include <kernel/io/stdio.h>
-#include <lib/lock/spinlock_irq.h>
+#include <lib/lock.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stdbool.h>

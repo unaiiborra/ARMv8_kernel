@@ -13,7 +13,7 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/align.h>
-#include <lib/lock/spinlock.h>
+#include <lib/lock.h>
 #include <lib/math.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
@@ -89,15 +89,16 @@ static void reserve_memreg(
             if (c_start == e.addr) {
                 ek_node* tail = alloc_node();
 
-                *tail = (ek_node) {.next = c->next,
-                                   .memreg = {
-                                       .addr = end,
-                                       .pages = (c_end - end) / KPAGE_SIZE,
-                                       .free = c->memreg.free,
-                                       .tag = c->memreg.tag,
-                                       .permanent = c->memreg.permanent,
-                                       .device_memory = c->memreg.tag,
-                                   }};
+                *tail = (ek_node) {
+                    .next = c->next,
+                    .memreg = {
+                        .addr = end,
+                        .pages = (c_end - end) / KPAGE_SIZE,
+                        .free = c->memreg.free,
+                        .tag = c->memreg.tag,
+                        .permanent = c->memreg.permanent,
+                        .device_memory = c->memreg.tag,
+                    }};
 
 
                 c->next = tail;
@@ -121,15 +122,16 @@ static void reserve_memreg(
             ek_node* mid = alloc_node();
             ek_node* tail = alloc_node();
 
-            *tail = (ek_node) {.next = c->next,
-                               .memreg = {
-                                   .addr = end,
-                                   .pages = (c_end - end) / KPAGE_SIZE,
-                                   .free = c->memreg.free,
-                                   .tag = c->memreg.tag,
-                                   .permanent = c->memreg.permanent,
-                                   .device_memory = c->memreg.tag,
-                               }};
+            *tail = (ek_node) {
+                .next = c->next,
+                .memreg = {
+                    .addr = end,
+                    .pages = (c_end - end) / KPAGE_SIZE,
+                    .free = c->memreg.free,
+                    .tag = c->memreg.tag,
+                    .permanent = c->memreg.permanent,
+                    .device_memory = c->memreg.tag,
+                }};
 
 
             *mid = (ek_node) {

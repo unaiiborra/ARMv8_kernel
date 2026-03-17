@@ -9,13 +9,10 @@
 #include <kernel/mm.h>
 #include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
-#include <lib/lock/spinlock.h>
+#include <lib/lock.h>
 #include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#include "drivers/uart/uart.h"
-#include "kernel/devices/drivers.h"
 
 
 void scheduler_loop_cpu_enter();

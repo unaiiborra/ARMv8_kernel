@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/lock/corelock.h>
+#include <lib/lock.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>

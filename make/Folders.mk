@@ -4,4 +4,4 @@ INCLUDE_DIR 	:= _include
 MAP_DIR			:= $(BIN_DIR)
 OBJ_DIR			:= $(BIN_DIR)/obj
 RS_LIB_DIR  	:= target/$(RS_TARGET)/release/libimx8mp_kernel.a
-COMPILER_DIR	?= /opt/aarch64-none-elf/lib/gcc/aarch64-none-elf/15.2.0
+COMPILER_DIR	?= /usr/lib/gcc/aarch64-none-elf/15.2.1

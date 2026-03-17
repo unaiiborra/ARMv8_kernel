@@ -2,7 +2,7 @@
 #include <drivers/uart/uart_raw.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
-#include <lib/lock/irqlock.h>
+#include <lib/lock.h>
 #include <stddef.h>
 #include <stdint.h>
 

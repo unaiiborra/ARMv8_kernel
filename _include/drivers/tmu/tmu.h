@@ -1,7 +1,7 @@
 #pragma once
 
 #include <kernel/devices/device.h>
-#include <lib/lock/spinlock.h>
+#include <lib/lock.h>
 #include <lib/stdbitfield.h>
 
 // Thermal monitoring unit
