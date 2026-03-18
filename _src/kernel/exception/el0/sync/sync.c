@@ -79,7 +79,10 @@ void exception_handler_sync(arm_exception_ctx* ectx)
         case ESR_EC_SVC_AARCH64:
             dbg_print("exception: ESR_EC_SVC_AARCH64\n\r");
             scheduler_ectx_save(ectx);
-            sysc64_dispatch(ectx);
+
+            if (get_current_thread() != NULL)
+                sysc64_dispatch(ectx);
+
             schedurer_ectx_restore(ectx);
             break;
 

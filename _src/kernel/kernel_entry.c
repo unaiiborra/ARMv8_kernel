@@ -15,7 +15,6 @@
 #include <stdnoreturn.h>
 
 #include "arm/cpu.h"
-#include "arm/mmu.h"
 #include "kernel/io/stdio.h"
 #include "kernel/mm/elf.h"
 #include "kernel/scheduler.h"
@@ -34,7 +33,7 @@ noreturn void kernel_entry()
             kernel_init();
     }
 
-    __attribute((unused)) mm_ksections y = MM_KSECTIONS;
+    dbg_var(mm_ksections)  y = MM_KSECTIONS;
 
 
     kprint("\n\rSTART\n\r");
@@ -51,6 +50,9 @@ noreturn void kernel_entry()
     schedule_thread(ut, ut->entry);
 
     scheduler_loop_cpu_enter();
+
+
+    kprint("\n\rExited correctly\n\r");
 
 
     loop asm volatile("wfi");

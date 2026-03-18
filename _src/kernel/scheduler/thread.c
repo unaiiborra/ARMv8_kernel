@@ -23,37 +23,6 @@ static const uintptr_t USR_ADDRSPACE_START = 0x0;
 static const uintptr_t USR_ADDRSPACE_END = KERNEL_BASE & ~(0xFFFF000000000000);
 
 
-/// stores the selected thread of each core to know the thread after returning
-/// from el0
-static local_th local_threads[NUM_CORES];
-
-
-void thread_ctl_init()
-{
-    for (size_t i = 0; i < NUM_CORES; i++)
-        local_threads[i].th = NULL;
-}
-
-
-void save_current_thread()
-{
-    local_threads[get_cpuid()].th = (thread*)sysreg_read(sp_el0);
-}
-
-
-thread* restore_current_thread(uint64_t* old_sp0)
-{
-    if (old_sp0)
-        *old_sp0 = sysreg_read(sp_el0);
-
-    thread* cur = local_threads[get_cpuid()].th;
-    DEBUG_ASSERT(cur && ((uintptr_t)cur & KERNEL_BASE) == KERNEL_BASE);
-
-    set_current_thread(cur);
-    return cur;
-}
-
-
 static uintptr_t find_free_region(utask* ut, size_t size)
 {
     uintptr_t prev_end = USR_ADDRSPACE_START;

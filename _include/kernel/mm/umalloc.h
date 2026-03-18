@@ -77,4 +77,4 @@ bool uregion_is_assigned(
     struct utask* t,
     uintptr_t start,
     size_t size,
-    usr_region** region);
+    usr_region** out_region);

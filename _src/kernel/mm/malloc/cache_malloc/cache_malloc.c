@@ -275,7 +275,7 @@ static inline void* new_cache(cache_malloc_size size, void* prev)
     raw_kmalloc_lock();
 
 
-    __attribute((unused)) bool result = page_allocator_get_data(pa, &data);
+    dbg_var(bool) result = page_allocator_get_data(pa, &data);
     DEBUG_ASSERT(result);
 
     data.cache_size = log2_floor_u32(size);

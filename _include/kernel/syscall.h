@@ -5,10 +5,11 @@
 
 
 typedef enum {
-    SYSC_PRINT = 0,
+    SYSC_EXIT,
+    SYSC_PRINT,
 
     SYSC_COUNT,
-} syscall;
+} syscall_e;
 
 
 void sysc64_dispatch(arm_exception_ctx* ectx);

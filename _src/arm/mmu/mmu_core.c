@@ -1,7 +1,7 @@
-#include "arm/sysregs/sysregs.h"
 #define __MMU_INTERNAL
 
 #include <arm/cpu.h>
+#include <arm/sysregs/sysregs.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
 #include <lib/stdmacros.h>
@@ -55,10 +55,14 @@ bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
 {
     ASSERT(ch);
 
-    uint64_t sctlr = _mmu_get_SCTLR_EL1();
+    if ((t->rng_ == MMU_LO ? ch->lo_mapping : ch->hi_mapping) == t)
+        return true; // mapping already set
 
     if (!mmu_mapping_is_valid(t))
         return false;
+
+
+    uint64_t sctlr = sysreg_read(sctlr_el1);
 
     if (mmu_on(sctlr)) {
         if (!eq_caller_coreid(ch))

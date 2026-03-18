@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <arm/exceptions/exceptions.h>
 #include <arm/mmu.h>
 #include <arm/sysregs/sysregs.h>
@@ -13,6 +12,8 @@
 #include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "kernel/lib/smp.h"
 
 
 void scheduler_loop_cpu_enter();
@@ -89,6 +90,8 @@ typedef struct thread {
 
     uint64_t last_access_time_us;
     uint32_t th_flags;
+    cpuid_t sched_cpu;
+    thread_state state;
 } thread;
 
 
@@ -99,9 +102,12 @@ void scheduler_init();
 void schedule_thread(utask* owner, uintptr_t entry);
 
 /// deletes a thread and unschedules it
-void unschedule_thread(utask* owner, uintptr_t entry);
+void unschedule_thread(thread* th);
 
 
+/// calling this function without previously calling scheduler_ectx_save() will
+/// cause ub, it is only safe to be called within the saved ctx as it gives fast
+/// access by using sp_el0
 static inline thread* get_current_thread()
 {
     uintptr_t th = sysreg_read(sp_el0);
@@ -109,12 +115,4 @@ static inline thread* get_current_thread()
     DEBUG_ASSERT((th & KERNEL_BASE) == KERNEL_BASE || th == 0);
 
     return (thread*)th;
-}
-
-
-static inline void set_current_thread(thread* th)
-{
-    DEBUG_ASSERT(((uintptr_t)th & KERNEL_BASE) == KERNEL_BASE || th == NULL);
-
-    sysreg_write(sp_el0, th);
 }

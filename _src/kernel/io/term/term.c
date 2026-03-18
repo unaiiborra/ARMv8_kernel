@@ -119,8 +119,7 @@ void term_flush(term_handle* h)
         return;
 
 
-    __attribute((unused)) char peek, pop;
-
+    char peek, pop;
 
     irqlock_t f = irq_lock();
     core_lock(&h->lock_);
@@ -135,8 +134,7 @@ void term_flush(term_handle* h)
         if (res == TERM_OUT_RES_NOT_TAKEN)
             break;
 
-        __attribute((unused)) bool pop_res = term_buffer_pop(&h->buf_, &pop);
-
+        dbg_var(bool) pop_res = term_buffer_pop(&h->buf_, &pop);
         DEBUG_ASSERT(pop_res && peek == pop);
     }
 

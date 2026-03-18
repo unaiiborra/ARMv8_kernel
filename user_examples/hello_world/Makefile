@@ -1,4 +1,4 @@
-TARGET ?= hello.elf
+TARGET ?= out.elf
 
 CROSS ?= aarch64-none-elf
 

@@ -7,3 +7,6 @@
 
 
 #define TYPE_BIT_SIZE(type) (sizeof(type) * 8)
+
+
+#define dbg_var(T) __attribute((unused)) T

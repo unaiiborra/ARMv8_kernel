@@ -82,11 +82,9 @@ _scheduler_loop_cpu_exit:
     msr ELR_EL1, x30
     msr SP_EL0, xzr
 
-    mov x0, xzr
-    mov x1, #0b0101
-    and x0, x0, x1  // 0b0101 EL1 with SP_EL1 (EL1h).
 
     // return to el1 (out of exception)
+    mov x0, #0x5 // 0b0101 EL1 with SP_EL1 (EL1h).
     msr SPSR_EL1, x0
     eret
     

@@ -415,15 +415,15 @@ bool uregion_is_assigned(
     struct utask* t,
     uintptr_t start,
     size_t size,
-    usr_region** region)
+    usr_region** out_region)
 {
     usr_region* r;
 
     if (!uregion_is_allocated(t, start, size, &r))
         return false;
 
-    if (region)
-        *region = r;
+    if (out_region)
+        *out_region = r;
 
     if (GET_FLAG(r->any.flags, F_FULL_MAPPED))
         return true;

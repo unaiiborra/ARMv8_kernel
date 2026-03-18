@@ -1,9 +1,8 @@
 #include <stdio.h>
 
-
 int main()
 {
-    print("helo world!!");
+    print("Hello from userspace!");
 
     return 0;
 }

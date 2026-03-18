@@ -18,28 +18,32 @@ typedef enum {
 } sysc_print_results;
 
 
-int64_t syscall64_print(const uint64_t args[6])
+int64_t syscall64_print(
+    sysarg_t buf_pt,
+    sysarg_t buf_sz,
+    sysarg_t a2,
+    sysarg_t a3,
+    sysarg_t a4,
+    sysarg_t a5)
 {
-    const uintptr_t BUF = args[BUF_PTR_ARG];
-    const size_t BUF_SIZE = (size_t)args[BUF_SIZE_ARG];
-
+    (void)a2, (void)a3, (void)a4, (void)a5;
 
     usr_region* region;
     if (!uregion_is_assigned(
             get_current_thread()->task.utask,
-            (uintptr_t)BUF,
-            BUF_SIZE,
+            buf_pt,
+            buf_sz,
             &region))
         return SYSC_PRINT_INVALID_BUF;
 
 
-    size_t offset = BUF - region->any.usr_start;
+    size_t offset = buf_pt - region->any.usr_start;
     const char* kva = (char*)(region->any.knl_start + offset);
 
-    char* cpy = kmalloc(BUF_SIZE + 1); // copy to avoid reading out of BUF_SIZE
-    cpy[BUF_SIZE] = '\0';
+    char* cpy = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
+    cpy[buf_sz] = '\0';
 
-    memcpy(cpy, kva, BUF_SIZE);
+    memcpy(cpy, kva, buf_sz);
 
     fkprint(IO_STDOUT, cpy);
 

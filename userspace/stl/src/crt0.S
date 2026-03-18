@@ -4,10 +4,7 @@
 _start:
     bl main
 
-    // TODO: syscall exit
-
-    mov x1, #0
-    ldr x1, [x1] // should segfault
+    bl syscall_exit  
 
 0:  nop
     b 0b

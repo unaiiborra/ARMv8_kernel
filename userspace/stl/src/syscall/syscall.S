@@ -1,7 +1,7 @@
 .section .text
 
 /*
-extern int64 _syscall(
+extern int64 syscall(
     x0 arg0,
     x1 arg1,
     x2 arg2,
@@ -10,8 +10,8 @@ extern int64 _syscall(
     x5 arg5,
     x6 syscall);
 */
-.global _syscall
-_syscall:
+.global syscall
+syscall:
     mov x8, x6
     svc #0
     ret

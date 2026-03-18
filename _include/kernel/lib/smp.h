@@ -9,12 +9,12 @@
 #include "arm/sysregs/sysregs.h"
 
 
-typedef uint64_t cpuid_t;
+typedef uint32_t cpuid_t;
 
 
 static inline cpuid_t get_cpuid()
 {
-    uint64_t cpuid = sysreg_read(mpidr_el1) & 0xFF;
+    cpuid_t cpuid = sysreg_read(mpidr_el1) & 0xFF;
 
     DEBUG_ASSERT(cpuid < NUM_CORES);
 
