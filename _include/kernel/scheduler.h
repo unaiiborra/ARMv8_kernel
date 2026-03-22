@@ -1,10 +1,11 @@
 #pragma once
 
-#include <arm/exceptions/exceptions.h>
+#include <arm/exceptions/ctx.h>
 #include <arm/mmu.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
 #include <kernel/lib/kvec.h>
+#include <kernel/lib/smp.h>
 #include <kernel/mm.h>
 #include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
@@ -13,15 +14,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kernel/lib/smp.h"
-
 
 void scheduler_loop_cpu_enter();
 void scheduler_loop_cpu_exit();
 
 
-void scheduler_ectx_save(arm_exception_ctx* ectx);
-void schedurer_ectx_restore(arm_exception_ctx* ectx);
+void scheduler_ectx_save(arm_ectx* ectx);
+void schedurer_ectx_restore(arm_ectx* ectx);
 
 
 /* --- Tasks --- */
@@ -84,9 +83,7 @@ typedef struct thread {
         utask* utask;
     } task;
 
-    uint64_t sp;
-    uint64_t pc;
-    arm_exception_ctx ctx;
+    arm_ectx ctx;
 
     uint64_t last_access_time_us;
     uint32_t th_flags;

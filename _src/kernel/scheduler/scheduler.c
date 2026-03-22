@@ -8,7 +8,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arm/exceptions/ctx.h"
 #include "arm/mmu.h"
+#include "arm/reg.h"
 #include "kernel/lib/kvec.h"
 #include "kernel/mm.h"
 #include "kernel/mm/mmu.h"
@@ -18,14 +20,18 @@
 #include "thread.h"
 
 
-extern void _scheduler_loop_cpu_enter(
-    arm_exception_ctx* el0_ctx,
-    uint64_t sp_el0,
-    uint64_t pc,
-    uint64_t el1_ctx[4]);
+typedef struct {
+    gpr_t fp, lr;
+
+    sysreg_t spsr_el1;
+    sp_t sp_el1;
+} pre_sched_mode_ctx;
 
 
-extern void _scheduler_loop_cpu_exit(uint64_t el1_ctx[4]);
+extern void
+_scheduler_loop_cpu_enter(arm_ectx* el0_ctx, pre_sched_mode_ctx* el1_ctx);
+
+extern void _scheduler_loop_cpu_exit(pre_sched_mode_ctx* el1_ctx);
 
 
 typedef struct thread_node {
@@ -41,7 +47,8 @@ typedef struct {
 } scheduler_t;
 
 
-_Alignas(16) static uint64_t local_el1_ctx[NUM_CORES][4];
+static pre_sched_mode_ctx local_pre_sched_mode_ctx[NUM_CORES];
+
 static scheduler_t scheduler[NUM_CORES];
 
 static atomic_ulong thread_uid_counter;
@@ -73,8 +80,7 @@ void scheduler_init()
         scheduler[i].current_thread = NULL;
         scheduler[i].lock = CORELOCK_INIT;
 
-        for (size_t j = 0; j < 4; j++)
-            local_el1_ctx[i][j] = 0;
+        local_pre_sched_mode_ctx[i] = (pre_sched_mode_ctx) {0};
     }
 
     task_ctl_init();
@@ -101,17 +107,13 @@ void scheduler_loop_cpu_enter()
     ASSERT(res);
 
 
-    _scheduler_loop_cpu_enter(
-        &th->ctx,
-        th->sp,
-        th->pc,
-        &local_el1_ctx[cpuid][0]);
+    _scheduler_loop_cpu_enter(&th->ctx, &local_pre_sched_mode_ctx[cpuid]);
 }
 
 
 void scheduler_loop_cpu_exit()
 {
-    _scheduler_loop_cpu_exit(&local_el1_ctx[get_cpuid()][0]);
+    _scheduler_loop_cpu_exit(&local_pre_sched_mode_ctx[get_cpuid()]);
 }
 
 static thread* schedule()
@@ -134,7 +136,7 @@ static thread* schedule()
 }
 
 
-void scheduler_ectx_save(arm_exception_ctx* ectx)
+void scheduler_ectx_save(arm_ectx* ectx)
 {
     cpuid_t cpuid = get_cpuid();
 
@@ -146,15 +148,13 @@ void scheduler_ectx_save(arm_exception_ctx* ectx)
 
     if (cur) {
         cur->ctx = *ectx;
-        cur->pc = sysreg_read(elr_el1);
-        cur->sp = sysreg_read(sp_el0);
     }
 
     sysreg_write(sp_el0, cur);
 }
 
 
-void schedurer_ectx_restore(arm_exception_ctx* ectx)
+void schedurer_ectx_restore(arm_ectx* ectx)
 {
     cpuid_t cpuid = get_cpuid();
     thread* cur = schedule();
@@ -164,9 +164,6 @@ void schedurer_ectx_restore(arm_exception_ctx* ectx)
         return scheduler_loop_cpu_exit();
 
     *ectx = cur->ctx;
-
-    sysreg_write(elr_el1, cur->pc);
-    sysreg_write(sp_el0, cur->sp);
 
     core_unlock(&scheduler[cpuid].lock);
 }
@@ -181,9 +178,14 @@ void schedule_thread(utask* owner, uintptr_t entry)
     node->th = (thread) {
         .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
         .task = {.utask = owner},
-        .sp = 0x0,
-        .pc = entry,
-        .ctx = {.fpcr = 0, .fpsr = 0, .x = {}, .v = {}},
+        .ctx =
+            {.fpcr = 0,
+             .fpsr = 0,
+             .elr = entry,
+             .spsr = 0, // TODO: allow kernel threads
+             .sp_elx = 0x0,
+             .x = {},
+             .v = {}},
         .last_access_time_us = 0,
         .th_flags = 0,
         .sched_cpu = cpuid,

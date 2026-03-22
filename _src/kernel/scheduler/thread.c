@@ -78,5 +78,5 @@ void thread_assign_stack(thread* th)
 
     memzero64(kva, stack_size);
 
-    th->sp = stack_top;
+    th->ctx.sp_elx = stack_top;
 }

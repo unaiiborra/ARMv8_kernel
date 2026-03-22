@@ -33,7 +33,7 @@ noreturn void kernel_entry()
             kernel_init();
     }
 
-    dbg_var(mm_ksections)  y = MM_KSECTIONS;
+    dbg_var(mm_ksections) y = MM_KSECTIONS;
 
 
     kprint("\n\rSTART\n\r");
@@ -51,8 +51,7 @@ noreturn void kernel_entry()
 
     scheduler_loop_cpu_enter();
 
-
-    kprint("\n\rExited correctly\n\r");
+        kprint("\n\rExited correctly\n\r");
 
 
     loop asm volatile("wfi");

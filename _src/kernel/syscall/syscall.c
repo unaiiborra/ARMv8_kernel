@@ -1,3 +1,4 @@
+#include <arm/exceptions/ctx.h>
 #include <kernel/syscall.h>
 #include <stdint.h>
 
@@ -10,13 +11,13 @@ static const syscall_handler SYSC64_TABLE[SYSC_COUNT] = {
 };
 
 
-static inline void sysc64_set_result(arm_exception_ctx* ectx, int64_t result)
+static inline void sysc64_set_result(arm_ectx* ectx, int64_t result)
 {
     ectx->x[SYSC64_RETURN_REG] = result;
 }
 
 
-void sysc64_dispatch(arm_exception_ctx* ectx)
+void sysc64_dispatch(arm_ectx* ectx)
 {
     const syscall_e sysc = ectx->x[SYSC64_SYSCNUM_REG];
 

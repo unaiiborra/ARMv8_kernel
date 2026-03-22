@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arm/exceptions/exceptions.h>
+#include <arm/exceptions/ctx.h>
 #include <kernel/panic.h>
 #include <lib/string.h>
 
@@ -28,11 +28,11 @@ void exception_panic(
 
 /// Declares a non implemented EL1 exception handler, panics with the name of
 /// the exception
-#define DECLARE_EL1_EXCEPTION_HANDLER_PANIC(origin, stack, type)       \
-    void el1_##origin##_##stack##_##type##_handler(arm_exception_ctx*) \
-    {                                                                  \
-        exception_panic(                                               \
-            "el1_" #origin "_" #stack "_" #type " exception",          \
-            select_src_enum_(#origin, #stack),                         \
-            select_exception_type_enum_(#type));                       \
+#define DECLARE_EL1_EXCEPTION_HANDLER_PANIC(origin, stack, type) \
+    void el1_##origin##_##stack##_##type##_handler(arm_ectx*)    \
+    {                                                            \
+        exception_panic(                                         \
+            "el1_" #origin "_" #stack "_" #type " exception",    \
+            select_src_enum_(#origin, #stack),                   \
+            select_exception_type_enum_(#type));                 \
     }

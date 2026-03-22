@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arm/exceptions/ctx.h"
 #include "kernel/io/stdio.h"
 #include "kernel/panic.h"
 #include "kernel/scheduler.h"
@@ -14,7 +15,7 @@
 // https://developer.arm.com/documentation/ddi0601/latest/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-
 
 
-void exception_handler_sync(arm_exception_ctx* ectx)
+void exception_handler_sync(arm_ectx* ectx)
 {
     uint64_t esr_el1 = sysreg_read(esr_el1);
     esr_ec exception_class = ESR_EC(esr_el1);

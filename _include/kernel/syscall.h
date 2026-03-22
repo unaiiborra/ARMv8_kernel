@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arm/exceptions/exceptions.h>
+#include <arm/exceptions/ctx.h>
 #include <stddef.h>
 
 
@@ -12,4 +12,4 @@ typedef enum {
 } syscall_e;
 
 
-void sysc64_dispatch(arm_exception_ctx* ectx);
+void sysc64_dispatch(arm_ectx* ectx);
