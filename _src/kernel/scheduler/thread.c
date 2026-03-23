@@ -31,7 +31,7 @@ static uintptr_t find_free_region(utask* ut, size_t size)
     usr_region_node* cur = ut->regions;
 
     while (cur) {
-        uintptr_t start = cur->region.any.usr_start;
+        uintptr_t start = cur->region.reg_start;
 
         uintptr_t gap = start - prev_end;
 
@@ -40,7 +40,7 @@ static uintptr_t find_free_region(utask* ut, size_t size)
             best = candidate;
         }
 
-        prev_end = start + cur->region.any.pages * KPAGE_SIZE;
+        prev_end = start + cur->region.pages * KPAGE_SIZE;
         cur = cur->next;
     }
 

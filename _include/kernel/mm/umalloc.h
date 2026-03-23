@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arm/mmu.h>
+#include <kernel/task.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
 #include <stddef.h>
@@ -8,43 +9,6 @@
 
 
 struct utask;
-
-
-typedef struct {
-    uint32_t pages;
-    uint32_t flags;
-
-    vuintptr_t usr_start;
-    vuintptr_t knl_start; // zero if no pa has been assigned
-
-    bitfield64 assigned_pa; // max of 64 pages
-} usr_region_small;
-
-typedef struct {
-    uint32_t pages;
-    uint32_t flags;
-
-    vuintptr_t usr_start;
-    vuintptr_t knl_start; // zero if no pa has been assigned
-
-    bitfield64* pt_assigned_pa; // [ceil(pages / 64)]
-} usr_region_big;
-
-
-typedef union {
-    struct {
-        // pages determines whether a region is small or big depending if
-        // it has more than 64 pages
-        uint32_t pages;
-        uint32_t flags;
-        vuintptr_t usr_start;
-        vuintptr_t knl_start;
-        uint64_t _;
-    } any;
-
-    usr_region_small sm;
-    usr_region_big bg;
-} usr_region;
 
 
 /// allocates a user region, returns the kernel va for that region if marked as
@@ -70,11 +34,11 @@ bool uregion_is_allocated(
     struct utask* t,
     uintptr_t start,
     size_t size,
-    usr_region** region);
+    task_region** region);
 
 
 bool uregion_is_assigned(
     struct utask* t,
     uintptr_t start,
     size_t size,
-    usr_region** out_region);
+    task_region** out_region);

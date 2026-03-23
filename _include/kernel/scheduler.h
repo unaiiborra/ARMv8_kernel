@@ -14,6 +14,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/task.h"
+
 
 void scheduler_loop_cpu_enter();
 void scheduler_loop_cpu_exit();
@@ -27,7 +29,7 @@ void schedurer_ectx_restore(arm_ectx* ectx);
 
 typedef struct usr_region_node {
     struct usr_region_node* next;
-    usr_region region;
+    task_region region;
 } usr_region_node;
 
 

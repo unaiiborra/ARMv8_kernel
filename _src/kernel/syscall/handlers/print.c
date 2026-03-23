@@ -6,6 +6,8 @@
 #include "kernel/io/stdio.h"
 #include "kernel/mm.h"
 #include "kernel/mm/umalloc.h"
+#include "kernel/panic.h"
+#include "kernel/task.h"
 
 
 #define BUF_PTR_ARG 0
@@ -28,7 +30,7 @@ int64_t syscall64_print(
 {
     (void)a2, (void)a3, (void)a4, (void)a5;
 
-    usr_region* region;
+    task_region* region;
     if (!uregion_is_assigned(
             get_current_thread()->task.utask,
             buf_pt,
@@ -37,13 +39,17 @@ int64_t syscall64_print(
         return SYSC_PRINT_INVALID_BUF;
 
 
-    size_t offset = buf_pt - region->any.usr_start;
-    const char* kva = (char*)(region->any.knl_start + offset);
+    uintptr_t kva = task_region_translate(region, buf_pt, REG_TO_KNL);
+
+#ifdef DEBUG
+    if (kva == TASK_REGION_TRANSLATE_ERR)
+        PANIC("should be handled by uregion_is_assigned");
+#endif
 
     char* cpy = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
     cpy[buf_sz] = '\0';
 
-    memcpy(cpy, kva, buf_sz);
+    memcpy(cpy, (void*)kva, buf_sz);
 
     fkprint(IO_STDOUT, cpy);
 
