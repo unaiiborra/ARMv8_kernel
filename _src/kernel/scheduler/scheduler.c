@@ -24,7 +24,7 @@ typedef struct {
     gpr_t fp, lr;
 
     sysreg_t spsr_el1;
-    sp_t sp_el1;
+    sp_t     sp_el1;
 } pre_sched_mode_ctx;
 
 
@@ -36,14 +36,14 @@ extern void _scheduler_loop_cpu_exit(pre_sched_mode_ctx* el1_ctx);
 
 typedef struct thread_node {
     struct thread_node *prev, *next;
-    thread th;
+    thread              th;
 } thread_node;
 
 
 typedef struct {
     _Alignas(CACHE_LINE) corelock_t lock;
     thread_node* list;
-    thread* current_thread;
+    thread*      current_thread;
 } scheduler_t;
 
 
@@ -73,12 +73,12 @@ void scheduler_init()
 {
     sysreg_write(sp_el0, 0);
 
-    atomic_init(&thread_uid_counter, 0);
+    atomic_init(&thread_uid_counter, 1);
 
     for (size_t i = 0; i < NUM_CORES; i++) {
-        scheduler[i].list = NULL;
+        scheduler[i].list           = NULL;
         scheduler[i].current_thread = NULL;
-        scheduler[i].lock = CORELOCK_INIT;
+        scheduler[i].lock           = CORELOCK_INIT;
 
         local_pre_sched_mode_ctx[i] = (pre_sched_mode_ctx) {0};
     }
@@ -103,7 +103,7 @@ void scheduler_loop_cpu_enter()
 
     bool res = mmu_core_set_mapping(
         mm_mmu_core_handler_get_self(),
-        &th->task.utask->mapping);
+        &th->owner->mapping);
     ASSERT(res);
 
 
@@ -119,7 +119,7 @@ void scheduler_loop_cpu_exit()
 static thread* schedule()
 {
     thread_node* node;
-    thread* th = get_current_thread();
+    thread*      th = get_current_thread();
 
     if (th == NULL) { // the current thread was killed by other thread
         node = scheduler[get_cpuid()].list;
@@ -156,8 +156,8 @@ void scheduler_ectx_save(arm_ectx* ectx)
 
 void schedurer_ectx_restore(arm_ectx* ectx)
 {
-    cpuid_t cpuid = get_cpuid();
-    thread* cur = schedule();
+    cpuid_t cpuid                   = get_cpuid();
+    thread* cur                     = schedule();
     scheduler[cpuid].current_thread = cur;
 
     if (!cur)
@@ -170,26 +170,26 @@ void schedurer_ectx_restore(arm_ectx* ectx)
 
 
 /// creates a new thread and adds it to the scheduler
-void schedule_thread(utask* owner, uintptr_t entry)
+void schedule_thread(task* owner, uintptr_t entry)
 {
     cpuid_t cpuid = get_cpuid();
 
     thread_node* node = kmalloc(sizeof(thread_node));
-    node->th = (thread) {
+    node->th          = (thread) {
         .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
-        .task = {.utask = owner},
+        .owner  = owner,
         .ctx =
-            {.fpcr = 0,
-             .fpsr = 0,
-             .elr = entry,
-             .spsr = 0, // TODO: allow kernel threads
+            {.fpcr   = 0,
+             .fpsr   = 0,
+             .elr    = entry,
+             .spsr   = 0, // TODO: allow kernel threads
              .sp_elx = 0x0,
-             .x = {},
-             .v = {}},
+             .x      = {},
+             .v      = {}},
         .last_access_time_us = 0,
-        .th_flags = 0,
-        .sched_cpu = cpuid,
-        .state = THREAD_NEW,
+        .th_flags            = 0,
+        .sched_cpu           = cpuid,
+        .state               = THREAD_NEW,
     };
 
     spinlocked(&owner->lock)
@@ -199,7 +199,7 @@ void schedule_thread(utask* owner, uintptr_t entry)
             thread_node** first = &scheduler[cpuid].list;
 
             if (*first == NULL) {
-                *first = node;
+                *first     = node;
                 node->prev = node;
                 node->next = node;
             }
@@ -209,7 +209,7 @@ void schedule_thread(utask* owner, uintptr_t entry)
                 node->next = *first;
                 node->prev = last;
 
-                last->next = node;
+                last->next     = node;
                 (*first)->prev = node;
             }
 
@@ -228,7 +228,7 @@ void unschedule_thread(thread* th)
     DEBUG_ASSERT(th);
 
     thread_node* node;
-    cpuid_t th_cpuid = th->sched_cpu;
+    cpuid_t      th_cpuid = th->sched_cpu;
 
     corelocked(&scheduler[th_cpuid].lock)
     {

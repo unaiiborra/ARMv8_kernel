@@ -10,12 +10,12 @@
 #include "kernel/task.h"
 
 
-#define BUF_PTR_ARG 0
+#define BUF_PTR_ARG  0
 #define BUF_SIZE_ARG 1
 
 
 typedef enum {
-    SYSC_PRINT_OK = 0,
+    SYSC_PRINT_OK          = 0,
     SYSC_PRINT_INVALID_BUF = -1,
 } sysc_print_results;
 
@@ -32,7 +32,7 @@ int64_t syscall64_print(
 
     task_region* region;
     if (!uregion_is_assigned(
-            get_current_thread()->task.utask,
+            get_current_thread()->owner,
             buf_pt,
             buf_sz,
             &region))
@@ -46,7 +46,7 @@ int64_t syscall64_print(
         PANIC("should be handled by uregion_is_assigned");
 #endif
 
-    char* cpy = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
+    char* cpy   = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
     cpy[buf_sz] = '\0';
 
     memcpy(cpy, (void*)kva, buf_sz);

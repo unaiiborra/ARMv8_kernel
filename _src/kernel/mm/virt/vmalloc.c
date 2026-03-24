@@ -585,12 +585,13 @@ vmalloc_va_info vmalloc_get_addr_info(void* addr)
             break;
 
         if (end > a) {
-            return (vmalloc_va_info) {.state = VMALLOC_VA_INFO_FREE,
-                                      .state_info = {
-                                          .free = {
-                                              .free_start = vsign(start),
-                                              .free_size = fcur->size,
-                                          }}};
+            return (vmalloc_va_info) {
+                .state = VMALLOC_VA_INFO_FREE,
+                .state_info = {
+                    .free = {
+                        .free_start = vsign(start),
+                        .free_size = fcur->size,
+                    }}};
         }
 
         fcur = fcur->next;
@@ -607,13 +608,14 @@ vmalloc_va_info vmalloc_get_addr_info(void* addr)
             break;
 
         if (end > a) {
-            return (vmalloc_va_info) {.state = VMALLOC_VA_INFO_RESERVED,
-                                      .state_info = {
-                                          .reserved = {
-                                              .reserved_start = vsign(start),
-                                              .reserved_size = rcur->size,
-                                              .mdt = rcur->mdt,
-                                          }}};
+            return (vmalloc_va_info) {
+                .state = VMALLOC_VA_INFO_RESERVED,
+                .state_info = {
+                    .reserved = {
+                        .reserved_start = vsign(start),
+                        .reserved_size = rcur->size,
+                        .mdt = rcur->mdt,
+                    }}};
         }
 
         rcur = rcur->next;

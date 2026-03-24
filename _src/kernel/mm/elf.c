@@ -1,13 +1,13 @@
 #include <kernel/mm/elf.h>
+#include <kernel/mm/umalloc.h>
 
-#include "kernel/mm/umalloc.h"
 
 #define EI_NIDENT 16
 
 typedef struct {
-    uint8_t e_ident[EI_NIDENT]; /* 0x7F 'E' 'L' 'F' */
-    uint16_t eype;              /* ET_EXEC, ET_DYN */
-    uint16_t e_machine;         /* EM_AARCH64 */
+    uint8_t  e_ident[EI_NIDENT]; /* 0x7F 'E' 'L' 'F' */
+    uint16_t eype;               /* ET_EXEC, ET_DYN */
+    uint16_t e_machine;          /* EM_AARCH64 */
     uint32_t e_version;
     uint64_t e_entry; /* entry point */
     uint64_t e_phoff; /* offset PHDR table */
@@ -35,29 +35,29 @@ typedef struct {
 
 
 typedef enum {
-    PT_NULL = 0,
-    PT_LOAD = 1,
+    PT_NULL    = 0,
+    PT_LOAD    = 1,
     PT_DYNAMIC = 2,
-    PT_INTERP = 3,
-    PT_NOTE = 4,
-    PT_SHLIB = 5,
-    PT_PHDR = 6,
-    PT_LOPROC = 0x70000000,
-    PT_HIPROC = 0x7fffffff,
+    PT_INTERP  = 3,
+    PT_NOTE    = 4,
+    PT_SHLIB   = 5,
+    PT_PHDR    = 6,
+    PT_LOPROC  = 0x70000000,
+    PT_HIPROC  = 0x7fffffff,
 } segtype;
 
 
 #define PF_X_BIT 0 // execute
 #define PF_W_BIT 1 // write
 #define PF_R_BIT 2 // read
-#define PF_X (1ULL << PF_X_BIT)
-#define PF_W (1ULL << PF_W_BIT)
-#define PF_R (1ULL << PF_R_BIT)
+#define PF_X     (1ULL << PF_X_BIT)
+#define PF_W     (1ULL << PF_W_BIT)
+#define PF_R     (1ULL << PF_R_BIT)
 
 
 extern void _cache_flush_range(void* start, void* end);
 
-elf_load_result elf_load(utask* usr_proc, void* elf, size_t size)
+elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
 {
     ASSERT(elf);
 
@@ -81,9 +81,9 @@ elf_load_result elf_load(utask* usr_proc, void* elf, size_t size)
 
 
     Elf64_Phdr* ph;
-    size_t ph_n;
+    size_t      ph_n;
 
-    ph = (Elf64_Phdr*)((vuintptr_t)elf + (vuintptr_t)eh->e_phoff);
+    ph   = (Elf64_Phdr*)((vuintptr_t)elf + (vuintptr_t)eh->e_phoff);
     ph_n = eh->e_phnum;
 
 
@@ -102,7 +102,7 @@ elf_load_result elf_load(utask* usr_proc, void* elf, size_t size)
 
 
         void* kva = umalloc(
-            usr_proc,
+            t,
             ph[i].p_vaddr,
             ph[i].p_memsz / KPAGE_SIZE,
             data_flags & PF_R,
@@ -117,7 +117,7 @@ elf_load_result elf_load(utask* usr_proc, void* elf, size_t size)
 
         // memzero the remaining area
         if (ph[i].p_memsz > ph[i].p_filesz) {
-            void* dst = (void*)((uintptr_t)kva + ph[i].p_filesz);
+            void*  dst      = (void*)((uintptr_t)kva + ph[i].p_filesz);
             size_t rem_size = ph[i].p_memsz - ph[i].p_filesz;
 
             memzero(dst, rem_size);
@@ -128,7 +128,9 @@ elf_load_result elf_load(utask* usr_proc, void* elf, size_t size)
             align_down_pt((void*)((uintptr_t)kva + ph[i].p_memsz), 64));
     }
 
-    usr_proc->entry = eh->e_entry;
+    if (out_entry)
+        *out_entry = eh->e_entry;
+
 
     return ELF_LOAD_OK;
 }

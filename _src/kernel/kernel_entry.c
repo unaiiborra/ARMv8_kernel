@@ -12,6 +12,7 @@
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdnoreturn.h>
 
 #include "arm/cpu.h"
@@ -39,19 +40,20 @@ noreturn void kernel_entry()
     kprint("\n\rSTART\n\r");
 
 
-    utask* ut = utask_new("testing", 4 * MEM_KiB);
+    task* ut = task_new("testing", 4 * MEM_KiB);
 
 
+    uintptr_t       entry;
     elf_load_result elf_res =
-        elf_load(ut, (void*)HELLO_WORLD_ELF, HELLO_WORLD_ELF_SIZE);
+        elf_load(ut, (void*)HELLO_WORLD_ELF, HELLO_WORLD_ELF_SIZE, &entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
 
-    schedule_thread(ut, ut->entry);
+    schedule_thread(ut, entry);
 
     scheduler_loop_cpu_enter();
 
-        kprint("\n\rExited correctly\n\r");
+    kprint("\n\rExited correctly\n\r");
 
 
     loop asm volatile("wfi");

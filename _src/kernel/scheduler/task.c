@@ -9,40 +9,41 @@
 #include <stdatomic.h>
 #include <stddef.h>
 
+#include "kernel/task.h"
 #include "lib/math.h"
 
 
-static atomic_ullong task_uid;
+static atomic_ulong task_uid;
 
 
 void task_ctl_init()
 {
-    atomic_store(&task_uid, 0);
+    atomic_store(&task_uid, 1);
 }
 
 
-utask* utask_new(const char* name, size_t stack_size)
+task* task_new(const char* name, size_t stack_size)
 {
-    utask* ut = kmalloc(sizeof(utask));
+    task* t = kmalloc(sizeof(task));
 
-    *ut = (utask) {
-        .task_uid = atomic_fetch_add(&task_uid, 1),
-        .task_name = name,
-        .lock = {0},
-        .mapping = mm_mmu_mapping_new(MMU_LO),
-        .regions = NULL,
-        .threads = kvec_new(thread*),
-        .entry = 0x0,
+    *t = (task) {
+        .task_uid    = atomic_fetch_add(&task_uid, 1),
+        .name        = name,
+        .lock        = {0},
+        .state       = TASK_NEW,
         .stack_pages = DIV_CEIL(stack_size, KPAGE_SIZE),
+        .mapping     = mm_mmu_mapping_new(MMU_LO),
+        .regions     = NULL,
+        .threads     = kvec_new(thread*),
     };
 
-    spinlock_init(&ut->lock);
+    spinlock_init(&t->lock);
 
-    return ut;
+    return t;
 }
 
 
-void utask_delete(utask* ut)
+void task_delete(task* t)
 {
-    kfree(ut);
+    kfree(t);
 }

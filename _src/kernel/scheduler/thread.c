@@ -4,71 +4,31 @@
 #include <kernel/hardware.h>
 #include <kernel/lib/smp.h>
 #include <kernel/mm.h>
+#include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
 #include <lib/lock.h>
+#include <lib/mem.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#include "kernel/mm/umalloc.h"
-#include "lib/mem.h"
-
-
-typedef struct {
-    _Alignas(CACHE_LINE) thread* th;
-} local_th;
-
-
-static const uintptr_t USR_ADDRSPACE_START = 0x0;
-static const uintptr_t USR_ADDRSPACE_END = KERNEL_BASE & ~(0xFFFF000000000000);
-
-
-static uintptr_t find_free_region(utask* ut, size_t size)
-{
-    uintptr_t prev_end = USR_ADDRSPACE_START;
-    uintptr_t best = UINTPTR_MAX;
-
-    usr_region_node* cur = ut->regions;
-
-    while (cur) {
-        uintptr_t start = cur->region.reg_start;
-
-        uintptr_t gap = start - prev_end;
-
-        if (gap >= size) {
-            uintptr_t candidate = align_down(start - size, KPAGE_SIZE);
-            best = candidate;
-        }
-
-        prev_end = start + cur->region.pages * KPAGE_SIZE;
-        cur = cur->next;
-    }
-
-    uintptr_t gap = USR_ADDRSPACE_END - prev_end;
-
-    if (gap >= size)
-        best = align_down(USR_ADDRSPACE_END - size, KPAGE_SIZE);
-
-    return best;
-}
 
 
 void thread_assign_stack(thread* th)
 {
-    utask* ut = th->task.utask;
+    task* t = th->owner;
 
-    size_t stack_size = ut->stack_pages * KPAGE_SIZE;
+    size_t stack_size = t->stack_pages * KPAGE_SIZE;
 
-    uintptr_t stack_bottom = find_free_region(ut, stack_size);
-    uintptr_t stack_top = stack_bottom + stack_size;
+    uintptr_t stack_bottom = tregion_find_free(t, stack_size);
+    uintptr_t stack_top    = stack_bottom + stack_size;
     ASSERT(
         stack_bottom != UINTPTR_MAX && stack_top % 16 == 0 &&
         stack_top <= KERNEL_BASE);
 
     void* kva = umalloc(
-        ut,
+        t,
         stack_bottom,
-        ut->stack_pages,
+        t->stack_pages,
         true,
         true,
         false,

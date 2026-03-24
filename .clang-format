@@ -28,6 +28,8 @@ IndentCaseBlocks: false
 IndentGotoLabels: false
 IndentExternBlock: AfterExternBlock
 
+
+
 # ---- Llaves ----
 BreakBeforeBraces: Custom
 BraceWrapping:
@@ -59,6 +61,9 @@ SpacesInConditionalStatement: false
 AlignOperands: Align
 AlignTrailingComments: true
 AlignEscapedNewlines: Left
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveMacros: true
 
 # ---- Saltos de línea ----
 AllowShortFunctionsOnASingleLine: InlineOnly
@@ -96,6 +101,6 @@ IndentPPDirectives: AfterHash
 
 # ---- Misceláneo ----
 KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 2
+MaxEmptyLinesToKeep: 4
 EmptyLineAfterAccessModifier: Always
 EmptyLineBeforeAccessModifier: LogicalBlock

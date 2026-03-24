@@ -9,12 +9,11 @@
 #include <kernel/mm.h>
 #include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
+#include <kernel/task.h>
 #include <lib/lock.h>
 #include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#include "kernel/task.h"
 
 
 void scheduler_loop_cpu_enter();
@@ -27,37 +26,9 @@ void schedurer_ectx_restore(arm_ectx* ectx);
 
 /* --- Tasks --- */
 
-typedef struct usr_region_node {
-    struct usr_region_node* next;
-    task_region region;
-} usr_region_node;
 
-
-typedef struct utask {
-    uint64_t task_uid;
-    const char* task_name;
-    spinlock_t lock;
-
-    mmu_mapping mapping;
-    usr_region_node* regions;
-    kvec_T(thread*) threads;
-
-    uintptr_t entry;
-    size_t stack_pages;
-} utask;
-
-
-typedef struct {
-    uint64_t task_uid;
-    const char* task_name;
-    spinlock_t lock;
-    void (*fn)(void* args);
-    struct thread* threads[NUM_CORES];
-} ktask;
-
-
-utask* utask_new(const char* name, size_t stack_size);
-void utask_delete(utask* ut);
+task* task_new(const char* name, size_t stack_size);
+void  task_delete(task* ut);
 
 
 /* --- Threads --- */
@@ -78,18 +49,12 @@ typedef enum {
 
 
 typedef struct thread {
-    uint64_t th_uid;
-
-    union {
-        ktask* ktask;
-        utask* utask;
-    } task;
-
-    arm_ectx ctx;
-
-    uint64_t last_access_time_us;
-    uint32_t th_flags;
-    cpuid_t sched_cpu;
+    uint64_t     th_uid;
+    task*        owner;
+    arm_ectx     ctx;
+    uint64_t     last_access_time_us;
+    uint32_t     th_flags;
+    cpuid_t      sched_cpu;
     thread_state state;
 } thread;
 
@@ -98,7 +63,7 @@ void scheduler_init();
 
 
 /// creates a new thread and adds it to the scheduler
-void schedule_thread(utask* owner, uintptr_t entry);
+void schedule_thread(task* owner, uintptr_t entry);
 
 /// deletes a thread and unschedules it
 void unschedule_thread(thread* th);

@@ -20,15 +20,15 @@ int64_t syscall64_exit(
     (void)exit_code, (void)a1, (void)a2, (void)a3, (void)a4, (void)a5;
 
     thread* th = get_current_thread();
-    utask* ut = th->task.utask;
+    task*   ut = th->owner;
 
-    dbg_printf("[utask: %s] exit code %d", ut->task_name, exit_code);
+    dbg_printf("[utask: %s] exit code %d", ut->name, exit_code);
 
 
     spinlocked(&ut->lock)
     {
         kvec_T(thread*) ths = ut->threads;
-        size_t n = kvec_len(ths);
+        size_t n            = kvec_len(ths);
 
         for (size_t i = 0; i < n; i++) {
             thread* t;
