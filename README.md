@@ -144,8 +144,8 @@ go 0x40200000
 
 ```bash
 mmc dev 1
-fatload mmc 1:1 0x42000000 kernel.elf
-bootelf -p 0x42000000
+fatload mmc 1:1 0x40200000 kernel.elf
+bootelf -p 0x40200000
 ```
 
 To load and debug directly via J-Link:
