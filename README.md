@@ -87,10 +87,6 @@ Building on top of those, `raw_kmalloc` manages dynamic virtual allocations by m
 
 The kernel loads user programs from ELF binaries, maps them into a separate address space, and transitions to EL0 for execution. Returns to kernel mode happen through the exception mechanism. Currently, user binaries are embedded directly into the kernel binary as byte arrays. A filesystem is the planned replacement.
 
-### Exceptions
-
-A centralized vector table dispatches all exceptions by type and origin (current/lower EL, AArch64/AArch32, SP0/SPx). Synchronous exceptions from EL0 are routed to the syscall handler; IRQs are routed to the GIC driver.
-
 ---
 
 ## Building
