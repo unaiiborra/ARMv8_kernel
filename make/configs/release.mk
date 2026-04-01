@@ -1,0 +1,3 @@
+OPT_LEVEL 	?= -O2
+DEFINES     += -DRELEASE
+DEBUG		?= 0

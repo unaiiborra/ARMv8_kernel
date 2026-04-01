@@ -1,2 +1,0 @@
-OPT_LEVEL 	= -O2
-DEFINES     += -DSTD

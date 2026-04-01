@@ -105,7 +105,7 @@ bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
     }
 
     return true;
-} /* mmu_core_set_mapping */
+}
 
 bool mmu_core_set_d_cache(mmu_core_handle* ch, bool v)
 {
@@ -237,7 +237,7 @@ bool mmu_core_set_lo_granularity(mmu_core_handle* ch, mmu_granularity g)
     ch->flags |= val << COREH_LO_GRANULARITY_SHIFT;
 
     return true;
-} /* mmu_core_set_lo_granularity */
+}
 
 bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g)
 {
@@ -269,17 +269,17 @@ bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g)
     ch->flags |= val << COREH_HI_GRANULARITY_SHIFT;
 
     return true;
-} /* mmu_core_set_hi_granularity */
+}
 
 bool mmu_core_handle_new(
     mmu_core_handle* out,
-    mmu_mapping* lo_mapping,
-    mmu_mapping* hi_mapping,
-    bool hi_enable,
-    bool lo_enable,
-    bool d_cache,
-    bool i_cache,
-    bool align_trap)
+    mmu_mapping*     lo_mapping,
+    mmu_mapping*     hi_mapping,
+    bool             hi_enable,
+    bool             lo_enable,
+    bool             d_cache,
+    bool             i_cache,
+    bool             align_trap)
 {
     ASSERT(lo_mapping && hi_mapping);
 
@@ -319,7 +319,7 @@ bool mmu_core_handle_new(
 #undef MMU_CORE_ASSERT_SET
 
     return true;
-} /* mmu_core_handle_new */
+}
 
 void mmu_delete_mapping(mmu_mapping* m)
 {
@@ -346,10 +346,10 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
         return MMU_ACTIVATE_IS_ALREADY_ACTIVE;
 
 
-    uint8_t lo_va_bits = mmu_core_get_lo_va_bits(ch);
-    uint8_t hi_va_bits = mmu_core_get_hi_va_bits(ch);
-    bool valid_lo_bits = lo_va_bits >= 39 && lo_va_bits <= 48;
-    bool valid_hi_bits = hi_va_bits >= 39 && hi_va_bits <= 48;
+    uint8_t  lo_va_bits    = mmu_core_get_lo_va_bits(ch);
+    uint8_t  hi_va_bits    = mmu_core_get_hi_va_bits(ch);
+    bool     valid_lo_bits = lo_va_bits >= 39 && lo_va_bits <= 48;
+    bool     valid_hi_bits = hi_va_bits >= 39 && hi_va_bits <= 48;
     uint64_t tg0 =
         (ch->flags >> COREH_LO_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
     uint64_t tg1 =
@@ -371,7 +371,7 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
      * https://df.lth.se/~getz/ARM/SysReg/AArch64-mair_el1.html
      */
     uint64_t mair = (0xFFUL << 0) | (0x04UL << 8);
-    uint64_t tcr = 0;
+    uint64_t tcr  = 0;
 
 
     /* vaddress size */
@@ -437,7 +437,7 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
 
         default:
             PANIC("Unsupported PA range");
-    } /* switch */
+    }
 
     tcr |= (uint64_t)(ips & 0b111ULL) << 32; /* IPS */
 
@@ -463,7 +463,7 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
     MMU_APPLY_CHANGES();
 
     return MMU_ACTIVATE_OK;
-} /* mmu_core_activate */
+}
 
 mmu_deactivate_result mmu_core_deactivate(mmu_core_handle* ch)
 {
@@ -486,4 +486,4 @@ mmu_deactivate_result mmu_core_deactivate(mmu_core_handle* ch)
     MMU_APPLY_CHANGES();
 
     return MMU_DEACTIVATE_OK;
-} /* mmu_core_deactivate */
+}

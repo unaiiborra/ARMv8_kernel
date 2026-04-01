@@ -78,6 +78,7 @@ typedef enum {
     TASK_DEAD,  // task has no threads alive
 } task_state;
 
+
 typedef struct {
     uint64_t     task_uid;
     const char*  name;
@@ -86,7 +87,7 @@ typedef struct {
     uint32_t     stack_pages;
     mmu_mapping  mapping;
     task_region* regions;
-    kvec_T(thread*) threads;
+    kvec_T(thr ead*) threads;
 } task;
 
 

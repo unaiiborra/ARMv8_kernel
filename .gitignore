@@ -1,15 +1,15 @@
 bin/obj/*
 .cache/
 compile_commands.json
-
-# Added by cargo
-
-/target
 /thesis
 /tmp
+.env
+
+
+
 
 # Added by cargo
 #
 # already existing elements were commented out
 
-#/target
+/target

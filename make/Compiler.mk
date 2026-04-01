@@ -1,11 +1,11 @@
 # Compiler
-COMPILER 	= aarch64-none-elf-
-CC 			= $(COMPILER)gcc
+CROSS_COMPILE 	?= aarch64-none-elf-
+CC 			= $(CROSS_COMPILE)gcc
 ASM 		= $(CC)
-CPP 		= $(COMPILER)g++
-LD 			= $(COMPILER)ld
-OBJCOPY 	= $(COMPILER)objcopy
-OBJDUMP 	= $(COMPILER)objdump
+CPP 		= $(CROSS_COMPILE)g++
+LD 			= $(CROSS_COMPILE)ld
+OBJCOPY 	= $(CROSS_COMPILE)objcopy
+OBJDUMP 	= $(CROSS_COMPILE)objdump
 
 # Rust
 RUST		= cargo

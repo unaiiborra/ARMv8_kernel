@@ -1,7 +1,4 @@
-# === Configs ===
-
-# Config
-CONFIG ?= std
+CONFIG ?= release
 
 CONFIG_FILE := make/configs/$(CONFIG).mk
 

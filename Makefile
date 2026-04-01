@@ -1,3 +1,4 @@
+-include .env
 include make/configs/CONFIGS.mk
 include make/Flags.mk
 include make/Compiler.mk
