@@ -13,7 +13,7 @@ typedef bitfield64 mdt_bf;
 
 typedef struct vmalloc_pa_mdt {
     struct vmalloc_pa_mdt* next;
-    vmalloc_pa_info info;
+    vmalloc_pa_info        info;
 } vmalloc_pa_mdt;
 
 
@@ -26,23 +26,23 @@ typedef struct {
 
 
 #define PA_MDT_CONTAINER_NODES \
-    ((KPAGE_SIZE - sizeof(vmalloc_mdt_container_hdr)) / sizeof(vmalloc_pa_mdt))
+    ((PAGE_SIZE - sizeof(vmalloc_mdt_container_hdr)) / sizeof(vmalloc_pa_mdt))
 #define PA_MDT_BF_COUNT BITFIELD_COUNT_FOR(PA_MDT_CONTAINER_NODES, mdt_bf)
 
 typedef struct vmalloc_mdt_container {
-    _Alignas(KPAGE_ALIGN) vmalloc_mdt_container_hdr hdr;
+    _Alignas(PAGE_ALIGN) vmalloc_mdt_container_hdr hdr;
 
-    bitfield64 reserved_entries[PA_MDT_BF_COUNT];
+    bitfield64     reserved_entries[PA_MDT_BF_COUNT];
     vmalloc_pa_mdt entries[PA_MDT_CONTAINER_NODES];
 } vmalloc_mdt_container;
 
 _Static_assert(
-    sizeof(vmalloc_mdt_container) <= KPAGE_SIZE,
+    sizeof(vmalloc_mdt_container) <= PAGE_SIZE,
     "vmalloc_mdt_container size must fit in one kernel page");
 
 _Static_assert(
-    _Alignof(vmalloc_mdt_container) == KPAGE_ALIGN,
-    "vmalloc_mdt_container alignment must match KPAGE_ALIGN");
+    _Alignof(vmalloc_mdt_container) == PAGE_ALIGN,
+    "vmalloc_mdt_container alignment must match PAGE_ALIGN");
 
 _Static_assert(
     BITFIELD_CAPACITY(mdt_bf) * PA_MDT_BF_COUNT >= PA_MDT_CONTAINER_NODES,

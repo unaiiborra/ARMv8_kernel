@@ -92,9 +92,9 @@ elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
             continue;
 
         ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
-        ASSERT(ph[i].p_memsz % KPAGE_SIZE == 0);
-        ASSERT(ph[i].p_vaddr % KPAGE_SIZE == 0);
-        ASSERT(ph[i].p_align % KPAGE_SIZE == 0);
+        ASSERT(ph[i].p_memsz % PAGE_SIZE == 0);
+        ASSERT(ph[i].p_vaddr % PAGE_SIZE == 0);
+        ASSERT(ph[i].p_align % PAGE_SIZE == 0);
 
         ASSERT(ph[i].p_flags & PF_R, "elf section marked as read disabled");
 
@@ -104,7 +104,7 @@ elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
         void* kva = umalloc(
             t,
             ph[i].p_vaddr,
-            ph[i].p_memsz / KPAGE_SIZE,
+            ph[i].p_memsz / PAGE_SIZE,
             data_flags & PF_R,
             data_flags & PF_W,
             data_flags & PF_X,

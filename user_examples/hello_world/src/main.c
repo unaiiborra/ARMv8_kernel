@@ -2,7 +2,7 @@
 
 int main()
 {
-    print("Hello from userspace!");
+    print("Hello from userspace!\n\r");
 
     return 0;
 }

@@ -12,7 +12,7 @@
 
 typedef bitfield8 bf;
 
-#define DATA_BYTES (KPAGE_SIZE - (2 * sizeof(union vmalloc_container*)))
+#define DATA_BYTES (PAGE_SIZE - (2 * sizeof(union vmalloc_container*)))
 #define DATA_ALIGN (_Alignof(uint64_t))
 
 // free va node
@@ -20,15 +20,15 @@ typedef struct fva_node {
     struct fva_node* next;
 
     vuintptr_t start;
-    size_t size;
+    size_t     size;
 } fva_node;
 
 // reserved va node
 typedef struct rva_node {
     struct rva_node* next;
 
-    vuintptr_t start;
-    size_t size;
+    vuintptr_t  start;
+    size_t      size;
     vmalloc_mdt mdt;
 } rva_node;
 
@@ -64,17 +64,17 @@ typedef struct {
 
 typedef union vmalloc_container {
     struct {
-        _Alignas(KPAGE_ALIGN) vmalloc_container_hdr hdr;
+        _Alignas(PAGE_ALIGN) vmalloc_container_hdr hdr;
         uint64_t data[DATA_BYTES / sizeof(uint64_t)];
     } undef;
 
     struct {
-        _Alignas(KPAGE_ALIGN) vmalloc_container_hdr hdr;
+        _Alignas(PAGE_ALIGN) vmalloc_container_hdr hdr;
         fva_container_data data;
     } fva;
 
     struct {
-        _Alignas(KPAGE_ALIGN) vmalloc_container_hdr hdr;
+        _Alignas(PAGE_ALIGN) vmalloc_container_hdr hdr;
         rva_container_data data;
     } rva;
 } vmalloc_container;
@@ -87,8 +87,8 @@ _Static_assert(
     sizeof(rva_container_data) <= DATA_BYTES &&
     _Alignof(rva_container_data) == DATA_ALIGN);
 _Static_assert(
-    sizeof(vmalloc_container) == KPAGE_SIZE &&
-    _Alignof(vmalloc_container) == KPAGE_ALIGN);
+    sizeof(vmalloc_container) == PAGE_SIZE &&
+    _Alignof(vmalloc_container) == PAGE_ALIGN);
 
 
 void vmalloc_init_containers();

@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <syscall.h>
 
 
@@ -12,11 +13,10 @@ void print(const char* s)
 
     size_t size = end - s;
 
-    sysc_print_results result = syscall_print(s, size);
+    sysc_print_res result = syscall_print(s, size);
 
-    if (result != SYSC_PRINT_OK) {
-        // TODO: exit()
-    }
+    if (result != SYSC_PRINT_OK)
+        exit(1);
 }
 
 

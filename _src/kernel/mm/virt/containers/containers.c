@@ -32,7 +32,7 @@ vmalloc_container_new(vmalloc_container* last, vmalloc_container_enum e)
                         .va;
 
     DEBUG_ASSERT(last->undef.hdr.next == NULL);
-    DEBUG_ASSERT((va & (KPAGE_SIZE - 1)) == 0);
+    DEBUG_ASSERT((va & (PAGE_SIZE - 1)) == 0);
 
     vmalloc_container* allocated = (vmalloc_container*)va;
 
@@ -54,24 +54,24 @@ vmaloc_node_new(vmalloc_container* first, const vmalloc_container_enum e)
     DEBUG_ASSERT(first);
     size_t x = 0;
 #endif
-    vmalloc_container* cur = first;
+    vmalloc_container* cur  = first;
     vmalloc_container* prev = NULL;
 
-    size_t i, j, k;
+    size_t    i, j, k;
     rva_node* rva_nodes;
     fva_node* fva_nodes;
-    bf* reserved_nodes;
-    size_t count = (e == VMALLOC_FVA) ? FVA_NODE_COUNT : RVA_NODE_COUNT;
+    bf*       reserved_nodes;
+    size_t    count = (e == VMALLOC_FVA) ? FVA_NODE_COUNT : RVA_NODE_COUNT;
 
 
 find:
     while (cur) {
         if (e == VMALLOC_FVA) {
-            fva_nodes = &cur->fva.data.nodes[0];
+            fva_nodes      = &cur->fva.data.nodes[0];
             reserved_nodes = &cur->fva.data.reserved_nodes[0];
         }
         else {
-            rva_nodes = &cur->rva.data.nodes[0];
+            rva_nodes      = &cur->rva.data.nodes[0];
             reserved_nodes = &cur->rva.data.reserved_nodes[0];
         }
 
@@ -89,7 +89,7 @@ find:
         }
 
         prev = cur;
-        cur = cur->undef.hdr.next;
+        cur  = cur->undef.hdr.next;
     }
 
 #ifdef DEBUG
@@ -171,7 +171,7 @@ void free_fva_node(fva_node* node)
 {
     // get container by aligning down to 4096
     vmalloc_container* container =
-        (vmalloc_container*)((vuintptr_t)node & ~(KPAGE_SIZE - 1ULL));
+        (vmalloc_container*)((vuintptr_t)node & ~(PAGE_SIZE - 1ULL));
 
     fva_container_data* d = (fva_container_data*)&container->fva.data;
 
@@ -207,7 +207,7 @@ void free_rva_node(rva_node* node)
 {
     // get container by aligning down to 4096
     vmalloc_container* container =
-        (vmalloc_container*)((vuintptr_t)node & ~(KPAGE_SIZE - 1ULL));
+        (vmalloc_container*)((vuintptr_t)node & ~(PAGE_SIZE - 1ULL));
 
     rva_container_data* c = (rva_container_data*)&container->rva.data;
 
@@ -245,7 +245,7 @@ void free_rva_node(rva_node* node)
 void vmalloc_containers_debug_fva()
 {
     vmalloc_container* c = first_fva_container;
-    size_t i = 0;
+    size_t             i = 0;
 
     while (c) {
         fva_container_data d = c->fva.data;
@@ -265,7 +265,7 @@ void vmalloc_containers_debug_fva()
 void vmalloc_containers_debug_rva()
 {
     vmalloc_container* c = first_rva_container;
-    size_t i = 0;
+    size_t             i = 0;
 
     while (c) {
         rva_container_data d = c->rva.data;

@@ -1,7 +1,7 @@
 #pragma once
 
 #define KERNEL_ADDR_BITS 48
-#define KERNEL_BASE (~((1UL << (KERNEL_ADDR_BITS - 1UL)) - 1UL))
+#define KERNEL_BASE      (~((1UL << (KERNEL_ADDR_BITS - 1UL)) - 1UL))
 
 #ifndef __ASSEMBLER__
 #    include <arm/mmu.h>
@@ -13,8 +13,9 @@
 #    include <stdbool.h>
 #    include <stddef.h>
 #    include <stdint.h>
-#    define KPAGE_SIZE (MEM_KiB * 4ULL)
-#    define KPAGE_ALIGN KPAGE_SIZE
+
+#    define PAGE_SIZE  (MEM_KiB * 4ULL)
+#    define PAGE_ALIGN PAGE_SIZE
 
 
 typedef enum {
@@ -91,7 +92,7 @@ static inline bool ptrs_are_kmapped(pv_ptr pv)
 bool mm_va_is_in_kmap_range(void* ptr);
 
 
-mmu_mapping mm_mmu_mapping_new(mmu_tbl_rng rng);
+mmu_mapping      mm_mmu_mapping_new(mmu_tbl_rng rng);
 mmu_core_handle* mm_mmu_core_handler_get(uint32_t coreid);
 mmu_core_handle* mm_mmu_core_handler_get_self();
 
@@ -143,10 +144,10 @@ extern const raw_kmalloc_cfg RAW_KMALLOC_DYNAMIC_CFG;
         __raw_kmalloc((pages), (tag), (cfg), (info))
 
 void* __raw_kmalloc(
-    size_t pages,
-    const char* tag,
+    size_t                 pages,
+    const char*            tag,
     const raw_kmalloc_cfg* cfg,
-    raw_kmalloc_info* info);
+    raw_kmalloc_info*      info);
 static inline void*
 __raw_kmalloc_null(size_t pages, const char* tag, const raw_kmalloc_cfg* cfg)
 {
@@ -163,21 +164,21 @@ void raw_kfree(void* ptr);
 
 
 typedef enum {
-    CACHE_8 = 8,
-    CACHE_16 = 16,
-    CACHE_32 = 32,
-    CACHE_64 = 64,
-    CACHE_128 = 128,
-    CACHE_256 = 256,
-    CACHE_512 = 512,
+    CACHE_8    = 8,
+    CACHE_16   = 16,
+    CACHE_32   = 32,
+    CACHE_64   = 64,
+    CACHE_128  = 128,
+    CACHE_256  = 256,
+    CACHE_512  = 512,
     CACHE_1024 = 1024,
 } cache_malloc_size;
 
 void* cache_malloc(cache_malloc_size s);
-void cache_free(cache_malloc_size s, void* ptr);
+void  cache_free(cache_malloc_size s, void* ptr);
 
 
 void* kmalloc(size_t bytes);
-void kfree(void* ptr);
+void  kfree(void* ptr);
 
 #endif

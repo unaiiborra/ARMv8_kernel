@@ -13,16 +13,16 @@
 
 static inline void alloc_tail(term_buffer_handle* h, size_t size)
 {
-    DEBUG_ASSERT(size >= KPAGE_SIZE);
-    DEBUG_ASSERT(size % KPAGE_SIZE == 0);
+    DEBUG_ASSERT(size >= PAGE_SIZE);
+    DEBUG_ASSERT(size % PAGE_SIZE == 0);
 
     term_buffer* new_tail = kmalloc(size);
 
     *new_tail = (term_buffer) {
         .buf_size = size - sizeof(term_buffer),
-        .next = NULL,
-        .head = 0,
-        .tail = 0,
+        .next     = NULL,
+        .head     = 0,
+        .tail     = 0,
     };
 
     if (!h->tail_buf) {
@@ -31,7 +31,7 @@ static inline void alloc_tail(term_buffer_handle* h, size_t size)
     }
     else {
         h->tail_buf->next = new_tail;
-        h->tail_buf = new_tail;
+        h->tail_buf       = new_tail;
     }
 
     h->allocated_size += size;
@@ -61,7 +61,7 @@ void term_buffer_push(term_buffer_handle* h, char c)
 
 
     if (!h->tail_buf || h->tail_buf->tail >= h->tail_buf->buf_size) {
-        size_t buf_size = max(KPAGE_SIZE, h->allocated_size);
+        size_t buf_size = max(PAGE_SIZE, h->allocated_size);
 
         alloc_tail(h, buf_size);
     }

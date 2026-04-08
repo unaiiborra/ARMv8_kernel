@@ -2,10 +2,10 @@
 
 .global _start
 _start:
+// TODO: provide args
     bl main
 
-    bl syscall_exit  
 
-0:  nop
-    b 0b
-
+//  SYSC_EXIT
+    mov x8, #0  
+    svc #0

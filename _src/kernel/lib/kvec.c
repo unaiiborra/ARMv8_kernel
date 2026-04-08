@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #define MIN_VEC_ITEMS 8
-#define MIN_ORDER 6
+#define MIN_ORDER     6
 
 
 static inline size_t pow2_bytes_for(size_t size, size_t amount)
@@ -43,8 +43,6 @@ static void upsize_vec(kvec* k)
     size_t bytes = remalloc ? (k->container_bytes_ * 2)
                             : pow2_bytes_for(k->T_size_, MIN_VEC_ITEMS);
 
-    kprintf("upsize_vec: from %p to %p\n\r", k->container_bytes_, bytes);
-
 
     void* new_container = kmalloc(bytes);
 
@@ -53,7 +51,7 @@ static void upsize_vec(kvec* k)
         kfree(k->container_);
     }
 
-    k->container_ = new_container;
+    k->container_       = new_container;
     k->container_bytes_ = bytes;
 }
 
@@ -70,7 +68,7 @@ static void downsize_vec(kvec* k)
 
     if (k->i_ == 0) {
         kfree(k->container_);
-        k->container_ = NULL;
+        k->container_       = NULL;
         k->container_bytes_ = 0;
 
         return;
@@ -87,9 +85,11 @@ static void downsize_vec(kvec* k)
     memcpy(new_container, k->container_, k->i_ * k->T_size_);
     kfree(k->container_);
 
-    k->container_ = new_container;
+    k->container_       = new_container;
     k->container_bytes_ = bytes;
 }
+
+
 
 
 int64_t kvec_push(kvec* k, const void* in)
@@ -113,15 +113,13 @@ int64_t kvec_pop(kvec* k, void* out)
     if (k->i_ == 0)
         return -1;
 
-
     k->i_--;
 
     uintptr_t i_offset = k->i_ * k->T_size_;
-    void* dst = (void*)((uintptr_t)k->container_ + i_offset);
+    void*     dst      = (void*)((uintptr_t)k->container_ + i_offset);
 
     if (out)
         memcpy(out, dst, k->T_size_);
-
 
     size_t capacity = k->container_bytes_ / k->T_size_;
 
@@ -153,11 +151,33 @@ bool kvec_set(const kvec* k, size_t i, const void* in, void* prev)
 
 bool kvec_get_copy(const kvec* k, size_t i, void* out)
 {
+    DEBUG_ASSERT(k->T_size_ % k->T_align_ == 0);
+
     if (i >= k->i_ || !out)
         return false;
 
     void* src = (void*)((uintptr_t)k->container_ + i * k->T_size_);
-    memcpy(out, src, k->T_size_);
+
+    switch (k->T_size_) {
+        case sizeof(uint8_t):
+            *(uint8_t*)out = *(uint8_t*)src;
+            break;
+
+        case sizeof(uint16_t):
+            *(uint16_t*)out = *(uint16_t*)src;
+            break;
+
+        case sizeof(uint32_t):
+            *(uint32_t*)out = *(uint32_t*)src;
+            break;
+
+        case sizeof(uint64_t):
+            *(uint64_t*)out = *(uint64_t*)src;
+            break;
+
+        default:
+            memcpy(out, src, k->T_size_);
+    }
 
     return true;
 }

@@ -2,6 +2,7 @@
 
 #include <lib/branch.h>
 #include <lib/lock.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>
@@ -17,10 +18,10 @@ static uint64_t uniqueid_count;
 void term_new(term_handle* out, term_out output)
 {
     *out = (term_handle) {
-        .id_ = __atomic_add_fetch(&uniqueid_count, 1, __ATOMIC_SEQ_CST),
+        .id_   = __atomic_add_fetch(&uniqueid_count, 1, __ATOMIC_SEQ_CST),
         .lock_ = {0},
-        .buf_ = term_buffer_handle_new(),
-        .out_ = output,
+        .buf_  = term_buffer_handle_new(),
+        .out_  = output,
     };
 
     corelock_init(&out->lock_);
@@ -134,7 +135,7 @@ void term_flush(term_handle* h)
         if (res == TERM_OUT_RES_NOT_TAKEN)
             break;
 
-        dbg_var(bool) pop_res = term_buffer_pop(&h->buf_, &pop);
+        dbgT(bool) pop_res = term_buffer_pop(&h->buf_, &pop);
         DEBUG_ASSERT(pop_res && peek == pop);
     }
 

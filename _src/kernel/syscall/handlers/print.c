@@ -13,12 +13,10 @@
 #define BUF_PTR_ARG  0
 #define BUF_SIZE_ARG 1
 
-
 typedef enum {
     SYSC_PRINT_OK          = 0,
     SYSC_PRINT_INVALID_BUF = -1,
-} sysc_print_results;
-
+} sysc_print_res;
 
 int64_t syscall64_print(
     sysarg_t buf_pt,
@@ -35,9 +33,11 @@ int64_t syscall64_print(
             get_current_thread()->owner,
             buf_pt,
             buf_sz,
-            &region))
-        return SYSC_PRINT_INVALID_BUF;
+            &region)) {
+        dbg_sysc_print(SYSC_PRINT, "SYSC_PRINT_INVALID_BUF");
 
+        return SYSC_PRINT_INVALID_BUF;
+    }
 
     uintptr_t kva = task_region_translate(region, buf_pt, REG_TO_KNL);
 

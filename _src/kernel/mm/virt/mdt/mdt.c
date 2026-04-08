@@ -29,7 +29,7 @@ static inline void
 init_container(vmalloc_mdt_container* c, vmalloc_mdt_container* prev)
 {
     DEBUG_ASSERT(c);
-    DEBUG_ASSERT((vuintptr_t)c % KPAGE_ALIGN == 0);
+    DEBUG_ASSERT((vuintptr_t)c % PAGE_ALIGN == 0);
 
     c->hdr.next = NULL;
     c->hdr.prev = prev;
@@ -50,7 +50,7 @@ init_container(vmalloc_mdt_container* c, vmalloc_mdt_container* prev)
 void vmalloc_pa_mdt_init()
 {
     container_list = (vmalloc_mdt_container*)
-                         early_kalloc(KPAGE_SIZE, "vmalloc pa mdt", true, false)
+                         early_kalloc(PAGE_SIZE, "vmalloc pa mdt", true, false)
                              .va;
 
     init_container(container_list, NULL);
@@ -93,7 +93,7 @@ static vmalloc_mdt_container* pa_mdt_container_new(vmalloc_mdt_container* prev)
 
     vuintptr_t va = reserve_malloc("vmalloc mdt container").va;
 
-    DEBUG_ASSERT((va & (KPAGE_SIZE - 1)) == 0);
+    DEBUG_ASSERT((va & (PAGE_SIZE - 1)) == 0);
 
     vmalloc_mdt_container* c = (vmalloc_mdt_container*)va;
 
@@ -105,7 +105,7 @@ static vmalloc_mdt_container* pa_mdt_container_new(vmalloc_mdt_container* prev)
 
 static vmalloc_pa_mdt* node_new()
 {
-    size_t i, j, k;
+    size_t                 i, j, k;
     vmalloc_mdt_container *c, *p;
 
     c = container_list;
@@ -141,16 +141,16 @@ static bool mdt_is_valid(rva_node* n)
         return true; // no pa assigned
 
     vmalloc_pa_mdt *c, *p;
-    vuintptr_t start, end, cur_start, cur_end, prev_end;
+    vuintptr_t      start, end, cur_start, cur_end, prev_end;
 
-    start = vsign(n->start);
-    end = vsign(n->start + n->size);
+    start    = vsign(n->start);
+    end      = vsign(n->start + n->size);
     prev_end = end;
 
-    if (!is_aligned(start, KPAGE_ALIGN))
+    if (!is_aligned(start, PAGE_ALIGN))
         return false;
 
-    if (!is_aligned(end, KPAGE_ALIGN))
+    if (!is_aligned(end, PAGE_ALIGN))
         return false;
 
     c = n->mdt.pa_mdt.list;
@@ -158,7 +158,7 @@ static bool mdt_is_valid(rva_node* n)
 
     while (c) {
         cur_start = c->info.va;
-        cur_end = c->info.va + (power_of2(c->info.order) * KPAGE_SIZE);
+        cur_end   = c->info.va + (power_of2(c->info.order) * PAGE_SIZE);
 
         if (cur_start < start)
             return false;
@@ -169,16 +169,16 @@ static bool mdt_is_valid(rva_node* n)
         if (p && cur_start < prev_end)
             return false;
 
-        if (!is_aligned(cur_start, KPAGE_ALIGN))
+        if (!is_aligned(cur_start, PAGE_ALIGN))
             return false;
 
-        if (!is_aligned(cur_end, KPAGE_ALIGN))
+        if (!is_aligned(cur_end, PAGE_ALIGN))
             return false;
 
 
         prev_end = cur_end;
-        p = c;
-        c = c->next;
+        p        = c;
+        c        = c->next;
     }
 
     return true;
@@ -194,23 +194,23 @@ void vmalloc_pa_mdt_push(rva_node* n, size_t o, puintptr_t pa, vuintptr_t va)
 
     DEBUG_ASSERT(n);
 
-    node = node_new();
+    node  = node_new();
     *node = (vmalloc_pa_mdt) {
         .next = NULL,
         .info =
             (vmalloc_pa_info) {
                 .order = o,
-                .pa = pa,
-                .va = va,
+                .pa    = pa,
+                .va    = va,
             },
     };
 
-    cur = n->mdt.pa_mdt.list;
+    cur  = n->mdt.pa_mdt.list;
     prev = NULL;
 
     // first node
     if (!cur || va < cur->info.va) {
-        node->next = cur;
+        node->next         = cur;
         n->mdt.pa_mdt.list = node;
         return;
     }
@@ -218,7 +218,7 @@ void vmalloc_pa_mdt_push(rva_node* n, size_t o, puintptr_t pa, vuintptr_t va)
     // search pos by va
     while (cur && cur->info.va <= va) {
         prev = cur;
-        cur = cur->next;
+        cur  = cur->next;
     }
 
     DEBUG_ASSERT(prev);
@@ -239,7 +239,7 @@ void vmalloc_pa_mdt_free(rva_node* n)
 
     while (cur) {
         vmalloc_mdt_container* c =
-            (void*)align_down((vuintptr_t)cur, KPAGE_ALIGN);
+            (void*)align_down((vuintptr_t)cur, PAGE_ALIGN);
         vmalloc_pa_mdt* next = cur->next;
 
         vmalloc_pa_mdt* base = &c->entries[0];
@@ -267,5 +267,5 @@ void vmalloc_pa_mdt_free(rva_node* n)
     }
 
     n->mdt.pa_mdt.count = 0;
-    n->mdt.pa_mdt.list = NULL;
+    n->mdt.pa_mdt.list  = NULL;
 }

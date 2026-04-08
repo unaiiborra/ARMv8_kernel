@@ -5,12 +5,12 @@
 #include <lib/string.h>
 
 
-panic_exception_src select_src_enum_(const char* origin, const char* stack);
+panic_exception_src  select_src_enum_(const char* origin, const char* stack);
 panic_exception_type select_exception_type_enum_(const char* type);
 
 void exception_panic(
-    const char* msg,
-    panic_exception_src src,
+    const char*          msg,
+    panic_exception_src  src,
     panic_exception_type type);
 
 
@@ -29,7 +29,7 @@ void exception_panic(
 /// Declares a non implemented EL1 exception handler, panics with the name of
 /// the exception
 #define DECLARE_EL1_EXCEPTION_HANDLER_PANIC(origin, stack, type) \
-    void el1_##origin##_##stack##_##type##_handler(arm_ectx*)    \
+    void el1_##origin##_##stack##_##type##_handler(arm_ctx*)     \
     {                                                            \
         exception_panic(                                         \
             "el1_" #origin "_" #stack "_" #type " exception",    \

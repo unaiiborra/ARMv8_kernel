@@ -6,7 +6,8 @@
 #include "kernel/lib/kvec.h"
 #include "kernel/panic.h"
 #include "lib/lock.h"
-#include "lib/stdmacros.h"
+#include "lib/stdattribute.h"
+
 
 
 int64_t syscall64_exit(
@@ -19,26 +20,23 @@ int64_t syscall64_exit(
 {
     (void)exit_code, (void)a1, (void)a2, (void)a3, (void)a4, (void)a5;
 
-    thread* th = get_current_thread();
-    task*   ut = th->owner;
+    thread* cur = get_current_thread();
+    task*   ut  = cur->owner;
 
-    dbg_printf("[utask: %s] exit code %d", ut->name, exit_code);
-
+    dbg_sysc_print(SYSC_EXIT, "exit code ", exit_code);
 
     spinlocked(&ut->lock)
     {
-        kvec_T(thread*) ths = ut->threads;
-        size_t n            = kvec_len(ths);
+        size_t n = kvec_len(ut->threads);
 
         for (size_t i = 0; i < n; i++) {
-            thread* t;
-            dbg_var(bool) res = kvec_get_copy(&ths, i, &t);
+            thread* th;
+            dbgT(bool) res = kvec_get_copy(&ut->threads, i, &th);
             DEBUG_ASSERT(res);
 
-            unschedule_thread(t);
+            unschedule_thread(th);
         }
     }
-
 
     return 0;
 }

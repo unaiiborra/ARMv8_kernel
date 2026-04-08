@@ -1,3 +1,5 @@
+#define UMALLOC_IMPLEMENTATION
+
 #include <arm/mmu.h>
 #include <kernel/mm.h>
 #include <kernel/mm/mmu.h>
@@ -13,29 +15,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define BIT(bit) (1U << bit)
+#define SET_FLAG(flags, bit, val) \
+    ((flags) = ((flags) & ~(1U << (bit))) | ((unsigned int)(!!(val)) << (bit)))
+
+#define GET_FLAG(flags, bit) (bool)(((flags) >> (bit)) & 1U)
 
 
 typedef struct region_node {
     struct region_node* next;
     task_region         reg;
 } region_node;
-
-
-
-#define F_READ             0
-#define F_WRITE            1
-#define F_EXEC             2
-#define F_STATIC_LIFETIME  3
-#define F_FULL_MAPPED      4
-#define F_PARTIALLY_MAPPED 5
-
-
-#define BIT(bit) (1U << bit)
-
-#define SET_FLAG(flags, bit, val) \
-    ((flags) = ((flags) & ~(1U << (bit))) | ((unsigned int)(!!(val)) << (bit)))
-
-#define GET_FLAG(flags, bit) (bool)(((flags) >> (bit)) & 1U)
 
 
 static const mmu_pg_cfg KNL_MMU_CFG = (mmu_pg_cfg) {
@@ -63,7 +53,7 @@ static inline region_node* node_from_region(task_region* r)
 static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
 {
     switch (flags & 0b111U) {
-        case BIT(F_READ) | BIT(F_WRITE):
+        case BIT(UMALLOC_F_READ) | BIT(UMALLOC_F_WRITE):
             return mmu_pg_cfg_new(
                 0,
                 MMU_AP_EL0_RW_EL1_RW,
@@ -74,7 +64,7 @@ static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
                 true,
                 0);
 
-        case BIT(F_READ):
+        case BIT(UMALLOC_F_READ):
             return mmu_pg_cfg_new(
                 0,
                 MMU_AP_EL0_RO_EL1_RO,
@@ -85,7 +75,7 @@ static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
                 true,
                 0);
 
-        case BIT(F_READ) | BIT(F_EXEC):
+        case BIT(UMALLOC_F_READ) | BIT(UMALLOC_F_EXEC):
             return mmu_pg_cfg_new(
                 0,
                 MMU_AP_EL0_RO_EL1_RO,
@@ -116,11 +106,11 @@ static void push_usr_region_to_task(task* utask, task_region region)
     }
 
 #ifdef DEBUG
-    uintptr_t new_end = region.reg_start + region.pages * KPAGE_SIZE;
+    uintptr_t new_end = region.reg_start + region.pages * PAGE_SIZE;
 
     // check overlap with prev
     if (prev) {
-        uintptr_t prev_end = prev->reg.reg_start + prev->reg.pages * KPAGE_SIZE;
+        uintptr_t prev_end = prev->reg.reg_start + prev->reg.pages * PAGE_SIZE;
 
         if (prev_end > new_start)
             PANIC("user regions overlaps");
@@ -156,8 +146,8 @@ static void umalloc_subregion(
     DEBUG_ASSERT(region->knl_start != 0);
     DEBUG_ASSERT(
         region->reg_start <= subregion_start &&
-            region->reg_start + region->pages * KPAGE_SIZE >=
-                subregion_start + pages * KPAGE_SIZE,
+            region->reg_start + region->pages * PAGE_SIZE >=
+                subregion_start + pages * PAGE_SIZE,
         "umalloc_subregion: subregion out of region");
 
 
@@ -167,7 +157,7 @@ static void umalloc_subregion(
     uint32_t remaining_pages = pages;
 
     while (remaining_pages) {
-        uintptr_t offset = (pages - remaining_pages) * KPAGE_SIZE;
+        uintptr_t offset = (pages - remaining_pages) * PAGE_SIZE;
         size_t    order  = log2_floor(remaining_pages);
 
         puintptr_t pa = page_malloc(order, mm_page_data_new(tag, false, false));
@@ -178,7 +168,7 @@ static void umalloc_subregion(
             MM_MMU_KERNEL_MAPPING,
             knl_subregion_start + offset,
             pa,
-            power_of2(order) * KPAGE_SIZE,
+            power_of2(order) * PAGE_SIZE,
             KNL_MMU_CFG,
             NULL);
         ASSERT(mres == MMU_MAP_OK);
@@ -188,7 +178,7 @@ static void umalloc_subregion(
             mapping,
             subregion_start + offset,
             pa,
-            power_of2(order) * KPAGE_SIZE,
+            power_of2(order) * PAGE_SIZE,
             usr_mmu_cfg_from_flags(region->flags),
             NULL);
         ASSERT(mres == MMU_MAP_OK);
@@ -221,12 +211,12 @@ void* umalloc(
     };
 
 
-    SET_FLAG(ur.flags, F_READ, read);
-    SET_FLAG(ur.flags, F_WRITE, write);
-    SET_FLAG(ur.flags, F_EXEC, execute);
-    SET_FLAG(ur.flags, F_STATIC_LIFETIME, static_lifetime);
-    SET_FLAG(ur.flags, F_FULL_MAPPED, static_lifetime);
-    SET_FLAG(ur.flags, F_PARTIALLY_MAPPED, false);
+    SET_FLAG(ur.flags, UMALLOC_F_READ, read);
+    SET_FLAG(ur.flags, UMALLOC_F_WRITE, write);
+    SET_FLAG(ur.flags, UMALLOC_F_EXEC, execute);
+    SET_FLAG(ur.flags, UMALLOC_F_STATIC_LIFETIME, static_lifetime);
+    SET_FLAG(ur.flags, UMALLOC_F_FULL_MAPPED, static_lifetime);
+    SET_FLAG(ur.flags, UMALLOC_F_PARTIALLY_MAPPED, false);
 
 
     if (!static_lifetime) {
@@ -272,7 +262,7 @@ void* umalloc(
             &t->mapping,
             reg_va + offset,
             pa_info[i].pa,
-            power_of2(pa_info[i].order) * KPAGE_SIZE,
+            power_of2(pa_info[i].order) * PAGE_SIZE,
             usr_mmu_cfg_from_flags(ur.flags),
             NULL);
 
@@ -281,7 +271,7 @@ void* umalloc(
 
         // mark the pages as allocated
         size_t count = power_of2(pa_info[i].order);
-        size_t idx   = offset / KPAGE_SIZE;
+        size_t idx   = offset / PAGE_SIZE;
 
         for (size_t j = 0; j < count; j++) {
             size_t bf_n = (idx + j) / 64;
@@ -309,11 +299,11 @@ void* umalloc_assign_pa(task* t, uintptr_t usr_va, uint32_t pages)
 
     uintptr_t start, end, cur_start, cur_end;
     start = usr_va;
-    end   = usr_va + pages * KPAGE_SIZE;
+    end   = usr_va + pages * PAGE_SIZE;
 
     while (cur) {
         cur_start = cur->reg.reg_start;
-        cur_end   = cur->reg.reg_start + cur->reg.pages * KPAGE_SIZE;
+        cur_end   = cur->reg.reg_start + cur->reg.pages * PAGE_SIZE;
 
         if (cur_start <= start && cur_end >= end)
             break;
@@ -325,7 +315,7 @@ void* umalloc_assign_pa(task* t, uintptr_t usr_va, uint32_t pages)
         cur,
         "umalloc_assign: no allocated region matches with the requested "
         "subregion");
-    ASSERT(!GET_FLAG(cur->reg.flags, F_FULL_MAPPED));
+    ASSERT(!GET_FLAG(cur->reg.flags, UMALLOC_F_FULL_MAPPED));
 
 
     // if the region has no subregions assigned, it does not have a kernel
@@ -373,7 +363,7 @@ void ufree(task* t, uintptr_t usr_va)
                 t->regions = &cur->next->reg;
 
             mmu_unmap_result ures =
-                mmu_unmap(&t->mapping, usr_va, pages * KPAGE_SIZE, NULL);
+                mmu_unmap(&t->mapping, usr_va, pages * PAGE_SIZE, NULL);
             ASSERT(ures);
 
             // free the allocated bitfield64 array if it is a big region
@@ -393,11 +383,11 @@ void ufree(task* t, uintptr_t usr_va)
 }
 
 
-bool uregion_is_allocated(
+bool uregion_is_mapped(
     task*         t,
     uintptr_t     start,
     size_t        size,
-    task_region** region)
+    task_region** out_region)
 {
     if (size == 0)
         return false;
@@ -408,11 +398,11 @@ bool uregion_is_allocated(
 
     while (cur) {
         uintptr_t r_start = cur->reg.reg_start;
-        uintptr_t r_end   = r_start + cur->reg.pages * KPAGE_SIZE;
+        uintptr_t r_end   = r_start + cur->reg.pages * PAGE_SIZE;
 
         if (r_start <= start && r_end >= end) {
-            if (region)
-                *region = &cur->reg;
+            if (out_region)
+                *out_region = &cur->reg;
 
             return true;
         }
@@ -432,13 +422,13 @@ bool uregion_is_assigned(
 {
     task_region* r;
 
-    if (!uregion_is_allocated(t, start, size, &r))
+    if (!uregion_is_mapped(t, start, size, &r))
         return false;
 
     if (out_region)
         *out_region = r;
 
-    if (GET_FLAG(r->flags, F_FULL_MAPPED))
+    if (GET_FLAG(r->flags, UMALLOC_F_FULL_MAPPED))
         return true;
 
     if (r->knl_start == 0)
@@ -446,8 +436,8 @@ bool uregion_is_assigned(
 
     uintptr_t r_start = r->reg_start;
 
-    size_t first_page = (start - r_start) / KPAGE_SIZE;
-    size_t pages      = DIV_CEIL(size, KPAGE_SIZE);
+    size_t first_page = (start - r_start) / PAGE_SIZE;
+    size_t pages      = DIV_CEIL(size, PAGE_SIZE);
 
     bitfield64* assigned_pa;
 
@@ -474,7 +464,7 @@ static const uintptr_t LO_ADDRSPACE_END   = KERNEL_BASE & ~(0xFFFF000000000000);
 
 uintptr_t tregion_find_free(task* t, size_t pages)
 {
-    size_t size = pages * KPAGE_SIZE;
+    size_t size = pages * PAGE_SIZE;
 
     uintptr_t prev_end = LO_ADDRSPACE_START;
     uintptr_t best     = UINTPTR_MAX;
@@ -487,18 +477,18 @@ uintptr_t tregion_find_free(task* t, size_t pages)
         uintptr_t gap = start - prev_end;
 
         if (gap >= size) {
-            uintptr_t candidate = align_down(start - size, KPAGE_SIZE);
+            uintptr_t candidate = align_down(start - size, PAGE_SIZE);
             best                = candidate;
         }
 
-        prev_end = start + cur->reg.pages * KPAGE_SIZE;
+        prev_end = start + cur->reg.pages * PAGE_SIZE;
         cur      = cur->next;
     }
 
     uintptr_t gap = LO_ADDRSPACE_END - prev_end;
 
     if (gap >= size)
-        best = align_down(LO_ADDRSPACE_END - size, KPAGE_SIZE);
+        best = align_down(LO_ADDRSPACE_END - size, PAGE_SIZE);
 
     return best;
 }

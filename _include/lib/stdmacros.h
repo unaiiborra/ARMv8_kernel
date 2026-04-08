@@ -1,5 +1,7 @@
 #pragma once
 
+#
+
 #define loop while (1)
 
 
@@ -7,6 +9,3 @@
 
 
 #define TYPE_BIT_SIZE(type) (sizeof(type) * 8)
-
-
-#define dbg_var(T) __attribute((unused)) T

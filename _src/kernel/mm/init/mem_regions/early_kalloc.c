@@ -23,14 +23,14 @@
 #include "../../mm_info.h"
 #include "mem_regions.h"
 
-#define N 8
+#define N          8
 #define NODE_COUNT (N * BITFIELD_COUNT_FOR(N, bitfield64))
 _Static_assert(NODE_COUNT % BITFIELD_COUNT_FOR(NODE_COUNT, bitfield64) == 0);
 
 
 typedef struct ek_node {
     struct ek_node* next;
-    early_memreg memreg;
+    early_memreg    memreg;
 } ek_node;
 
 
@@ -38,7 +38,7 @@ static ek_node *first_node, *next_allocation_node;
 static _Alignas(16) bool early_kalloc_ended;
 
 static early_memreg* memregs_buf;
-static size_t memreg_count;
+static size_t        memreg_count;
 
 
 static inline puintptr_t node_start(ek_node* n)
@@ -48,7 +48,7 @@ static inline puintptr_t node_start(ek_node* n)
 
 static inline puintptr_t node_end(ek_node* n)
 {
-    return as_kpa(n->memreg.addr) + n->memreg.pages * KPAGE_SIZE;
+    return as_kpa(n->memreg.addr) + n->memreg.pages * PAGE_SIZE;
 }
 
 static ek_node* alloc_node()
@@ -64,20 +64,20 @@ static ek_node* alloc_node()
 
 static void reserve_memreg(
     early_memreg e,
-    bool replace_all
+    bool         replace_all
     /* if true replaces any region, else only ddr regions */
 )
 {
     ASSERT(!e.free);
     e.addr = as_kpa(e.addr);
 
-    puintptr_t end = e.addr + e.pages * KPAGE_SIZE;
+    puintptr_t end = e.addr + e.pages * PAGE_SIZE;
 
     ek_node* c = first_node;
 
     while (c) {
         puintptr_t c_start = node_start(c);
-        puintptr_t c_end = node_end(c);
+        puintptr_t c_end   = node_end(c);
 
         if ((replace_all || c->memreg.free) && c_start <= e.addr &&
             end <= c_end) {
@@ -90,18 +90,18 @@ static void reserve_memreg(
                 ek_node* tail = alloc_node();
 
                 *tail = (ek_node) {
-                    .next = c->next,
+                    .next   = c->next,
                     .memreg = {
-                        .addr = end,
-                        .pages = (c_end - end) / KPAGE_SIZE,
-                        .free = c->memreg.free,
-                        .tag = c->memreg.tag,
-                        .permanent = c->memreg.permanent,
+                        .addr          = end,
+                        .pages         = (c_end - end) / PAGE_SIZE,
+                        .free          = c->memreg.free,
+                        .tag           = c->memreg.tag,
+                        .permanent     = c->memreg.permanent,
                         .device_memory = c->memreg.tag,
                     }};
 
 
-                c->next = tail;
+                c->next   = tail;
                 c->memreg = e;
                 return;
             }
@@ -110,37 +110,37 @@ static void reserve_memreg(
                 ek_node* n = alloc_node();
 
                 *n = (ek_node) {
-                    .next = c->next,
+                    .next   = c->next,
                     .memreg = e,
                 };
 
-                c->memreg.pages = (e.addr - c_start) / KPAGE_SIZE;
-                c->next = n;
+                c->memreg.pages = (e.addr - c_start) / PAGE_SIZE;
+                c->next         = n;
                 return;
             }
 
-            ek_node* mid = alloc_node();
+            ek_node* mid  = alloc_node();
             ek_node* tail = alloc_node();
 
             *tail = (ek_node) {
-                .next = c->next,
+                .next   = c->next,
                 .memreg = {
-                    .addr = end,
-                    .pages = (c_end - end) / KPAGE_SIZE,
-                    .free = c->memreg.free,
-                    .tag = c->memreg.tag,
-                    .permanent = c->memreg.permanent,
+                    .addr          = end,
+                    .pages         = (c_end - end) / PAGE_SIZE,
+                    .free          = c->memreg.free,
+                    .tag           = c->memreg.tag,
+                    .permanent     = c->memreg.permanent,
                     .device_memory = c->memreg.tag,
                 }};
 
 
             *mid = (ek_node) {
-                .next = tail,
+                .next   = tail,
                 .memreg = e,
             };
 
-            c->memreg.pages = (e.addr - c_start) / KPAGE_SIZE;
-            c->next = mid;
+            c->memreg.pages = (e.addr - c_start) / PAGE_SIZE;
+            c->next         = mid;
             return;
         }
 
@@ -154,7 +154,7 @@ void early_kalloc_init()
 {
     next_allocation_node =
         (ek_node*)(align_down_pt(mm_info_ddr_end(), _Alignof(ek_node))) - 1;
-    first_node = alloc_node();
+    first_node       = alloc_node();
     first_node->next = NULL;
 
     ek_node* p = NULL;
@@ -163,17 +163,17 @@ void early_kalloc_init()
 
         ek_node* n = i == 0 ? first_node : alloc_node();
 
-        ASSERT(r.size % KPAGE_SIZE == 0);
+        ASSERT(r.size % PAGE_SIZE == 0);
 
         *n = (ek_node) {
             .next = NULL,
             .memreg =
                 {
-                    .addr = r.start,
-                    .pages = div_ceil(r.size, KPAGE_SIZE),
-                    .free = r.type == MEM_REGION_DDR ? true : false,
-                    .tag = pt_as_kpa(r.tag),
-                    .permanent = true,
+                    .addr          = r.start,
+                    .pages         = div_ceil(r.size, PAGE_SIZE),
+                    .free          = r.type == MEM_REGION_DDR ? true : false,
+                    .tag           = pt_as_kpa(r.tag),
+                    .permanent     = true,
                     .device_memory = r.type == MEM_REGION_MMIO ? true : false,
                 },
         };
@@ -190,11 +190,11 @@ void early_kalloc_init()
 
         reserve_memreg(
             (early_memreg) {
-                .addr = r.start,
-                .pages = div_ceil(r.size, KPAGE_SIZE),
-                .free = false,
-                .tag = pt_as_kpa(r.tag),
-                .permanent = true,
+                .addr          = r.start,
+                .pages         = div_ceil(r.size, PAGE_SIZE),
+                .free          = false,
+                .tag           = pt_as_kpa(r.tag),
+                .permanent     = true,
                 .device_memory = false,
             },
             true);
@@ -204,17 +204,17 @@ void early_kalloc_init()
 #define RESERVE_SECTION(section)                                           \
     {                                                                      \
         ASSERT(                                                            \
-            MM_KSECTIONS.section.start % KPAGE_ALIGN == 0 &&               \
-            MM_KSECTIONS.section.size % KPAGE_SIZE == 0 &&                 \
+            MM_KSECTIONS.section.start % PAGE_ALIGN == 0 &&                \
+            MM_KSECTIONS.section.size % PAGE_SIZE == 0 &&                  \
             MM_KSECTIONS.section.end ==                                    \
                 (MM_KSECTIONS.section.start + MM_KSECTIONS.section.size)); \
         reserve_memreg(                                                    \
             (early_memreg) {                                               \
-                .addr = as_kpa(MM_KSECTIONS.section.start),                \
-                .pages = MM_KSECTIONS.section.size / KPAGE_SIZE,           \
-                .free = false,                                             \
-                .tag = #section,                                           \
-                .permanent = true,                                         \
+                .addr          = as_kpa(MM_KSECTIONS.section.start),       \
+                .pages         = MM_KSECTIONS.section.size / PAGE_SIZE,    \
+                .free          = false,                                    \
+                .tag           = #section,                                 \
+                .permanent     = true,                                     \
                 .device_memory = false,                                    \
             },                                                             \
             false);                                                        \
@@ -238,14 +238,14 @@ early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
 
     if (!permanent)
         ASSERT(
-            is_pow2(bytes / KPAGE_SIZE),
+            is_pow2(bytes / PAGE_SIZE),
             "early_kalloc: non permanent allocations must be "
             "allocatable as an order to allow later deallocation");
 
     ek_node* c = first_node;
 
     while (c) {
-        size_t pages = div_ceil(bytes, KPAGE_SIZE);
+        size_t pages = div_ceil(bytes, PAGE_SIZE);
 
         if (!c->memreg.free || c->memreg.pages < pages) {
             c = c->next;
@@ -256,11 +256,11 @@ early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
 
         reserve_memreg(
             (early_memreg) {
-                .addr = addr,
-                .pages = pages,
-                .free = false,
-                .tag = pt_as_kva(tag),
-                .permanent = permanent,
+                .addr          = addr,
+                .pages         = pages,
+                .free          = false,
+                .tag           = pt_as_kva(tag),
+                .permanent     = permanent,
                 .device_memory = device_memory,
             },
             false);
@@ -284,12 +284,12 @@ void early_kalloc_get_memregs(early_memreg** mregs, size_t* mreg_struct_count)
                           false)
                           .va;
 
-        size_t i = 0;
+        size_t   i = 0;
         ek_node* c = first_node;
 
         while (c) {
             memregs_buf[i++] = c->memreg;
-            c = c->next;
+            c                = c->next;
         }
 
         DEBUG_ASSERT(i == memreg_count);
@@ -298,7 +298,7 @@ void early_kalloc_get_memregs(early_memreg** mregs, size_t* mreg_struct_count)
     }
 
 
-    *mregs = memregs_buf;
+    *mregs             = memregs_buf;
     *mreg_struct_count = memreg_count;
 
 
@@ -321,7 +321,7 @@ void early_kalloc_debug()
             "\n\r\tnode=%p addr=%p size=%p, tag=%s, free=%s",
             (void*)c,
             (void*)c->memreg.addr,
-            c->memreg.pages * KPAGE_SIZE,
+            c->memreg.pages * PAGE_SIZE,
             relocated ? pt_as_kva(c->memreg.tag) : pt_as_kpa(c->memreg.tag),
             c->memreg.free ? "true" : "false");
         c = c->next;

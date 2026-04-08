@@ -53,10 +53,10 @@ static inline bool eq_caller_coreid(mmu_core_handle* ch)
 
 bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
 {
-    ASSERT(ch);
+    DEBUG_ASSERT(ch);
 
     if ((t->rng_ == MMU_LO ? ch->lo_mapping : ch->hi_mapping) == t)
-        return true; // mapping already set
+        return true; // mapping already set, early return
 
     if (!mmu_mapping_is_valid(t))
         return false;

@@ -4,13 +4,13 @@
 
 #define ARM_STRUCT_ECTX_SIZE 800
 
-#define ARM_STRUCT_ECTX_OFFS_FPCR 0
-#define ARM_STRUCT_ECTX_OFFS_FPSR 8
-#define ARM_STRUCT_ECTX_OFFS_ELR 16
-#define ARM_STRUCT_ECTX_OFFS_SPSR 24
+#define ARM_STRUCT_ECTX_OFFS_FPCR   0
+#define ARM_STRUCT_ECTX_OFFS_FPSR   8
+#define ARM_STRUCT_ECTX_OFFS_ELR    16
+#define ARM_STRUCT_ECTX_OFFS_SPSR   24
 #define ARM_STRUCT_ECTX_OFFS_SP_ELX 32
-#define ARM_STRUCT_ECTX_OFFS_X 40
-#define ARM_STRUCT_ECTX_OFFS_V 288
+#define ARM_STRUCT_ECTX_OFFS_X      40
+#define ARM_STRUCT_ECTX_OFFS_V      288
 
 #define ARM_STRUCT_ECTX_SIZEOF_X 8
 #define ARM_STRUCT_ECTX_SIZEOF_V 16
@@ -34,43 +34,43 @@ typedef struct {
 
     sp_t sp_elx;
 
-    gpr_t x[XREG_COUNT];     // x0-x30
+    gpr_t     x[XREG_COUNT]; // x0-x30
     vreg128_t v[VREG_COUNT]; // v0-v31
-} arm_ectx;
+} arm_ctx;
 
 
-_Static_assert(sizeof(arm_ectx) % 16 == 0, "");
+_Static_assert(sizeof(arm_ctx) % 16 == 0, "");
 
 _Static_assert(
-    ARM_STRUCT_ECTX_SIZE == sizeof(arm_ectx),
+    ARM_STRUCT_ECTX_SIZE == sizeof(arm_ctx),
     "arm_ectx size mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, sp_elx) == ARM_STRUCT_ECTX_OFFS_SP_ELX,
+    offsetof(arm_ctx, sp_elx) == ARM_STRUCT_ECTX_OFFS_SP_ELX,
     "sp_elx offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, fpcr) == ARM_STRUCT_ECTX_OFFS_FPCR,
+    offsetof(arm_ctx, fpcr) == ARM_STRUCT_ECTX_OFFS_FPCR,
     "fpcr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, fpsr) == ARM_STRUCT_ECTX_OFFS_FPSR,
+    offsetof(arm_ctx, fpsr) == ARM_STRUCT_ECTX_OFFS_FPSR,
     "fpsr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, elr) == ARM_STRUCT_ECTX_OFFS_ELR,
+    offsetof(arm_ctx, elr) == ARM_STRUCT_ECTX_OFFS_ELR,
     "elr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, spsr) == ARM_STRUCT_ECTX_OFFS_SPSR,
+    offsetof(arm_ctx, spsr) == ARM_STRUCT_ECTX_OFFS_SPSR,
     "spsr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, x) == ARM_STRUCT_ECTX_OFFS_X,
+    offsetof(arm_ctx, x) == ARM_STRUCT_ECTX_OFFS_X,
     "x offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ectx, v) == ARM_STRUCT_ECTX_OFFS_V,
+    offsetof(arm_ctx, v) == ARM_STRUCT_ECTX_OFFS_V,
     "v offset mismatch");
 
 _Static_assert(
@@ -84,7 +84,7 @@ _Static_assert(
 
 typedef enum {
     // https://developer.arm.com/documentation/ddi0487/maa/-Part-C-The-AArch64-Instruction-Set/-Chapter-C5-The-A64-System-Instruction-Class/-C5-2-Special-purpose-registers/-C5-2-20-SPSR-EL1--Saved-Program-Status-Register--EL1-
-    SPSR_EL0 = 0b0000ul,  // EL0.
+    SPSR_EL0  = 0b0000ul, // EL0.
     SPSR_EL1t = 0b0100ul, // EL1 with SP_EL0 (EL1t).
     SPSR_EL1h = 0b0101ul, // EL1 with SP_EL1 (EL1h).
 } arm_spsr_m_mode;
@@ -102,18 +102,18 @@ typedef enum {
 } arm_exception_level;
 
 
-static inline arm_stack ectx_stack(const arm_ectx* ectx)
+static inline arm_stack ectx_stack(const arm_ctx* ectx)
 {
     return (arm_stack)(ectx->spsr & 1);
 }
 
-static inline arm_exception_level ectx_el(const arm_ectx* ectx)
+static inline arm_exception_level ectx_el(const arm_ctx* ectx)
 {
     return (arm_exception_level)((ectx->spsr & (1ul << 2)) ? EL1 : EL0);
 }
 
 
-static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ectx* ectx)
+static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx* ectx)
 {
     switch (ectx->spsr & 0b1111ul) {
         case SPSR_EL0:

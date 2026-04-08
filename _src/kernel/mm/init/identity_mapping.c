@@ -6,7 +6,6 @@
 #include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
-#include <lib/stdint_extra.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>

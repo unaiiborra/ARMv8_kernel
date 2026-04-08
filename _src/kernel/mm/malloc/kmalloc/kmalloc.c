@@ -31,8 +31,8 @@ void* kmalloc(size_t bytes)
 
     // cannot allocate with the cache allocator, alloc raw pages
     raw_kmalloc_cfg cfg = RAW_KMALLOC_DYNAMIC_CFG;
-    cfg.init_zeroed = true;
-    return raw_kmalloc(div_ceil(bytes, KPAGE_SIZE), "kmalloc page", &cfg);
+    cfg.init_zeroed     = true;
+    return raw_kmalloc(div_ceil(bytes, PAGE_SIZE), "kmalloc page", &cfg);
 }
 
 
@@ -45,7 +45,7 @@ void kfree(void* ptr)
         DEBUG_ASSERT(is_kva_ptr(ptr));
 
         cache_malloc_size size;
-        bool result = cache_malloc_size_from_ptr(ptr, &size);
+        bool              result = cache_malloc_size_from_ptr(ptr, &size);
         ASSERT(result, "kfree: invalid ptr provided");
 
         cache_free(size, ptr);

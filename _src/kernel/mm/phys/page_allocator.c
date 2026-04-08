@@ -19,22 +19,22 @@
 typedef uint32_t node_data;
 
 #define ORDER_SHIFT 0
-#define ORDER_BITS 7
+#define ORDER_BITS  7
 
 #define FREE_SHIFT 8
-#define FREE_BITS 1
+#define FREE_BITS  1
 
 #define UNSHIFTED_MASK(bit_n) ((1U << (bit_n)) - 1)
-#define MASK(bit_n, shift) (UNSHIFTED_MASK(bit_n) << shift)
+#define MASK(bit_n, shift)    (UNSHIFTED_MASK(bit_n) << shift)
 
 
-#define NULL_IDX ((uint32_t)~0)
+#define NULL_IDX       ((uint32_t)~0)
 #define IS_NULL_IDX(i) (i == NULL_IDX)
 
 typedef struct page_node {
-    uint32_t next;
-    uint32_t prev;
-    node_data node_data;
+    uint32_t     next;
+    uint32_t     prev;
+    node_data    node_data;
     mm_page_data page_data;
 } page_node;
 
@@ -43,7 +43,7 @@ static inline uint32_t buddy_of(uint32_t i, uint8_t o);
 static inline uint32_t parent_at_order(uint32_t i, uint8_t target_o);
 
 static inline uint8_t get_order(page_node* n);
-static inline void set_order(page_node* n, uint8_t o);
+static inline void    set_order(page_node* n, uint8_t o);
 
 static inline bool get_free(page_node* n);
 static inline void set_free(page_node* n, bool v);
@@ -63,10 +63,10 @@ static void split_to_order_and_pop(uint32_t i, uint8_t target_o);
 static void try_merge(uint32_t i);
 
 
-static size_t N;
-static size_t MAX_ORDER;
+static size_t     N;
+static size_t     MAX_ORDER;
 static page_node* nodes;
-static uint32_t* free_lists;
+static uint32_t*  free_lists;
 
 
 static inline uint32_t buddy_of(uint32_t i, uint8_t o)
@@ -126,7 +126,7 @@ static inline page_node* get_node(uint32_t i)
 static inline bool is_in_order_free_list(uint32_t i, uint8_t o)
 {
     page_node* n = get_node(i);
-    uint32_t j = free_lists[o];
+    uint32_t   j = free_lists[o];
 
     if (IS_NULL_IDX(j))
         return false;
@@ -155,8 +155,8 @@ static bool is_inner_idx(uint32_t i)
 {
     DEBUG_ASSERT(i < N);
 
-    page_node* n = get_node(i);
-    uint8_t order = get_order(n);
+    page_node* n     = get_node(i);
+    uint8_t    order = get_order(n);
 
     for (size_t target_o = order + 1; target_o <= MAX_ORDER; target_o++) {
         i = parent_at_order(i, target_o);
@@ -175,7 +175,7 @@ static bool is_inner_idx(uint32_t i)
 static void push_to_list(uint32_t i)
 {
     page_node* n = get_node(i);
-    uint8_t o = get_order(n);
+    uint8_t    o = get_order(n);
 
     DEBUG_ASSERT(o <= MAX_ORDER);
     DEBUG_ASSERT(IS_NULL_IDX(n->prev));
@@ -197,7 +197,7 @@ static void push_to_list(uint32_t i)
 static void remove_from_list(uint32_t i)
 {
     page_node* n = get_node(i);
-    uint8_t o = get_order(n);
+    uint8_t    o = get_order(n);
 
     DEBUG_ASSERT(o <= MAX_ORDER);
     DEBUG_ASSERT(get_free(n));
@@ -239,7 +239,7 @@ static void split_to_order_and_pop(uint32_t i, uint8_t target_o)
     set_order(n, target_o);
 
     while (o-- > target_o) {
-        int32_t b = buddy_of(i, o);
+        int32_t    b  = buddy_of(i, o);
         page_node* bn = get_node(b);
 
         set_order(bn, o);
@@ -253,12 +253,12 @@ static void try_merge(uint32_t i)
     loop
     {
         page_node* n = get_node(i);
-        uint8_t o = get_order(n);
+        uint8_t    o = get_order(n);
 
         if (o == MAX_ORDER)
             return;
 
-        uint32_t b = buddy_of(i, o);
+        uint32_t   b     = buddy_of(i, o);
         page_node* buddy = get_node(b);
 
         if (!get_free(buddy) || get_order(buddy) != o)
@@ -281,7 +281,7 @@ puintptr_t page_malloc(uint8_t order, mm_page_data p)
     DEBUG_ASSERT(order <= MAX_ORDER);
 
     page_node* n;
-    uint32_t i = free_lists[order];
+    uint32_t   i = free_lists[order];
 
     if (IS_NULL_IDX(i)) {
         for (uint8_t o = order; o <= MAX_ORDER; o++) {
@@ -289,9 +289,9 @@ puintptr_t page_malloc(uint8_t order, mm_page_data p)
 
             if (!IS_NULL_IDX(i)) {
                 split_to_order_and_pop(i, order);
-                n = get_node(i);
+                n            = get_node(i);
                 n->page_data = p;
-                return i * KPAGE_SIZE;
+                return i * PAGE_SIZE;
             }
         }
 
@@ -303,13 +303,13 @@ puintptr_t page_malloc(uint8_t order, mm_page_data p)
 
     n->page_data = p;
 
-    return i * KPAGE_SIZE;
+    return i * PAGE_SIZE;
 }
 
 
 void page_free(puintptr_t pa)
 {
-    uint32_t i = pa / KPAGE_SIZE;
+    uint32_t   i = pa / PAGE_SIZE;
     page_node* n = get_node(i);
 
 
@@ -329,14 +329,14 @@ void page_free(puintptr_t pa)
 
 const char* page_allocator_update_tag(puintptr_t pa, const char* new_tag)
 {
-    uint32_t i = pa / KPAGE_SIZE;
+    uint32_t   i = pa / PAGE_SIZE;
     page_node* n = get_node(i);
 
     ASSERT(!is_inner_idx(i));
     ASSERT(!is_kva(pa));
     ASSERT(is_kva_ptr(new_tag));
 
-    const char* old = n->page_data.tag;
+    const char* old  = n->page_data.tag;
     n->page_data.tag = new_tag;
     return old;
 }
@@ -344,7 +344,7 @@ const char* page_allocator_update_tag(puintptr_t pa, const char* new_tag)
 
 bool page_allocator_get_data(puintptr_t pa, mm_page_data* data)
 {
-    uint32_t i = pa / KPAGE_SIZE;
+    uint32_t   i = pa / PAGE_SIZE;
     page_node* n = get_node(i);
 
 
@@ -367,7 +367,7 @@ bool page_allocator_get_data(puintptr_t pa, mm_page_data* data)
 
 bool page_allocator_set_data(puintptr_t pa, mm_page_data data)
 {
-    uint32_t i = pa / KPAGE_SIZE;
+    uint32_t   i = pa / PAGE_SIZE;
     page_node* n = get_node(i);
 
     raw_kmalloc_lock();
@@ -392,11 +392,11 @@ static void reserve(uint32_t i, uint8_t o)
 {
     ASSERT((i & ((1U << o) - 1)) == 0);
 
-    uint8_t k;
+    uint8_t  k;
     uint32_t base;
 
     for (k = o; k <= MAX_ORDER; k++) {
-        base = parent_at_order(i, k);
+        base         = parent_at_order(i, k);
         page_node* p = get_node(base);
 
         if (get_free(p) && get_order(p) == k)
@@ -408,13 +408,13 @@ static void reserve(uint32_t i, uint8_t o)
 
     remove_from_list(base);
 
-    uint32_t cur = base;
-    uint8_t cur_o = k;
+    uint32_t cur   = base;
+    uint8_t  cur_o = k;
 
     while (cur_o > o) {
         cur_o--;
 
-        uint32_t left = cur;
+        uint32_t left  = cur;
         uint32_t right = cur + (1U << cur_o);
 
         if (i < right) {
@@ -434,7 +434,7 @@ static void reserve(uint32_t i, uint8_t o)
 
 void page_allocator_init()
 {
-    N = mm_info_page_count();
+    N         = mm_info_page_count();
     MAX_ORDER = log2_floor(N);
 
     size_t free_list_bytes =
@@ -443,13 +443,13 @@ void page_allocator_init()
 
 
     pv_ptr pv = early_kalloc(
-        align_up(free_list_bytes + nodes_bytes, KPAGE_SIZE),
+        align_up(free_list_bytes + nodes_bytes, PAGE_SIZE),
         "page allocator",
         true,
         false);
 
     free_lists = (uint32_t*)pv.va;
-    nodes = (page_node*)(pv.va + free_list_bytes);
+    nodes      = (page_node*)(pv.va + free_list_bytes);
 
     ASSERT((vuintptr_t)free_lists % _Alignof(uint32_t) == 0);
     ASSERT((vuintptr_t)nodes % _Alignof(page_node) == 0);
@@ -461,14 +461,14 @@ void page_allocator_init()
 
     for (i = 0; i < N; i++) {
         *get_node(i) = (page_node) {
-            .next = NULL_IDX,
-            .prev = NULL_IDX,
+            .next      = NULL_IDX,
+            .prev      = NULL_IDX,
             .node_data = 0,
             .page_data = {0},
         };
     }
 
-    i = 0;
+    i                = 0;
     size_t remaining = N;
     while (remaining) {
         size_t o = log2_floor(remaining);
@@ -490,9 +490,9 @@ void page_allocator_update_memregs(const early_memreg* mregs, size_t n)
 
         DEBUG_ASSERT(is_kva_ptr(e.tag));
 
-        size_t pages = e.pages;
+        size_t pages     = e.pages;
         size_t remaining = pages;
-        size_t j = e.addr / KPAGE_SIZE;
+        size_t j         = e.addr / PAGE_SIZE;
 
 
         while (remaining > 0) {
@@ -508,8 +508,8 @@ void page_allocator_update_memregs(const early_memreg* mregs, size_t n)
 
             reserve(j, o);
             get_node(j)->page_data = (mm_page_data) {
-                .tag = e.tag,
-                .permanent = e.permanent,
+                .tag        = e.tag,
+                .permanent  = e.permanent,
                 .device_mem = e.device_memory,
             };
 
@@ -525,14 +525,14 @@ void page_allocator_debug()
     size_t i = 0;
 
     puintptr_t addr;
-    size_t bytes, pages;
+    size_t     bytes, pages;
 
     while (i < N) {
         page_node* n = get_node(i);
 
-        addr = i * KPAGE_SIZE;
+        addr  = i * PAGE_SIZE;
         pages = power_of2(get_order(n));
-        bytes = pages * KPAGE_SIZE;
+        bytes = pages * PAGE_SIZE;
 
 
         if (get_free(n)) {

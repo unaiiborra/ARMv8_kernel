@@ -51,11 +51,11 @@ void reloc_cfg_end()
 
     // get first free heap va
     early_memreg* mblcks;
-    size_t n;
+    size_t        n;
 
     early_kalloc_get_memregs(&mblcks, &n);
     vuintptr_t free_heap_start =
-        kpa_to_kva(mblcks[n - 1].addr + (mblcks[n - 1].pages * KPAGE_SIZE));
+        kpa_to_kva(mblcks[n - 1].addr + (mblcks[n - 1].pages * PAGE_SIZE));
 
 
     mmu_core_handle* ch0 = mm_mmu_core_handler_get_self();

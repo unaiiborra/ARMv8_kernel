@@ -24,4 +24,11 @@ void arm_exceptions_enable(bool fiq, bool irq, bool serror, bool debug);
 /// exception will be mantained, not enabled.
 void arm_exceptions_disable(bool fiq, bool irq, bool serror, bool debug);
 
+#define arm_exceptions_enable_all() \
+    asm volatile("msr daifclr, #0xf" ::: "memory")
+
+#define arm_exceptions_disable_all() \
+    asm volatile("msr daifset, #0xf" ::: "memory")
+
+
 size_t arm_get_exception_level();

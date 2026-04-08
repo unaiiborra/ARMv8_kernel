@@ -12,52 +12,52 @@
 
 extern vuintptr_t __text_start[];
 extern vuintptr_t __text_end[];
-extern size_t __text_size[];
+extern size_t     __text_size[];
 
 extern vuintptr_t __rodata_start[];
 extern vuintptr_t __rodata_end[];
-extern size_t __rodata_size[];
+extern size_t     __rodata_size[];
 
 extern vuintptr_t __data_start[];
 extern vuintptr_t __data_end[];
-extern size_t __data_size[];
+extern size_t     __data_size[];
 
 extern vuintptr_t __bss_start[];
 extern vuintptr_t __bss_end[];
-extern size_t __bss_size[];
+extern size_t     __bss_size[];
 
 extern vuintptr_t __stacks_start[];
 extern vuintptr_t __stacks_end[];
-extern size_t __stacks_size[];
+extern size_t     __stacks_size[];
 
 extern vuintptr_t __heap_start[];
 extern vuintptr_t __heap_end[];
-extern size_t __heap_size[];
+extern size_t     __heap_size[];
 
 
 #define BUILD_KSECTION(section)                   \
     (mm_ksection)                                 \
     {                                             \
         .start = (vuintptr_t)__##section##_start, \
-        .end = (vuintptr_t)__##section##_end,     \
-        .size = (size_t)__##section##_size,       \
+        .end   = (vuintptr_t)__##section##_end,   \
+        .size  = (size_t)__##section##_size,      \
     }
 
 const mm_ksections MM_KSECTIONS = (mm_ksections) {
-    .text = BUILD_KSECTION(text),
+    .text   = BUILD_KSECTION(text),
     .rodata = BUILD_KSECTION(rodata),
-    .data = BUILD_KSECTION(data),
-    .bss = BUILD_KSECTION(bss),
+    .data   = BUILD_KSECTION(data),
+    .bss    = BUILD_KSECTION(bss),
     .stacks = BUILD_KSECTION(stacks),
 };
 
 
-static size_t mm_ddr_size_;
+static size_t     mm_ddr_size_;
 static puintptr_t mm_ddr_start_;
 static puintptr_t mm_ddr_end_;
 static puintptr_t mm_kernel_start_;
-static size_t mm_page_count_;
-static size_t mm_addr_space_;
+static size_t     mm_page_count_;
+static size_t     mm_addr_space_;
 
 
 static bool is_valid_ksection(mm_ksection k)
@@ -80,7 +80,7 @@ void mm_info_init()
     extern void _start();
 
     bool ddr_declared = false;
-    mm_addr_space_ = 0x0;
+    mm_addr_space_    = 0x0;
 
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
@@ -95,8 +95,8 @@ void mm_info_init()
                 ASSERT(!ddr_declared, "only one DDR region must be declared");
 
                 mm_ddr_start_ = r.start;
-                mm_ddr_end_ = r.start + r.size;
-                mm_ddr_size_ = r.size;
+                mm_ddr_end_   = r.start + r.size;
+                mm_ddr_size_  = r.size;
 
                 ddr_declared = true;
                 break;
@@ -110,7 +110,7 @@ void mm_info_init()
     mm_kernel_start_ = (puintptr_t)_start;
     ASSERT(mm_kernel_start_ >= mm_ddr_start_ && mm_kernel_start_ < mm_ddr_end_);
 
-    mm_page_count_ = div_ceil(mm_addr_space_, KPAGE_SIZE);
+    mm_page_count_ = div_ceil(mm_addr_space_, PAGE_SIZE);
 
 
 #define VALIDATE_KSECTION(ksection) \

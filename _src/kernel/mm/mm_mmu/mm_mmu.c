@@ -14,10 +14,10 @@
 #include "kernel/panic.h"
 #include "lib/mem.h"
 
-mmu_mapping KERNEL_MAPPING;
-mmu_mapping UNMAPPED_LO;
+mmu_mapping        KERNEL_MAPPING;
+mmu_mapping        UNMAPPED_LO;
 mmu_mapping* const MM_MMU_KERNEL_MAPPING = &KERNEL_MAPPING;
-mmu_mapping* const MM_MMU_UNMAPPED_LO = &UNMAPPED_LO;
+mmu_mapping* const MM_MMU_UNMAPPED_LO    = &UNMAPPED_LO;
 
 
 typedef struct {
@@ -31,11 +31,11 @@ static local_mmu_core_handle handles[NUM_CORES];
 static void* mm_mmu_default_allocator(size_t bytes)
 {
     (void)bytes;
-    DEBUG_ASSERT(bytes == KPAGE_SIZE);
+    DEBUG_ASSERT(bytes == PAGE_SIZE);
 
     pv_ptr pv = reserve_malloc("mmu table");
 
-    DEBUG_ASSERT(pv.pa % KPAGE_SIZE == 0);
+    DEBUG_ASSERT(pv.pa % PAGE_SIZE == 0);
 
     return (void*)pv.va;
 }

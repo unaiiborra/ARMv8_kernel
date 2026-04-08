@@ -1,6 +1,5 @@
 #pragma once
 
-#include <lib/stdint_extra.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,16 +27,16 @@ typedef enum {
 
 
 typedef union {
-    int8_t int8;
+    int8_t  int8;
     uint8_t uint8;
 
-    int16_t int16;
+    int16_t  int16;
     uint16_t uint16;
 
-    int32_t int32;
+    int32_t  int32;
     uint32_t uint32;
 
-    int64_t int64;
+    int64_t  int64;
     uint64_t uint64;
 } STDINT_UNION;
 
@@ -55,26 +54,26 @@ bool strcmp(const char* a, const char* b);
 /// if value is > 9
 char uint8_t_to_ascii_char(uint8_t n);
 
-#define INT8_TO_ASCII_BUF 5  // "-128" + '\0'
+#define INT8_TO_ASCII_BUF  5 // "-128" + '\0'
 #define UINT8_TO_ASCII_BUF 4 // "255"  + '\0'
 
-#define INT16_TO_ASCII_BUF 7  // "-32768" + '\0'
+#define INT16_TO_ASCII_BUF  7 // "-32768" + '\0'
 #define UINT16_TO_ASCII_BUF 6 // "65535"  + '\0'
 
-#define INT32_TO_ASCII_BUF 12  // "-2147483648" + '\0'
+#define INT32_TO_ASCII_BUF  12 // "-2147483648" + '\0'
 #define UINT32_TO_ASCII_BUF 11 // "4294967295"  + '\0'
 
-#define INT64_TO_ASCII_BUF 21  // "-9223372036854775808" + '\0'
+#define INT64_TO_ASCII_BUF  21 // "-9223372036854775808" + '\0'
 #define UINT64_TO_ASCII_BUF 21 // "18446744073709551615" + '\0'
 
 /// Converts any stdint, signed or not to its ascii decimal representation.
 /// Panics if provided buf_len is smaller than requiered. Space for the '-' sign
 /// and '\0' is needed
 char* stdint_to_ascii(
-    STDINT_UNION n,
-    STDINT_TYPES n_type,
-    char* buf,
-    uint64_t buf_len,
+    STDINT_UNION     n,
+    STDINT_TYPES     n_type,
+    char*            buf,
+    uint64_t         buf_len,
     STDINT_BASE_REPR repr);
 
 

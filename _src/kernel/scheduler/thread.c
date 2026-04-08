@@ -17,7 +17,7 @@ void thread_assign_stack(thread* th)
 {
     task* t = th->owner;
 
-    size_t stack_size = t->stack_pages * KPAGE_SIZE;
+    size_t stack_size = t->stack_pages * PAGE_SIZE;
 
     uintptr_t stack_bottom = tregion_find_free(t, stack_size);
     uintptr_t stack_top    = stack_bottom + stack_size;

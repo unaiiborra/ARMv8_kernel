@@ -2,9 +2,12 @@ include make/Folders.mk
 
 OPT_LEVEL   ?= -O2
 
-ifeq ($(DEBUG),1)
-DEFINES     += -DDEBUG
+ifdef DEBUG
+    ifneq ($(DEBUG),0)
+        DEFINES += -DDEBUG=$(DEBUG)
+    endif
 endif
+
 
 MARCH       ?= armv8-a
 MCPU        ?= cortex-a53+simd

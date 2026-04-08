@@ -3,12 +3,15 @@
 #include <kernel/mm.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "arm/mmu.h"
 #include "kernel/lib/kvec.h"
 #include "lib/lock.h"
+
+struct thread;
 
 typedef struct {
     uint32_t pages;
@@ -46,7 +49,7 @@ static inline uintptr_t task_region_translate(
         return TASK_REGION_TRANSLATE_ERR;
 
     uintptr_t base = (opt == REG_TO_KNL) ? r->reg_start : r->knl_start;
-    uintptr_t size = (uintptr_t)r->pages * KPAGE_SIZE;
+    uintptr_t size = (uintptr_t)r->pages * PAGE_SIZE;
 
     if (address < base)
         return TASK_REGION_TRANSLATE_ERR;
@@ -81,15 +84,28 @@ typedef enum {
 
 typedef struct {
     uint64_t     task_uid;
+    atomic_ulong local_thid_counter; // local thread id counter
     const char*  name;
     spinlock_t   lock;
     task_state   state;
     uint32_t     stack_pages;
     mmu_mapping  mapping;
     task_region* regions;
-    kvec_T(thr ead*) threads;
+    kvec(thread*) threads;
 } task;
 
 
 task* task_new(const char* name, size_t stack_size);
-void  task_delete(task* t);
+
+
+/// adds the reference of the thread to the task and updates the task thread id
+/// (local th uid)
+void task_add_thread_ref(task* t, struct thread* th);
+
+/// adds the reference of the threads to the task and updates the task thread id
+/// (local th uid)
+void task_add_thread_refs(task* t, struct thread** th, size_t count);
+
+void task_delete_thread_ref(task* t, struct thread* th);
+// no batch delete for thread refs because the acutal deleting of threads is
+// allways defered so it is not possible to batch delete
