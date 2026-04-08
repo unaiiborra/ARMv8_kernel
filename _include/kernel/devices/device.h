@@ -8,12 +8,12 @@
 
 typedef struct {
     uintptr_t base;
-    void* state;
+    void*     state;
 } driver_handle;
 
 typedef struct {
-    uint64_t id;
-    const char* name;
-    uint64_t irqid;
+    uint64_t             id;
+    const char*          name;
+    uint64_t             irqid;
     const driver_handle* drv;
 } kernel_device;

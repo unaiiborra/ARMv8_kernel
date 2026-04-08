@@ -35,10 +35,10 @@ static const uint8_t STDINT_BASE_REPR_CHARS_[16] = {
 };
 
 char* stdint_to_ascii(
-    STDINT_UNION n,
-    STDINT_TYPES n_type,
-    char* buf,
-    uint64_t buf_len,
+    STDINT_UNION     n,
+    STDINT_TYPES     n_type,
+    char*            buf,
+    uint64_t         buf_len,
     STDINT_BASE_REPR repr)
 {
     uint64_t repr_len = 0;
@@ -59,54 +59,54 @@ char* stdint_to_ascii(
             PANIC("Unexpected value of repr");
     }
 
-    bool is_signed;
-    int64_t signed_value = 0;
+    bool     is_signed;
+    int64_t  signed_value   = 0;
     uint64_t unsigned_value = 0;
 
     switch (n_type) {
         case STDINT_INT8:
             signed_value = n.int8;
-            is_signed = true;
+            is_signed    = true;
             break;
         case STDINT_UINT8:
             unsigned_value = n.uint8;
-            is_signed = false;
+            is_signed      = false;
             break;
         case STDINT_INT16:
             signed_value = n.int16;
-            is_signed = true;
+            is_signed    = true;
             break;
         case STDINT_UINT16:
             unsigned_value = n.uint16;
-            is_signed = false;
+            is_signed      = false;
             break;
         case STDINT_INT32:
             signed_value = n.int32;
-            is_signed = true;
+            is_signed    = true;
             break;
         case STDINT_UINT32:
             unsigned_value = n.uint32;
-            is_signed = false;
+            is_signed      = false;
             break;
         case STDINT_INT64:
             signed_value = n.int64;
-            is_signed = true;
+            is_signed    = true;
             break;
         case STDINT_UINT64:
             unsigned_value = n.uint64;
-            is_signed = false;
+            is_signed      = false;
             break;
         default:
             PANIC("stdint_to_ascii: STDINT_TYPES case not supported");
     }
 
     uint64_t value;
-    bool negative = false;
+    bool     negative = false;
 
     if (is_signed) {
         if (signed_value < 0) {
             negative = true;
-            value = (uint64_t)-signed_value;
+            value    = (uint64_t)-signed_value;
         }
         else {
             value = (uint64_t)signed_value;
@@ -136,7 +136,7 @@ char* stdint_to_ascii(
                 break;
         }
         buf[i++] = '0';
-        buf[i] = '\0';
+        buf[i]   = '\0';
         return buf;
     }
 
@@ -175,11 +175,11 @@ char* stdint_to_ascii(
 
     // Reverse created string
     uint64_t start = 0;
-    uint64_t end = i - 1; // i -1 to not include the '\0'
+    uint64_t end   = i - 1; // i -1 to not include the '\0'
     while (start < end) {
-        char tmp = buf[start];
+        char tmp   = buf[start];
         buf[start] = buf[end];
-        buf[end] = tmp;
+        buf[end]   = tmp;
         start++;
         end--;
     }

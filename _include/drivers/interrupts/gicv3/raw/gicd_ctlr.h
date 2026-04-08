@@ -46,40 +46,40 @@ MMIO_DECLARE_REG32_WRITER(
 
 // RWP
 #define RWP_SHIFT 31
-#define RWP_MASK (1UL << RWP_SHIFT)
+#define RWP_MASK  (1UL << RWP_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(RWP, bool);
 
 // E1NWF
 #define E1NWF_SHIFT 7
-#define E1NWF_MASK (1UL << E1NWF_SHIFT)
+#define E1NWF_MASK  (1UL << E1NWF_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(E1NWF, bool);
 
 // DS
 #define DS_SHIFT 6
-#define DS_MASK (1UL << DS_SHIFT)
+#define DS_MASK  (1UL << DS_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(DS, bool)
 
 // ARE_NS
 #define ARE_NS_SHIFT 5
-#define ARE_NS_MASK (1UL << ARE_NS_SHIFT)
+#define ARE_NS_MASK  (1UL << ARE_NS_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(ARE_NS, bool);
 
 // ARE_S
 #define ARE_S_SHIFT 4
-#define ARE_S_MASK (1UL << ARE_S_SHIFT)
+#define ARE_S_MASK  (1UL << ARE_S_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(ARE_S, bool);
 
 // EnableGrp1S
 #define EnableGrp1S_SHIFT 2
-#define EnableGrp1S_MASK (1UL << EnableGrp1S_SHIFT)
+#define EnableGrp1S_MASK  (1UL << EnableGrp1S_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(EnableGrp1S, bool);
 
 // EnableGrp1NS
 #define EnableGrp1NS_SHIFT 1
-#define EnableGrp1NS_MASK (1UL << EnableGrp1NS_SHIFT)
+#define EnableGrp1NS_MASK  (1UL << EnableGrp1NS_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(EnableGrp1NS, bool);
 
 // EnableGrp0
 #define EnableGrp0_SHIFT 0
-#define EnableGrp0_MASK (1UL << EnableGrp0_SHIFT)
+#define EnableGrp0_MASK  (1UL << EnableGrp0_SHIFT)
 GICD_CTLR_DECLARE_BIT_FIELD_FNS(EnableGrp0, bool);

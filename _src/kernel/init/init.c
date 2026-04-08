@@ -40,10 +40,10 @@ void kernel_init(void)
         (*fn)();
 
     arm_exceptions_set_status((arm_exception_status) {
-        .fiq = true,
-        .irq = true,
+        .fiq    = true,
+        .irq    = true,
         .serror = true,
-        .debug = true,
+        .debug  = true,
     });
 
 

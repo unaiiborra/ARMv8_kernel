@@ -14,7 +14,7 @@
 
 typedef enum {
     PANIC_UNRECOVERABLE = 0,
-    PANIC_RECOVERABLE = 1,
+    PANIC_RECOVERABLE   = 1,
 } panic_recovery;
 
 
@@ -44,7 +44,7 @@ static void default_info_print(panic_info* info)
     fkprintf(IO_STDPANIC, "message: %s\n", info->message);
 
 
-    const char* enabled = "enabled";
+    const char* enabled  = "enabled";
     const char* disabled = "disabled";
 #define ENABLED_STR(cond) cond ? enabled : disabled
 
@@ -66,7 +66,7 @@ static void default_info_print(panic_info* info)
 
 static void handle_exception_panic(panic_info* info)
 {
-    panic_exception_src src = info->info.exception.src;
+    panic_exception_src  src  = info->info.exception.src;
     panic_exception_type type = info->info.exception.type;
 
 

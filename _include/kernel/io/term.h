@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 typedef enum {
-    TERM_OUT_RES_OK = 0,
+    TERM_OUT_RES_OK        = 0,
     TERM_OUT_RES_NOT_TAKEN = 1,
 } term_out_result;
 
@@ -16,16 +16,16 @@ typedef term_out_result (*term_out)(const char c);
 
 
 typedef struct {
-    size_t size;
-    size_t allocated_size;
+    size_t              size;
+    size_t              allocated_size;
     struct term_buffer* head_buf;
     struct term_buffer* tail_buf;
 } term_buffer_handle;
 
 typedef struct {
-    term_id id_;
-    corelock_t lock_;
-    term_out out_;
+    term_id            id_;
+    corelock_t         lock_;
+    term_out           out_;
     term_buffer_handle buf_;
 } term_handle;
 

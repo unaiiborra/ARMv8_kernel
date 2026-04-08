@@ -6,7 +6,7 @@
 
 typedef struct {
     struct {
-        bool use_kmap;
+        bool       use_kmap;
         puintptr_t kmap_pa;
     } kmap;
     bool assing_pa;
@@ -16,10 +16,10 @@ typedef struct {
 
 typedef struct {
     const char* tag;
-    bool kmapped;
-    bool pa_assigned;
-    bool device_mem;
-    bool permanent;
+    bool        kmapped;
+    bool        pa_assigned;
+    bool        device_mem;
+    bool        permanent;
 } vmalloc_allocated_area_mdt;
 
 
@@ -59,7 +59,7 @@ typedef struct {
 
     struct {
         struct vmalloc_pa_mdt* list;
-        uint32_t count;
+        uint32_t               count;
     } pa_mdt;
 } vmalloc_mdt;
 
@@ -68,12 +68,12 @@ typedef struct {
     union {
         struct {
             vuintptr_t free_start;
-            size_t free_size;
+            size_t     free_size;
         } free;
 
         struct {
-            vuintptr_t reserved_start;
-            size_t reserved_size;
+            vuintptr_t  reserved_start;
+            size_t      reserved_size;
             vmalloc_mdt mdt;
         } reserved;
     } state_info;
@@ -105,13 +105,13 @@ vmalloc_allocated_area_mdt __voidptr__vmalloc_get_mdt(void* allocation_addr);
 typedef struct {
     puintptr_t pa;
     vuintptr_t va;
-    size_t order;
+    size_t     order;
 } vmalloc_pa_info;
 
 void vmalloc_push_pa(
     vmalloc_token t,
-    size_t order,
-    puintptr_t pa,
-    vuintptr_t va);
+    size_t        order,
+    puintptr_t    pa,
+    vuintptr_t    va);
 size_t vmalloc_get_pa_count(vmalloc_token t);
 bool vmalloc_get_pa_info(vmalloc_token t, vmalloc_pa_info* buf, size_t buf_size);

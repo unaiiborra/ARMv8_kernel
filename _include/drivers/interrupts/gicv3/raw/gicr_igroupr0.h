@@ -27,8 +27,8 @@ GICV3_GICR_IGROUPR0_read(uintptr_t base, size_t n)
 }
 
 static inline void GICV3_GICR_IGROUPR0_write(
-    uintptr_t base,
-    size_t n,
+    uintptr_t                       base,
+    size_t                          n,
     GICR_IGROUPR0_VALUE_STRUCT_NAME v)
 {
     *((reg32_ptr)(GICV3_SGI_BASE(base, n) + (GICR_IGROUPR0_OFFSET))) = v.val;

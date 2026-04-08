@@ -30,21 +30,21 @@ MMIO_DECLARE_REG32_READER(
         bf_name##_MASK);
 
 #define V1_SHIFT 31
-#define V1_MASK (0b1u << V1_SHIFT)
+#define V1_MASK  (0b1u << V1_SHIFT)
 TRITSR_DECLARE_BIT_FIELD_FNS(V1, bool);
 
 #define V0_SHIFT 30
-#define V0_MASK (0b1u << V0_SHIFT)
+#define V0_MASK  (0b1u << V0_SHIFT)
 TRITSR_DECLARE_BIT_FIELD_FNS(V0, bool);
 
 /* Bits 29–24 reservados */
 
 #define TEMP1_SHIFT 16
-#define TEMP1_MASK (0xFFu << TEMP1_SHIFT)
+#define TEMP1_MASK  (0xFFu << TEMP1_SHIFT)
 TRITSR_DECLARE_BIT_FIELD_FNS(TEMP1, int8_t);
 
 /* Bits 15–8 reservados */
 
 #define TEMP0_SHIFT 0
-#define TEMP0_MASK (0xFFu << TEMP0_SHIFT)
+#define TEMP0_MASK  (0xFFu << TEMP0_SHIFT)
 TRITSR_DECLARE_BIT_FIELD_FNS(TEMP0, int8_t);

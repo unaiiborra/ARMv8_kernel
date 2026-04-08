@@ -33,7 +33,7 @@
     offset_macro)                                                      \
     static inline RegValueStruct periph_name##_##reg_name##_read(      \
         uintptr_t base,                                                \
-        size_t n)                                                      \
+        size_t    n)                                                   \
     {                                                                  \
         return (RegValueStruct) {                                      \
             .val = *((reg32_ptr)(base + (uintptr_t)offset_macro(n)))}; \
@@ -57,7 +57,7 @@
     offset_macro)                                                      \
     static inline RegValueStruct periph_name##_##reg_name##_read(      \
         uintptr_t base,                                                \
-        size_t n)                                                      \
+        size_t    n)                                                   \
     {                                                                  \
         return (RegValueStruct) {                                      \
             .val = *((reg64_ptr)(base + (uintptr_t)offset_macro(n)))}; \
@@ -71,7 +71,7 @@
     RegValueStruct,                                      \
     offset)                                              \
     static inline void periph_name##_##reg_name##_write( \
-        uintptr_t base,                                  \
+        uintptr_t      base,                             \
         RegValueStruct v)                                \
     {                                                    \
         *((reg32_ptr)(base + (offset))) = v.val;         \
@@ -83,8 +83,8 @@
     RegValueStruct,                                                \
     offset_macro)                                                  \
     static inline void periph_name##_##reg_name##_write(           \
-        uintptr_t base,                                            \
-        size_t n,                                                  \
+        uintptr_t      base,                                       \
+        size_t         n,                                          \
         RegValueStruct v)                                          \
     {                                                              \
         *((reg32_ptr)(base + (uintptr_t)offset_macro(n))) = v.val; \
@@ -96,7 +96,7 @@
     RegValueStruct,                                      \
     offset)                                              \
     static inline void periph_name##_##reg_name##_write( \
-        uintptr_t base,                                  \
+        uintptr_t      base,                             \
         RegValueStruct v)                                \
     {                                                    \
         *((reg64_ptr)(base + (offset))) = v.val;         \
@@ -108,8 +108,8 @@
     RegValueStruct,                                                \
     offset_macro)                                                  \
     static inline void periph_name##_##reg_name##_write(           \
-        uintptr_t base,                                            \
-        size_t n,                                                  \
+        uintptr_t      base,                                       \
+        size_t         n,                                          \
         RegValueStruct v)                                          \
     {                                                              \
         *((reg64_ptr)(base + (uintptr_t)offset_macro(n))) = v.val; \
@@ -150,7 +150,7 @@
     MASK)                                                                      \
     static inline void periph_name##_##reg_name##_##bf_name##_set(             \
         RegValueStruct* r,                                                     \
-        T v)                                                                   \
+        T               v)                                                     \
     {                                                                          \
         typedef typeof(r->val) reg_t;                                          \
         _Static_assert(                                                        \

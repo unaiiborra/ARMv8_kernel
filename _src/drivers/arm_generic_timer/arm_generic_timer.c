@@ -8,11 +8,11 @@
 
 
 #define cycles() sysreg_read(CNTVCT_EL0)
-#define freq() sysreg_read(CNTFRQ_EL0)
+#define freq()   sysreg_read(CNTFRQ_EL0)
 
 uint64_t AGT_ns_to_cycles(uint64_t ns)
 {
-    uint64_t f = freq();
+    uint64_t f   = freq();
     uint64_t sec = ns / 1000000000ULL;
     uint64_t rem = ns % 1000000000ULL;
 
@@ -21,7 +21,7 @@ uint64_t AGT_ns_to_cycles(uint64_t ns)
 
 uint64_t AGT_us_to_cycles(uint64_t us)
 {
-    uint64_t f = freq();
+    uint64_t f   = freq();
     uint64_t sec = us / 1000000ULL;
     uint64_t rem = us % 1000000ULL;
 
@@ -65,8 +65,8 @@ static inline agt_state* get_state_(const driver_handle* h)
 
 // ENABLE (bit 0)
 #define timer_is_enabled() (bool)(sysreg_read(CNTV_CTL_EL0) & 0b1ul)
-#define enable_timer() sysreg_write(CNTV_CTL_EL0, 1)
-#define disable_timer() sysreg_write(CNTV_CTL_EL0, 0)
+#define enable_timer()     sysreg_write(CNTV_CTL_EL0, 1)
+#define disable_timer()    sysreg_write(CNTV_CTL_EL0, 0)
 
 // ISTATUS (bit 2)
 #define timer_fired() ((bool)((_ARM_CNTV_CTL_EL0_get() >> 2) & 0b1ul))
@@ -74,19 +74,19 @@ static inline agt_state* get_state_(const driver_handle* h)
 // Unlocked AGT_timer_schedule_cb
 static inline bool UNLOCKED_timer_schedule_(
     const driver_handle* h,
-    uint64_t cycles,
-    timer_cb_t cb,
-    timer_arg arg)
+    uint64_t             cycles,
+    timer_cb_t           cb,
+    timer_arg            arg)
 {
-    bool overrides;
+    bool       overrides;
     agt_state* state = get_state_(h);
 
     overrides = timer_is_enabled();
 
     disable_timer();
 
-    state->timer_cb = cb;
-    state->arg = arg;
+    state->timer_cb    = cb;
+    state->arg         = arg;
     state->timer_fired = false;
 
 
@@ -99,24 +99,24 @@ static inline bool UNLOCKED_timer_schedule_(
 
 bool AGT_timer_schedule_cycles(
     const driver_handle* h,
-    uint64_t cycles,
-    timer_cb_t cb,
-    timer_arg arg)
+    uint64_t             cycles,
+    timer_cb_t           cb,
+    timer_arg            arg)
 {
     agt_state* state = get_state_(h);
-    bool overrides;
+    bool       overrides;
 
     // check if this call has been made under another timer callback, if true,
     // defer the new scheduling
     if (spin_try_lock(&state->defer_cb.under_callback_gate)) {
         // set after callback values
-        state->timer_fired = false;
+        state->timer_fired                = false;
         state->defer_cb.under_cb_timer_cb = cb;
-        state->defer_cb.under_cb_arg = arg;
-        state->defer_cb.cycles_v = cycles;
+        state->defer_cb.under_cb_arg      = arg;
+        state->defer_cb.cycles_v          = cycles;
 
         // after the callback irqs will be enabled
-        overrides = state->defer_cb.under_cb_scheduled;
+        overrides                          = state->defer_cb.under_cb_scheduled;
         state->defer_cb.under_cb_scheduled = true;
 
         spin_unlock(&state->defer_cb.under_callback_gate);
@@ -134,12 +134,12 @@ bool AGT_timer_schedule_cycles(
 
 bool AGT_timer_schedule_delta(
     const driver_handle* h,
-    uint64_t delta_ns,
-    timer_cb_t cb,
-    timer_arg arg)
+    uint64_t             delta_ns,
+    timer_cb_t           cb,
+    timer_arg            arg)
 {
     agt_state* state = get_state_(h);
-    bool overrides;
+    bool       overrides;
 
     uint64_t cycles = cycles() + AGT_ns_to_cycles(delta_ns);
 
@@ -147,15 +147,15 @@ bool AGT_timer_schedule_delta(
     // defer the new scheduling
     if (spin_try_lock(&state->defer_cb.under_callback_gate)) {
         // set after callback values
-        state->timer_fired = false;
+        state->timer_fired                = false;
         state->defer_cb.under_cb_timer_cb = cb;
-        state->defer_cb.under_cb_arg = arg;
+        state->defer_cb.under_cb_arg      = arg;
 
         // set the value as delta ns
         state->defer_cb.cycles_v = cycles;
 
         // after the callback irqs will be enabled
-        overrides = state->defer_cb.under_cb_scheduled;
+        overrides                          = state->defer_cb.under_cb_scheduled;
         state->defer_cb.under_cb_scheduled = true;
 
         spin_unlock(&state->defer_cb.under_callback_gate);
@@ -183,7 +183,7 @@ bool AGT_timer_is_armed(const driver_handle* h)
 
 bool AGT_timer_has_fired(const driver_handle* h)
 {
-    bool fired;
+    bool       fired;
     agt_state* state = get_state_(h);
 
     if (spin_try_lock(&state->defer_cb.under_callback_gate)) {
@@ -195,8 +195,8 @@ bool AGT_timer_has_fired(const driver_handle* h)
         return fired;
     }
 
-    irqlock_t irqf = _spin_lock_irqsave(&state->lock);
-    fired = state->timer_fired;
+    irqlock_t irqf     = _spin_lock_irqsave(&state->lock);
+    fired              = state->timer_fired;
     state->timer_fired = false;
     _spin_unlock_irqrestore(&state->lock, irqf);
 
@@ -225,9 +225,9 @@ void AGT_handle_irq(const driver_handle* h)
     {
         disable_timer();
 
-        state->timer_fired = true;
-        state->defer_cb.under_cb_timer_cb = NULL;
-        state->defer_cb.under_cb_arg = NULL;
+        state->timer_fired                 = true;
+        state->defer_cb.under_cb_timer_cb  = NULL;
+        state->defer_cb.under_cb_arg       = NULL;
         state->defer_cb.under_cb_scheduled = false;
 
         if (state->timer_cb != NULL) {
@@ -252,14 +252,14 @@ void AGT_init_stage0(const driver_handle* h)
 {
     agt_state* state = get_state_(h);
 
-    state->lock.slock = 0; // open
-    state->timer_cb = NULL;
-    state->arg = NULL;
+    state->lock.slock  = 0; // open
+    state->timer_cb    = NULL;
+    state->arg         = NULL;
     state->timer_fired = false;
     // locked (starts locked as it opens when it is under a callback)
     state->defer_cb.under_callback_gate.slock = 1;
-    state->defer_cb.under_cb_scheduled = false;
-    state->defer_cb.under_cb_timer_cb = NULL;
-    state->defer_cb.under_cb_arg = NULL;
-    state->defer_cb.cycles_v = 0;
+    state->defer_cb.under_cb_scheduled        = false;
+    state->defer_cb.under_cb_timer_cb         = NULL;
+    state->defer_cb.under_cb_arg              = NULL;
+    state->defer_cb.cycles_v                  = 0;
 }

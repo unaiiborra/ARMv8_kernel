@@ -24,10 +24,10 @@ static inline pv_ptr pv_ptr_new(puintptr_t pa, vuintptr_t va)
 }
 
 #define uintptr_t_p_to_ptr(type, uintptr_t_phys) ((type*)(uintptr_t_phys))
-#define PTR_TO_UINTPTR_P(ptr) ((puintptr_t)(ptr))
+#define PTR_TO_UINTPTR_P(ptr)                    ((puintptr_t)(ptr))
 
 #define UINTPTR_V_TO_PTR(type, uintptr_t_virt) ((type*)(uintptr_t_virt))
-#define PTR_TO_UINTPTR_V(ptr) ((vuintptr_t)(ptr))
+#define PTR_TO_UINTPTR_V(ptr)                  ((vuintptr_t)(ptr))
 
 
 size_t pa_supported_bits();
@@ -61,7 +61,7 @@ static inline vuintptr_t va_sign_extend(vuintptr_t va, size_t bits)
     ASSERT(address_is_valid(va, bits, false));
 
     uint64_t sign_bit = 1ULL << (bits - 1);
-    uint64_t mask = ~((1ULL << bits) - 1);
+    uint64_t mask     = ~((1ULL << bits) - 1);
 
     vuintptr_t a = (va & sign_bit) ? (va | mask) : va;
 
@@ -118,5 +118,5 @@ extern void* _memzero(void* dst, size_t size);
 extern void* _memzero64(void* dst16, size_t size64);
 
 
-#define memzero(dst, size) _memzero(dst, size)
+#define memzero(dst, size)   _memzero(dst, size)
 #define memzero64(dst, size) _memzero64(dst, size)

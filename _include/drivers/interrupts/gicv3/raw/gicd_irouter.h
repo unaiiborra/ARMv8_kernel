@@ -51,25 +51,25 @@ MMIO_DECLARE_REG64_WRITER_N_OFFSET(
 
 // Aff3 39:32
 #define Aff3_SHIFT 32
-#define Aff3_MASK (0xFFUL << Aff3_SHIFT)
+#define Aff3_MASK  (0xFFUL << Aff3_SHIFT)
 GICD_IROUTER_DECLARE_BIT_FIELD_FNS(Aff3, uint8_t);
 
 // Interrupt_Routing_Mode 31
 #define Interrupt_Routing_Mode_SHIFT 31
-#define Interrupt_Routing_Mode_MASK (1UL << Interrupt_Routing_Mode_SHIFT)
+#define Interrupt_Routing_Mode_MASK  (1UL << Interrupt_Routing_Mode_SHIFT)
 GICD_IROUTER_DECLARE_BIT_FIELD_FNS(Interrupt_Routing_Mode, bool);
 
 // Aff2 23:16
 #define Aff2_SHIFT 16
-#define Aff2_MASK (0xFFUL << Aff2_SHIFT)
+#define Aff2_MASK  (0xFFUL << Aff2_SHIFT)
 GICD_IROUTER_DECLARE_BIT_FIELD_FNS(Aff2, uint8_t);
 
 // Aff1 15:8
 #define Aff1_SHIFT 8
-#define Aff1_MASK (0xFFUL << Aff1_SHIFT)
+#define Aff1_MASK  (0xFFUL << Aff1_SHIFT)
 GICD_IROUTER_DECLARE_BIT_FIELD_FNS(Aff1, uint8_t);
 
 // Aff0 7:0
 #define Aff0_SHIFT 0
-#define Aff0_MASK (0xFFUL << Aff0_SHIFT)
+#define Aff0_MASK  (0xFFUL << Aff0_SHIFT)
 GICD_IROUTER_DECLARE_BIT_FIELD_FNS(Aff0, uint8_t);

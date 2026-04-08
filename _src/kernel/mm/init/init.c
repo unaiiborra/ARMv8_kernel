@@ -39,7 +39,7 @@ void mm_early_init()
 
 
     early_memreg* mregs;
-    size_t n;
+    size_t        n;
     early_kalloc_get_memregs(&mregs, &n);
 
 

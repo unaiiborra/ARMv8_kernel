@@ -17,16 +17,16 @@ typedef struct {
     bitfield32 irq_status;
 
     _Alignas(64) struct {
-        bool overwrite;
-        size_t head;
-        size_t tail;
+        bool    overwrite;
+        size_t  head;
+        size_t  tail;
         uint8_t buf[UART_TX_BUF_SIZE];
     } tx;
 
     _Alignas(64) struct {
-        bool overwrite;
-        size_t head;
-        size_t tail;
+        bool    overwrite;
+        size_t  head;
+        size_t  tail;
         uint8_t buf[UART_RX_BUF_SIZE];
     } rx;
 } uart_state;

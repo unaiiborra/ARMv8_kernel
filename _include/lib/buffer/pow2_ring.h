@@ -4,12 +4,12 @@
 
 
 typedef struct pow2_ring_buffer {
-    void* buf;     // backing buffer
+    void*  buf;    // backing buffer
     size_t size;   // number of elements (power of 2)
     size_t t_size; // size of each element in bytes
     size_t tail;
     size_t head;
-    bool overwrite;
+    bool   overwrite;
 } pow2_ring_buffer;
 
 pow2_ring_buffer

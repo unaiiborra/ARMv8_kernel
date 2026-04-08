@@ -6,9 +6,9 @@
 
 
 #define __CONCAT2(x, y) x##y
-#define __CONCAT(x, y) __CONCAT2(x, y)
-#define __ITER_VAR __CONCAT(__iter_, __LINE__)
-#define __LOCK_VAR __CONCAT(__lock_, __LINE__)
+#define __CONCAT(x, y)  __CONCAT2(x, y)
+#define __ITER_VAR      __CONCAT(__iter_, __LINE__)
+#define __LOCK_VAR      __CONCAT(__lock_, __LINE__)
 
 #define __DEFER(cb) __attribute__((unused, cleanup(cb)))
 
@@ -33,8 +33,8 @@ extern void _spin_lock(spinlock_t* lock);
 extern void _spin_unlock(spinlock_t* lock);
 
 #define spin_try_lock(l) _spin_try_lock(l)
-#define spin_lock(l) _spin_lock(l)
-#define spin_unlock(l) _spin_unlock(l)
+#define spin_lock(l)     _spin_lock(l)
+#define spin_unlock(l)   _spin_unlock(l)
 
 static inline void __spinlocked_defer(spinlock_t** lock)
 {
@@ -63,7 +63,7 @@ extern irqlock_t _irq_lock(void);
 
 extern void _irq_unlock(irqlock_t l);
 
-#define irq_lock() _irq_lock()
+#define irq_lock()    _irq_lock()
 #define irq_unlock(l) _irq_unlock(l)
 
 static inline void __irqlocked_defer(irqlock_t* v)
@@ -72,7 +72,7 @@ static inline void __irqlocked_defer(irqlock_t* v)
 }
 
 #define irqlocked()                                                     \
-    for (irqlock_t __ITER_VAR = {1},                                    \
+    for (irqlock_t __ITER_VAR                            = {1},         \
                    __DEFER(__irqlocked_defer) __LOCK_VAR = _irq_lock(); \
          __ITER_VAR.flags;                                              \
          __ITER_VAR.flags = 0)
@@ -83,15 +83,15 @@ spin + irqlock
 
 
 extern irqlock_t _spin_lock_irqsave(spinlock_t* lock);
-extern void _spin_unlock_irqrestore(spinlock_t* lock, irqlock_t flags);
+extern void      _spin_unlock_irqrestore(spinlock_t* lock, irqlock_t flags);
 
-#define spin_lock_irqsave(lock) _spin_lock_irqsave(lock)
+#define spin_lock_irqsave(lock)             _spin_lock_irqsave(lock)
 #define spin_unlock_irqrestore(lock, flags) _spin_unlock_irqrestore(lock, flags)
 
 
 typedef struct {
     spinlock_t* lock;
-    irqlock_t irq;
+    irqlock_t   irq;
 } __spin_irq_guard_t;
 
 static inline void __spin_irq_defer(__spin_irq_guard_t* v)
@@ -115,7 +115,7 @@ corelock
 
 
 typedef struct {
-    uint32_t n;
+    uint32_t          n;
     volatile uint32_t l;
 } corelock_t;
 

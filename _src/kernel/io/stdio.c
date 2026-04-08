@@ -13,9 +13,9 @@
 static term_handle stdout, stdwarn, stderr, stdpanic;
 
 static term_handle* const STDIO_OUTPUTS[4] = {
-    [IO_STDOUT] = &stdout,
-    [IO_STDWARN] = &stdwarn,
-    [IO_STDERR] = &stderr,
+    [IO_STDOUT]   = &stdout,
+    [IO_STDWARN]  = &stdwarn,
+    [IO_STDERR]   = &stderr,
     [IO_STDPANIC] = &stdpanic,
 };
 

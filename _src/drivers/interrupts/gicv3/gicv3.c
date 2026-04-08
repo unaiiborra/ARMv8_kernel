@@ -11,10 +11,10 @@
 // TODO: Remake everything to make it decent
 
 // Declared at gicv3_arm_interface.S
-extern void _GICV3_ARM_ICC_SRE_EL1_write(uint64_t v);
-extern void _GICV3_ARM_ICC_PMR_EL1_write(uint64_t v);
-extern void _GICV3_ARM_ICC_IGRPEN1_EL1_write(uint64_t v);
-extern void _GICV3_ARM_ICC_EOIR1_EL1_write(uint64_t v);
+extern void     _GICV3_ARM_ICC_SRE_EL1_write(uint64_t v);
+extern void     _GICV3_ARM_ICC_PMR_EL1_write(uint64_t v);
+extern void     _GICV3_ARM_ICC_IGRPEN1_EL1_write(uint64_t v);
+extern void     _GICV3_ARM_ICC_EOIR1_EL1_write(uint64_t v);
 extern uint64_t _GICV3_ARM_ICC_IAR1_EL1_read(void);
 
 void GICV3_set_cpu_priority_threshold(uint8_t threshold)
@@ -33,8 +33,8 @@ static inline void GICV3_arm_interface_enable_(void)
 /// If irq number is not valid panics
 static void GICV3_validate_spi_id_(const driver_handle* h, irq_id id)
 {
-    GicdTyper typer = GICV3_GICD_TYPER_read(h->base);
-    uint32_t itlines = (uint32_t)GICV3_GICD_TYPER_ITLinesNumber_get(typer);
+    GicdTyper typer   = GICV3_GICD_TYPER_read(h->base);
+    uint32_t  itlines = (uint32_t)GICV3_GICD_TYPER_ITLinesNumber_get(typer);
 
     uint32_t max_spi = (32 * (itlines + 1)) - 1;
 
@@ -47,7 +47,7 @@ void GICV3_set_spi_group1ns(const driver_handle* h, irq_id id, bool v)
     // imx8mp irqs start from 32 as 0..31 in the gic are reserved
     GICV3_validate_spi_id_(h, id);
 
-    uint32_t n = ((uint32_t)id.n) / 32;
+    uint32_t n   = ((uint32_t)id.n) / 32;
     uint32_t bit = ((uint32_t)id.n) % 32;
 
     GicdIgroupr igroupr = GICV3_GICD_IGROUPR_read(h->base, n);
@@ -57,8 +57,8 @@ void GICV3_set_spi_group1ns(const driver_handle* h, irq_id id, bool v)
 
 void GICV3_route_spi_to_cpu(
     const driver_handle* h,
-    irq_id id,
-    ARM_cpu_affinity affinity)
+    irq_id               id,
+    ARM_cpu_affinity     affinity)
 {
     GICV3_validate_spi_id_(h, id);
 
@@ -83,7 +83,7 @@ void GICV3_enable_spi(const driver_handle* h, irq_id id)
 {
     GICV3_validate_spi_id_(h, id);
 
-    uint32_t n = ((uint32_t)id.n) / 32;
+    uint32_t n   = ((uint32_t)id.n) / 32;
     uint32_t bit = ((uint32_t)id.n) % 32;
 
     GICV3_GICD_ISENABLER_set_bit(h->base, n, bit);
@@ -93,7 +93,7 @@ void GICV3_set_priority(const driver_handle* h, irq_id id, uint8_t priority)
 {
     GICV3_validate_spi_id_(h, id);
 
-    uint32_t n = ((uint32_t)id.n) / 4;
+    uint32_t n        = ((uint32_t)id.n) / 4;
     uint32_t byte_idx = ((uint32_t)id.n) % 4;
 
     GicdIpriority r = GICV3_GICD_IPRIORITYR_read(h->base, n);
@@ -105,7 +105,7 @@ void GICV3_set_edge_triggered(const driver_handle* h, irq_id id)
 {
     GICV3_validate_spi_id_(h, id);
 
-    uint32_t n = ((uint32_t)id.n) / 16;
+    uint32_t n    = ((uint32_t)id.n) / 16;
     uint32_t slot = ((uint32_t)id.n) % 16;
 
     GicdIcfgr r = GICV3_GICD_ICFGR_read(h->base, n);
@@ -117,7 +117,7 @@ void GICV3_set_level_sensitive(const driver_handle* h, irq_id id)
 {
     GICV3_validate_spi_id_(h, id);
 
-    uint32_t n = ((uint32_t)id.n) / 16;
+    uint32_t n    = ((uint32_t)id.n) / 16;
     uint32_t slot = ((uint32_t)id.n) % 16;
 
     GicdIcfgr r = GICV3_GICD_ICFGR_read(h->base, n);
@@ -139,7 +139,7 @@ void GICV3_wake_redistributor(const driver_handle* h, size_t n)
             asm volatile("nop");
 
         GicrWaker r = GICV3_GICR_WAKER_read(h->base, n);
-        asleep = GICV3_GICR_WAKER_ChildrenAsleep_get(r);
+        asleep      = GICV3_GICR_WAKER_ChildrenAsleep_get(r);
     }
 }
 
@@ -165,10 +165,10 @@ void GICV3_init_cpu(const driver_handle* h, size_t cpu)
 
 void GICV3_init_irq(
     const driver_handle* h,
-    irq_id id,
-    uint8_t priority,
-    gicv3_irq_trigger trigger,
-    ARM_cpu_affinity cpu)
+    irq_id               id,
+    uint8_t              priority,
+    gicv3_irq_trigger    trigger,
+    ARM_cpu_affinity     cpu)
 {
     GICV3_set_spi_group1ns(h, id, true);
 
@@ -214,7 +214,7 @@ void GICV3_enable_ppi(const driver_handle* h, irq_id id, ARM_cpu_affinity cpu)
     GICV3_GICR_IGROUPR0_set_bit(&ig, bit, true);
     GICV3_GICR_IGROUPR0_write(h->base, rd, ig);
 
-    uint32_t n = id.n / 4;
+    uint32_t n    = id.n / 4;
     uint32_t byte = id.n % 4;
 
     GicrIpriorityr pr = GICV3_GICR_IPRIORITYR_read(h->base, rd, n);

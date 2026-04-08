@@ -41,8 +41,8 @@ GICV3_GICD_IGROUPR_BF_get(const GICD_IGROUPR_VALUE_STRUCT_NAME r, uint32_t bit)
 
 static inline void GICV3_GICD_IGROUPR_BF_set(
     GICD_IGROUPR_VALUE_STRUCT_NAME* r,
-    uint32_t bit,
-    bool v)
+    uint32_t                        bit,
+    bool                            v)
 {
     if (bit > 31)
         PANIC("GICD_IGROUPR: bit index must be <= 31");

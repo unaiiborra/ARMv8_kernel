@@ -49,20 +49,20 @@ GICV3_GICR_WAKER_write(uintptr_t base, size_t n, GICR_WAKER_VALUE_STRUCT_NAME v)
 
 // IMPLEMENTTATION DEFINED 31
 #define GICR_WAKER_BIT31_SHIFT 31
-#define GICR_WAKER_BIT31_MASK (1UL << GICR_WAKER_BIT31_SHIFT)
+#define GICR_WAKER_BIT31_MASK  (1UL << GICR_WAKER_BIT31_SHIFT)
 GICR_WAKER_DECLARE_BIT_FIELD_GETTER(GICR_WAKER_BIT31, bool);
 
 // ChildrenAsleep 2
 #define ChildrenAsleep_SHIFT 2
-#define ChildrenAsleep_MASK (1UL << ChildrenAsleep_SHIFT)
+#define ChildrenAsleep_MASK  (1UL << ChildrenAsleep_SHIFT)
 GICR_WAKER_DECLARE_BIT_FIELD_GETTER(ChildrenAsleep, bool);
 
 // ProcessorSleep
 #define ProcessorSleep_SHIFT 1
-#define ProcessorSleep_MASK (1UL << ProcessorSleep_SHIFT)
+#define ProcessorSleep_MASK  (1UL << ProcessorSleep_SHIFT)
 GICR_WAKER_DECLARE_BIT_FIELD_GETTER(ProcessorSleep, bool);
 
 // IMPLEMENTTATION DEFINED 0
 #define GICR_WAKER_BIT0_SHIFT 0
-#define GICR_WAKER_BIT0_MASK (1UL << GICR_WAKER_BIT31_SHIFT)
+#define GICR_WAKER_BIT0_MASK  (1UL << GICR_WAKER_BIT31_SHIFT)
 GICR_WAKER_DECLARE_BIT_FIELD_GETTER(GICR_WAKER_BIT0, bool);

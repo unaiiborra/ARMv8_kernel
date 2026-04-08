@@ -16,13 +16,13 @@ static inline bool is_in_range(const mmu_mapping* m, vuintptr_t va, size_t size)
     if (!m || size == 0)
         return false;
 
-    const uint64_t VA_BITS = m->va_addr_bits_;
+    const uint64_t VA_BITS  = m->va_addr_bits_;
     const uint64_t SIGN_BIT = VA_BITS - 1;
 
-    const uint64_t SIGN_MASK = 1ULL << SIGN_BIT;
+    const uint64_t SIGN_MASK  = 1ULL << SIGN_BIT;
     const uint64_t CANON_MASK = ~((1ULL << VA_BITS) - 1);
 
-    uint64_t sign = (va >> SIGN_BIT) & 1;
+    uint64_t sign  = (va >> SIGN_BIT) & 1;
     uint64_t upper = va & CANON_MASK;
 
     if (sign) {
@@ -40,7 +40,7 @@ static inline bool is_in_range(const mmu_mapping* m, vuintptr_t va, size_t size)
     if (end < va)
         return false;
 
-    sign = (end >> SIGN_BIT) & 1;
+    sign  = (end >> SIGN_BIT) & 1;
     upper = end & CANON_MASK;
 
     if (sign) {
@@ -52,7 +52,7 @@ static inline bool is_in_range(const mmu_mapping* m, vuintptr_t va, size_t size)
             return false;
     }
 
-    const bool is_hi = (va & SIGN_MASK) != 0;
+    const bool is_hi  = (va & SIGN_MASK) != 0;
     const bool end_hi = (end & SIGN_MASK) != 0;
 
     if (is_hi != end_hi)
@@ -69,15 +69,15 @@ static inline bool is_in_range(const mmu_mapping* m, vuintptr_t va, size_t size)
 
 
 static inline void get_target_lvl(
-    mmu_tbl_level* target_lvl,
-    size_t* cover,
-    size_t size,
+    mmu_tbl_level*  target_lvl,
+    size_t*         cover,
+    size_t          size,
     mmu_granularity g,
-    vuintptr_t va,
-    puintptr_t pa)
+    vuintptr_t      va,
+    puintptr_t      pa)
 {
     mmu_tbl_level l;
-    size_t c;
+    size_t        c;
 
     for (l = MMU_TBL_LV1; l <= max_level(g); l++) {
         c = dc_cover_bytes(g, l);
@@ -101,15 +101,15 @@ bool mmu_is_active()
 
 mmu_map_result mmu_map(
     const mmu_mapping* m,
-    vuintptr_t va,
-    puintptr_t pa,
-    size_t size,
-    mmu_pg_cfg cfg,
-    mmu_op_info* info)
+    vuintptr_t         va,
+    puintptr_t         pa,
+    size_t             size,
+    mmu_pg_cfg         cfg,
+    mmu_op_info*       info)
 {
     mmu_granularity g = m->g_;
-    mmu_tbl_level target_lvl;
-    size_t cover;
+    mmu_tbl_level   target_lvl;
+    size_t          cover;
 
     if (!m)
         return MMU_MAP_NULL_MAPPING;
@@ -128,7 +128,7 @@ mmu_map_result mmu_map(
     const mmu_tbl TBL0 = mmu_mapping_get_tbl(m);
 
     while (size > 0) {
-        size_t i;
+        size_t  i;
         mmu_tbl tbl = TBL0;
 
         ASSERT(size % g == 0 && va % g == 0 && pa % g == 0);
@@ -155,7 +155,7 @@ mmu_map_result mmu_map(
 
                 // link the new allocated table in the current table level
                 tbl.dcs[i] = td_build(m, next);
-                tbl = next;
+                tbl        = next;
 
                 continue;
             }
@@ -204,10 +204,10 @@ mmu_map_result mmu_map(
 mmu_unmap_result
 mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info)
 {
-    size_t cover;
-    size_t i;
+    size_t          cover;
+    size_t          i;
     mmu_granularity g = m->g_;
-    mmu_tbl_level l, target_lvl;
+    mmu_tbl_level   l, target_lvl;
 
     if (size == 0)
         return MMU_UNMAP_OK;
@@ -270,7 +270,7 @@ mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info)
         }
 
         // build the null block descriptor
-        i = table_index(va, g, target_lvl);
+        i             = table_index(va, g, target_lvl);
         mmu_hw_dc old = mmu_tbl_get_dc(tbl, i, g);
 
         tbl.dcs[i] = NULL_PD;

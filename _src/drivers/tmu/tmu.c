@@ -219,10 +219,10 @@ void TMU_init_stage0(const driver_handle* h, tmu_cfg cfg)
     if (state->init_stage != TMU_NOT_INITIALIZED)
         PANIC("Driver initialized multiple times");
 
-    state->cfg = cfg;
-    state->irq_status = 0;
+    state->cfg          = cfg;
+    state->irq_status   = 0;
     state->warn_pending = false;
-    state->init_stage = TMU_NOT_INITIALIZED;
+    state->init_stage   = TMU_NOT_INITIALIZED;
 
     TMU_disable_(h);
 
@@ -462,7 +462,7 @@ bool TMU_warn_pending(const driver_handle* h)
 
     irq_spinlocked(&state->state_lock)
     {
-        pending = state->warn_pending;
+        pending             = state->warn_pending;
         state->warn_pending = false; // Ack the warning, the kernel must reinit
 
         // the irqs if it wants new warnings
@@ -533,7 +533,7 @@ int8_t TMU_get_temp(const driver_handle* h)
 
     TmuTratsrValue r = {0};
 
-    bool ready[2] = {false, false};
+    bool   ready[2] = {false, false};
     int8_t temps[2] = {0, 0};
 
     size_t attempts = 0;

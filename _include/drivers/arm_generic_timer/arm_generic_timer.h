@@ -40,8 +40,8 @@ typedef void (*timer_cb_t)(timer_arg);
 typedef struct {
     spinlock_t lock;
     timer_cb_t timer_cb;
-    timer_arg arg;
-    bool timer_fired;
+    timer_arg  arg;
+    bool       timer_fired;
     // As calling the functions that require the state of the driver locks the
     // state, calling from the callback those functions again will result in an
     // infinite lock. Because of that, the driver checks and "emulates" the
@@ -50,10 +50,10 @@ typedef struct {
     // from the callback is safe
     struct {
         spinlock_t under_callback_gate; // Locked if not under callback
-        bool under_cb_scheduled;
+        bool       under_cb_scheduled;
         timer_cb_t under_cb_timer_cb;
-        timer_arg under_cb_arg;
-        uint64_t cycles_v;
+        timer_arg  under_cb_arg;
+        uint64_t   cycles_v;
     } defer_cb;
 } agt_state;
 
@@ -61,17 +61,17 @@ typedef struct {
 /// overrided.
 bool AGT_timer_schedule_delta(
     const driver_handle* h,
-    uint64_t delta_ns,
-    timer_cb_t cb,
-    timer_arg arg);
+    uint64_t             delta_ns,
+    timer_cb_t           cb,
+    timer_arg            arg);
 
 /// Schedules the timer, returns if the timer was already set and it was
 /// overrided.
 bool AGT_timer_schedule_cycles(
     const driver_handle* h,
-    uint64_t cycles,
-    timer_cb_t cb,
-    timer_arg arg);
+    uint64_t             cycles,
+    timer_cb_t           cb,
+    timer_arg            arg);
 
 /// Returns is a timer has been scheduled, it does not represent the state of
 /// the hardware 1:1

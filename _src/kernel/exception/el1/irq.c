@@ -16,7 +16,7 @@
 typedef void (*driver_irq_handler)(const driver_handle* h);
 
 typedef struct {
-    driver_irq_handler handler;
+    driver_irq_handler   handler;
     const driver_handle* h;
 } kernel_irq_handler;
 
@@ -32,7 +32,7 @@ build_handler_(driver_irq_handler handler, const driver_handle* h)
 {
     return (kernel_irq_handler) {
         .handler = handler,
-        .h = h,
+        .h       = h,
     };
 }
 

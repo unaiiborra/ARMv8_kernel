@@ -98,12 +98,12 @@ void uart_reset(const driver_handle* h)
     state->irq_status = 0;
 
     state->tx.overwrite = false;
-    state->tx.head = 0;
-    state->tx.tail = 0;
+    state->tx.head      = 0;
+    state->tx.tail      = 0;
 
     state->rx.overwrite = false;
-    state->rx.head = 0;
-    state->rx.tail = 0;
+    state->rx.head      = 0;
+    state->rx.tail      = 0;
 
     for (size_t i = 0; i < UART_TX_BUF_SIZE; i++)
         state->tx.buf[i] = 0;
@@ -360,7 +360,7 @@ static void handle_RRDY_(const driver_handle* h)
     // Push all the uart fifo data into the driver ring buffer
     do {
         UartUrxdValue urxd = UART_URXD_read(h->base);
-        uint8_t data = UART_URDX_RX_DATA_get(urxd);
+        uint8_t       data = UART_URDX_RX_DATA_get(urxd);
 
         bool non_overwrite = uart_rxbuf_push(h, data);
         if (!non_overwrite)
@@ -380,7 +380,7 @@ static void handle_TRDY_(const driver_handle* h)
 #endif
 
     uint8_t data;
-    bool txbuf_empty = false;
+    bool    txbuf_empty = false;
     while (!UART_UTS_TXFULL_get(UART_UTS_read(h->base))) {
         txbuf_empty = !uart_txbuf_pop(h, &data);
 
@@ -399,9 +399,9 @@ static void handle_TRDY_(const driver_handle* h)
 }
 
 static const uart_irq_handler_t UART_IRQ_SOURCE_HANDLERS_[] = {
-    [UART_IRQ_SRC_RRDY] = handle_RRDY_,
-    [UART_IRQ_SRC_RRDY + 1 ... UART_IRQ_SRC_TRDY - 1] = unhandled_irq_source,
-    [UART_IRQ_SRC_TRDY] = handle_TRDY_,
+    [UART_IRQ_SRC_RRDY]                                = handle_RRDY_,
+    [UART_IRQ_SRC_RRDY + 1 ... UART_IRQ_SRC_TRDY - 1]  = unhandled_irq_source,
+    [UART_IRQ_SRC_TRDY]                                = handle_TRDY_,
     [UART_IRQ_SRC_TRDY + 1 ... UART_IRQ_SRC_COUNT - 1] = unhandled_irq_source,
 };
 
@@ -536,7 +536,7 @@ term_out_result uart_putc(const driver_handle* h, const char c)
  */
 
 static puintptr_t early_base;
-void uart_early_init(puintptr_t base)
+void              uart_early_init(puintptr_t base)
 {
     early_base = base;
 
@@ -601,7 +601,7 @@ term_out_result uart_putc_early(const char c)
 {
     return uart_putc_sync(
         &(driver_handle) {
-            .base = as_kva(early_base),
+            .base  = as_kva(early_base),
             .state = (void*)(1),
         },
         c);

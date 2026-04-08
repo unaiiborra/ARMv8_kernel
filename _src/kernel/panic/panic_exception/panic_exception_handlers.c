@@ -9,9 +9,9 @@
 static inline exception_reason_sysregs get_exception_reason_sysregs()
 {
     return (exception_reason_sysregs) {
-        .esr = sysreg_read(esr_el1),
-        .elr =  sysreg_read(elr_el1),
-        .far =  sysreg_read(far_el1) ,
+        .esr  = sysreg_read(esr_el1),
+        .elr  = sysreg_read(elr_el1),
+        .far  = sysreg_read(far_el1),
         .spsr = sysreg_read(spsr_el1),
     };
 }

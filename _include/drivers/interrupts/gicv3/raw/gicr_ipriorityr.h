@@ -27,9 +27,9 @@ GICV3_GICR_IPRIORITYR_read(uintptr_t base, size_t rd, size_t n)
 }
 
 static inline void GICV3_GICR_IPRIORITYR_write(
-    uintptr_t base,
-    size_t rd,
-    size_t n,
+    uintptr_t                         base,
+    size_t                            rd,
+    size_t                            n,
     GICR_IPRIORITYR_VALUE_STRUCT_NAME v)
 {
     *((reg32_ptr)(GICV3_SGI_BASE(base, rd) + GICR_IPRIORITYR_OFFSET(n))) =
@@ -38,7 +38,7 @@ static inline void GICV3_GICR_IPRIORITYR_write(
 
 static inline uint8_t GICV3_GICR_IPRIORITYR_BF_get(
     const GICR_IPRIORITYR_VALUE_STRUCT_NAME r,
-    size_t byte_idx)
+    size_t                                  byte_idx)
 {
     if (byte_idx > 3)
         PANIC("GICR_IPRIORITYR: byte_idx index must be <= 3");
@@ -50,8 +50,8 @@ static inline uint8_t GICV3_GICR_IPRIORITYR_BF_get(
 
 static inline void GICV3_GICR_IPRIORITYR_BF_set(
     GICR_IPRIORITYR_VALUE_STRUCT_NAME* r,
-    size_t byte_idx,
-    uint8_t priority)
+    size_t                             byte_idx,
+    uint8_t                            priority)
 {
     if (byte_idx > 3)
         PANIC("GICR_IPRIORITYR: byte_idx index must be <= 3");

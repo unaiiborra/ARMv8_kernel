@@ -18,22 +18,22 @@
 
 /// This defines are used for the inline functions only, they are not part of
 /// the header exposed api. They are undefined later
-#define COREH_DCACHE_SHIFT 0
-#define COREH_ICACHE_SHIFT 1
-#define COREH_ALIGN_TRAP_SHIFT 2
-#define COREH_LO_ENABLE_SHIFT 3
-#define COREH_HI_ENABLE_SHIFT 4
-#define COREH_LO_BITS_SHIFT 5         // 10:5 6 bit width
-#define COREH_HI_BITS_SHIFT 11        // 16:11 6 bit width
+#define COREH_DCACHE_SHIFT         0
+#define COREH_ICACHE_SHIFT         1
+#define COREH_ALIGN_TRAP_SHIFT     2
+#define COREH_LO_ENABLE_SHIFT      3
+#define COREH_HI_ENABLE_SHIFT      4
+#define COREH_LO_BITS_SHIFT        5  // 10:5 6 bit width
+#define COREH_HI_BITS_SHIFT        11 // 16:11 6 bit width
 #define COREH_LO_GRANULARITY_SHIFT 17 // 17:12
 #define COREH_HI_GRANULARITY_SHIFT 19 // 19:18
 
 
-#define COREH_VA_BITS_WIDTH 6
-#define COREH_VA_BITS_MASK ((1ull << COREH_VA_BITS_WIDTH) - 1)
+#define COREH_VA_BITS_WIDTH     6
+#define COREH_VA_BITS_MASK      ((1ull << COREH_VA_BITS_WIDTH) - 1)
 #define COREH_GRANULARITY_WIDTH 2
-#define COREH_GRANULARITY_MASK ((1ull << COREH_GRANULARITY_WIDTH) - 1)
-#define COREH_BIT_MASK(shift) (1ull << (shift))
+#define COREH_GRANULARITY_MASK  ((1ull << COREH_GRANULARITY_WIDTH) - 1)
+#define COREH_BIT_MASK(shift)   (1ull << (shift))
 #define MMU_APPLY_CHANGES()       \
     asm volatile("dsb ishst\n"    \
                  "tlbi vmalle1\n" \
@@ -42,18 +42,18 @@
 
 
 // TCR_EL1.TG0 encoding
-#define TG0_4KB 0b00
+#define TG0_4KB  0b00
 #define TG0_16KB 0b10
 #define TG0_64KB 0b01
 // TCR_EL1.TG1 encoding
-#define TG1_4KB 0b10
+#define TG1_4KB  0b10
 #define TG1_16KB 0b01
 #define TG1_64KB 0b11
 
 #define NULL_MAPPING_TBL (void*)~0ULL
 
 typedef enum {
-    MMU_GRANULARITY_4KB = 4 * MEM_KiB,
+    MMU_GRANULARITY_4KB  = 4 * MEM_KiB,
     MMU_GRANULARITY_16KB = 16 * MEM_KiB,
     MMU_GRANULARITY_64KB = 64 * MEM_KiB,
 } mmu_granularity;
@@ -70,12 +70,12 @@ typedef void (*mmu_allocator_free)(void* addr);
 typedef uint16_t (*mmu_coreid)(void);
 
 typedef struct {
-    mmu_tbl_rng rng_;
-    mmu_granularity g_;
-    size_t va_addr_bits_;
-    uint64_t physmap_offset_;
-    void* tbl_;
-    mmu_allocator allocator_;
+    mmu_tbl_rng        rng_;
+    mmu_granularity    g_;
+    size_t             va_addr_bits_;
+    uint64_t           physmap_offset_;
+    void*              tbl_;
+    mmu_allocator      allocator_;
     mmu_allocator_free allocator_free_;
 } mmu_mapping;
 
@@ -153,20 +153,20 @@ UNSAFE_mmu_mapping_set_tbl_address(mmu_mapping* m, void* addr)
 typedef struct {
     mmu_mapping* lo_mapping;
     mmu_mapping* hi_mapping;
-    uint32_t mpidr_aff;
-    uint64_t flags;
+    uint32_t     mpidr_aff;
+    uint64_t     flags;
 } mmu_core_handle;
 
 
 bool mmu_core_handle_new(
     mmu_core_handle* out,
-    mmu_mapping* lo_mapping,
-    mmu_mapping* hi_mapping,
-    bool hi_enable,
-    bool lo_enable,
-    bool d_cache,
-    bool i_cache,
-    bool align_trap);
+    mmu_mapping*     lo_mapping,
+    mmu_mapping*     hi_mapping,
+    bool             hi_enable,
+    bool             lo_enable,
+    bool             d_cache,
+    bool             i_cache,
+    bool             align_trap);
 
 
 void mmu_delete_mapping(mmu_mapping* m);
@@ -276,11 +276,11 @@ bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g);
 
 
 static inline mmu_mapping mmu_mapping_new(
-    mmu_tbl_rng rng,
-    mmu_granularity g,
-    size_t va_addr_bits,
-    uintptr_t physmap_offset,
-    mmu_allocator allocator,
+    mmu_tbl_rng        rng,
+    mmu_granularity    g,
+    size_t             va_addr_bits,
+    uintptr_t          physmap_offset,
+    mmu_allocator      allocator,
     mmu_allocator_free allocator_free)
 {
     ASSERT(allocator);
@@ -290,12 +290,12 @@ static inline mmu_mapping mmu_mapping_new(
     ASSERT(tbl && (vuintptr_t)tbl % g == 0);
 
     return (mmu_mapping) {
-        .rng_ = rng,
-        .g_ = g,
-        .va_addr_bits_ = va_addr_bits,
+        .rng_            = rng,
+        .g_              = g,
+        .va_addr_bits_   = va_addr_bits,
         .physmap_offset_ = physmap_offset,
-        .tbl_ = tbl,
-        .allocator_ = allocator,
+        .tbl_            = tbl,
+        .allocator_      = allocator,
         .allocator_free_ = allocator_free,
     };
 }
@@ -364,14 +364,14 @@ mmu_deactivate_result mmu_core_deactivate(mmu_core_handle* ch);
  */
 typedef enum {
     MMU_AP_EL0_NONE_EL1_RW = 0b00,
-    MMU_AP_EL0_RW_EL1_RW = 0b01,
+    MMU_AP_EL0_RW_EL1_RW   = 0b01,
     MMU_AP_EL0_NONE_EL1_RO = 0b10,
-    MMU_AP_EL0_RO_EL1_RO = 0b11,
+    MMU_AP_EL0_RO_EL1_RO   = 0b11,
 } mmu_access_permission;
 
 typedef enum {
-    MMU_SH_NON_SHAREABLE = 0b00,
-    MMU_SH_RESERVED = 0b01,
+    MMU_SH_NON_SHAREABLE   = 0b00,
+    MMU_SH_RESERVED        = 0b01,
     MMU_SH_OUTER_SHAREABLE = 0b10,
     MMU_SH_INNER_SHAREABLE = 0b11,
 } mmu_shareability;
@@ -380,7 +380,7 @@ typedef enum {
 typedef struct {
     _Alignas(4) uint8_t attr_index;
     mmu_access_permission ap;
-    uint8_t shareability;
+    uint8_t               shareability;
     _Alignas(4) bool non_secure;
     _Alignas(4) bool access_flag;
     _Alignas(4) bool pxn;
@@ -406,38 +406,38 @@ static inline mmu_op_info mmu_op_info_new()
 }
 
 static inline mmu_pg_cfg mmu_pg_cfg_new(
-    uint8_t attr_index,
+    uint8_t               attr_index,
     mmu_access_permission ap,
-    uint8_t shareability,
-    bool non_secure,
-    bool access_flag,
-    bool pxn,
-    bool uxn,
-    uint8_t sw)
+    uint8_t               shareability,
+    bool                  non_secure,
+    bool                  access_flag,
+    bool                  pxn,
+    bool                  uxn,
+    uint8_t               sw)
 {
     return (mmu_pg_cfg) {
-        .attr_index = attr_index,
-        .ap = ap,
+        .attr_index   = attr_index,
+        .ap           = ap,
         .shareability = shareability,
-        .non_secure = non_secure,
-        .access_flag = access_flag,
-        .pxn = pxn,
-        .uxn = uxn,
-        .sw = sw,
+        .non_secure   = non_secure,
+        .access_flag  = access_flag,
+        .pxn          = pxn,
+        .uxn          = uxn,
+        .sw           = sw,
     };
 }
 
 mmu_map_result mmu_map(
     const mmu_mapping* m,
-    vuintptr_t va,
-    puintptr_t pa,
-    size_t size,
-    mmu_pg_cfg cfg,
-    mmu_op_info* info);
+    vuintptr_t         va,
+    puintptr_t         pa,
+    size_t             size,
+    mmu_pg_cfg         cfg,
+    mmu_op_info*       info);
 
 typedef enum {
     MMU_UNMAP_ERR = 0,
-    MMU_UNMAP_OK = 1,
+    MMU_UNMAP_OK  = 1,
 } mmu_unmap_result;
 
 mmu_unmap_result

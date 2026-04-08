@@ -20,10 +20,11 @@ arm_exception_status arm_exceptions_get_status()
 {
     uint64_t daif = _exceptions_get_DAIF();
 
-    return (arm_exception_status) {.fiq = !((daif >> 6) & 1UL),
-                                   .irq = !((daif >> 7) & 1UL),
-                                   .serror = !((daif >> 8) & 1UL),
-                                   .debug = !((daif >> 9) & 1UL)};
+    return (arm_exception_status) {
+        .fiq    = !((daif >> 6) & 1UL),
+        .irq    = !((daif >> 7) & 1UL),
+        .serror = !((daif >> 8) & 1UL),
+        .debug  = !((daif >> 9) & 1UL)};
 }
 
 void arm_exceptions_set_status(arm_exception_status status)

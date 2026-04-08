@@ -17,4 +17,3 @@
         uint64_t __val = (uint64_t)(v);                  \
         asm volatile("msr " #r ", %x0" : : "rZ"(__val)); \
     } while (0)
-

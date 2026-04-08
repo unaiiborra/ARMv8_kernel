@@ -43,7 +43,7 @@ static void tmu_stage0_()
     TMU_init_stage0(
         &TMU_DRIVER,
         (tmu_cfg) {
-            .warn_max = 40,
+            .warn_max     = 40,
             .critical_max = 85,
         });
 }
