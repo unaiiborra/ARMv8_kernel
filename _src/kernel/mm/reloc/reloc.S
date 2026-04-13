@@ -4,17 +4,18 @@
 
 
 .global _jmp_to_with_offset
-// noreturn void _jmp_to_with_offset(void* to, size_t offset);
+// void _jmp_to_with_offset(puintptr_t to, size_t offset, uint64_t ctx)
 _jmp_to_with_offset:
-    add x0, x0, x1  // to += offset
-    br  x0
-
+    add x3, x0, x1  // to += offset
+    mov x0, x2
+    br  x3
 
 .global _reloc_cfg_end
 _reloc_cfg_end:
     msr daifset, #0xF
     isb
 
+    mov x15, x0
 
     mov x0, sp      //  (puintptr_t pa)
     bl _mm_kpa_to_kva    //  return pa + KERNEL_BASE
@@ -25,18 +26,21 @@ _reloc_cfg_end:
     bl _mm_kpa_to_kva
     msr VBAR_EL1, x0
 
-    adr lr, reloc_cfg_end // lr to kernel_entry remapped
-
+    mov lr, x15
     isb
     ret
 
 
-// returns to the start of kernel entry after fully resetting the sp
-// void _return_to_kernel_entry(size_t physmap_offset);
-.global _return_to_kernel_entry
-_return_to_kernel_entry:
-    bl _reset_stack_el1
+// noreturn void _relocated_return(
+//      x0:   vuintptr_t ret_addr
+// );
+.global _reset_stack_and_return
+_reset_stack_and_return:
+    mov x20, x0
+    bl  _reset_stack_el1
 
-    adr lr, kernel_entry
-    ret
+    blr x20
+
+1:  wfi
+    b   1b
 

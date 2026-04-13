@@ -8,5 +8,5 @@
 extern mmu_mapping* const MM_MMU_KERNEL_MAPPING;
 extern mmu_mapping* const MM_MMU_UNMAPPED_LO;
 
-mmu_core_handle* mm_mmu_core_handler_get(uint32_t coreid);
+mmu_core_handle* mm_mmu_core_handler_get(uint32_t cpuid);
 mmu_core_handle* mm_mmu_core_handler_get_self();

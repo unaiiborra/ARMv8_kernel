@@ -58,7 +58,7 @@ void GICV3_set_spi_group1ns(const driver_handle* h, irq_id id, bool v)
 void GICV3_route_spi_to_cpu(
     const driver_handle* h,
     irq_id               id,
-    ARM_cpu_affinity     affinity)
+    arm_cpu_affinity     affinity)
 {
     GICV3_validate_spi_id_(h, id);
 
@@ -76,7 +76,7 @@ void GICV3_route_spi_to_cpu(
 
 void GICV3_route_spi_to_self(const driver_handle* h, irq_id id)
 {
-    GICV3_route_spi_to_cpu(h, id, ARM_get_cpu_affinity());
+    GICV3_route_spi_to_cpu(h, id, arm_get_cpu_affinity());
 }
 
 void GICV3_enable_spi(const driver_handle* h, irq_id id)
@@ -168,7 +168,7 @@ void GICV3_init_irq(
     irq_id               id,
     uint8_t              priority,
     gicv3_irq_trigger    trigger,
-    ARM_cpu_affinity     cpu)
+    arm_cpu_affinity     cpu)
 {
     GICV3_set_spi_group1ns(h, id, true);
 
@@ -203,7 +203,7 @@ void GICV3_ack_intid_el1(irq_id id)
     _GICV3_ARM_ICC_EOIR1_EL1_write(id.n);
 }
 
-void GICV3_enable_ppi(const driver_handle* h, irq_id id, ARM_cpu_affinity cpu)
+void GICV3_enable_ppi(const driver_handle* h, irq_id id, arm_cpu_affinity cpu)
 {
     size_t rd = cpu.aff0;
 

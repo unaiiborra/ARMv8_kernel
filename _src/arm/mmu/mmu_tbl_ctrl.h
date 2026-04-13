@@ -14,21 +14,21 @@
 static inline mmu_pg_cfg cfg_from_dc(mmu_hw_dc dc)
 {
     return (mmu_pg_cfg) {
-        .attr_index = dc_get_attr_index(dc),
-        .ap = dc_get_access_permissions(dc),
+        .attr_index   = dc_get_attr_index(dc),
+        .ap           = dc_get_access_permissions(dc),
         .shareability = dc_get_shareability(dc),
-        .non_secure = dc_get_non_secure(dc),
-        .access_flag = dc_get_access_flag(dc),
-        .pxn = dc_get_privileged_execute_never(dc),
-        .uxn = dc_get_unprivileged_execute_never(dc),
-        .sw = dc_get_software_defined(dc),
+        .non_secure   = dc_get_non_secure(dc),
+        .access_flag  = dc_get_access_flag(dc),
+        .pxn          = dc_get_privileged_execute_never(dc),
+        .uxn          = dc_get_unprivileged_execute_never(dc),
+        .sw           = dc_get_software_defined(dc),
     };
 }
 
 
 static inline size_t level_shift_(mmu_granularity g, mmu_tbl_level l)
 {
-    size_t page_bits = log2_floor_u64(g); // 12 / 14 / 16
+    size_t page_bits  = log2_floor_u64(g); // 12 / 14 / 16
     size_t index_bits = page_bits - 3;
 
     size_t max_level = (g == MMU_GRANULARITY_64KB) ? MMU_TBL_LV2 : MMU_TBL_LV3;
@@ -65,7 +65,7 @@ static inline size_t
 table_index(puintptr_t va, mmu_granularity g, mmu_tbl_level l)
 {
     size_t index_bits = log2_floor_u64(g) - 3;
-    size_t mask = (1ULL << index_bits) - 1;
+    size_t mask       = (1ULL << index_bits) - 1;
 
     return (va >> level_shift_(g, l)) & mask;
 }
@@ -73,7 +73,7 @@ table_index(puintptr_t va, mmu_granularity g, mmu_tbl_level l)
 
 static inline size_t dc_cover_bytes(mmu_granularity g, mmu_tbl_level l)
 {
-    size_t page_bits = log2_floor_u64(g);
+    size_t page_bits  = log2_floor_u64(g);
     size_t index_bits = page_bits - 3;
 
     ASSERT(l <= max_level(g));
@@ -97,7 +97,7 @@ alloc_tbl(const mmu_mapping* m, bool init_null, mmu_op_info* info)
         info->alocated_tbls++;
 
     mmu_tbl tbl = (mmu_tbl) {
-        .dcs = m->allocator_(sizeof(mmu_hw_dc) * tbl_entries(m->g_)),
+        .dcs = (void*)m->allocator_(sizeof(mmu_hw_dc) * tbl_entries(m->g_)),
     };
 
     ASSERT((vuintptr_t)tbl.dcs % m->g_ == 0);
@@ -113,23 +113,23 @@ alloc_tbl(const mmu_mapping* m, bool init_null, mmu_op_info* info)
 /// created table (of a lower level)
 static inline mmu_tbl split_block(
     const mmu_mapping* m,
-    mmu_tbl parent,
-    size_t index,
-    mmu_tbl_level l,
-    mmu_op_info* info)
+    mmu_tbl            parent,
+    size_t             index,
+    mmu_tbl_level      l,
+    mmu_op_info*       info)
 {
-    const mmu_hw_dc old = parent.dcs[index];
-    const mmu_tbl new_tbl = alloc_tbl(m, false, info);
-    const mmu_granularity g = m->g_;
+    const mmu_hw_dc       old     = parent.dcs[index];
+    const mmu_tbl         new_tbl = alloc_tbl(m, false, info);
+    const mmu_granularity g       = m->g_;
 
     DEBUG_ASSERT(l < max_level(g));
     DEBUG_ASSERT(dc_get_type(old, g, l) == MMU_DESCRIPTOR_BLOCK);
 
     // create the new blocks
     if (dc_get_valid(old)) {
-        mmu_pg_cfg cfg = cfg_from_dc(old);
-        puintptr_t pa = dc_get_output_address(old, g);
-        size_t new_l_bytes = dc_cover_bytes(g, l + 1);
+        mmu_pg_cfg cfg         = cfg_from_dc(old);
+        puintptr_t pa          = dc_get_output_address(old, g);
+        size_t     new_l_bytes = dc_cover_bytes(g, l + 1);
         ASSERT(pa % dc_cover_bytes(g, l) == 0);
 
         for (size_t i = 0; i < tbl_entries(g); i++)

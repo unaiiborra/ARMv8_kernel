@@ -31,6 +31,8 @@ _start:
     nop
     nop
 #endif
+    adr x0, kernel_entry
+    mov x1, #0  // ctx
     bl _switch_to_el1
 
 setup_system:

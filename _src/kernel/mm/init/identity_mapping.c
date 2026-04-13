@@ -15,7 +15,8 @@
 #include "mem_regions/mem_regions.h"
 
 
-mmu_mapping early_lo_mapping;
+static mmu_mapping identity_lo_mapping;
+mmu_mapping* const MM_MMU_IDENTITY_LO_MAPPING = &identity_lo_mapping;
 
 
 /// returns the pa, not va, but as when relocating the address will be
@@ -57,7 +58,7 @@ void early_identity_mapping()
 {
     mmu_core_handle* core0_handle = mm_mmu_core_handler_get_self();
 
-    early_lo_mapping = mmu_mapping_new(
+    identity_lo_mapping = mmu_mapping_new(
         MMU_LO,
         MMU_GRANULARITY_4KB,
         48,
@@ -65,7 +66,7 @@ void early_identity_mapping()
         (void*)as_kpa((uintptr_t)im_alloc),
         (void*)as_kpa((uintptr_t)im_free));
 
-    *pt_as_kpa(MM_MMU_KERNEL_MAPPING) = mmu_mapping_new(
+    *as_kpa(MM_MMU_KERNEL_MAPPING) = mmu_mapping_new(
         MMU_HI,
         MMU_GRANULARITY_4KB,
         48,
@@ -96,7 +97,7 @@ void early_identity_mapping()
 
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
-        const mem_region r = pt_as_kpa(MEM_REGIONS.REGIONS)[i];
+        const mem_region r = as_kpa(MEM_REGIONS.REGIONS)[i];
 
         const mmu_pg_cfg* CFG;
         switch (r.type) {
@@ -113,7 +114,7 @@ void early_identity_mapping()
 
         mmu_map_result mres;
         mres = mmu_map(
-            &early_lo_mapping,
+            &identity_lo_mapping,
             as_kpa(r.start),
             as_kpa(r.start),
             r.size,
@@ -122,7 +123,7 @@ void early_identity_mapping()
         ASSERT(mres == MMU_MAP_OK);
 
         mres = mmu_map(
-            pt_as_kpa(MM_MMU_KERNEL_MAPPING),
+            as_kpa(MM_MMU_KERNEL_MAPPING),
             as_kva(r.start),
             as_kpa(r.start),
             r.size,
@@ -134,8 +135,8 @@ void early_identity_mapping()
 
     bool result = mmu_core_handle_new(
         core0_handle,
-        &early_lo_mapping,
-        pt_as_kpa(MM_MMU_KERNEL_MAPPING),
+        &identity_lo_mapping,
+        as_kpa(MM_MMU_KERNEL_MAPPING),
         true,
         true,
         true,

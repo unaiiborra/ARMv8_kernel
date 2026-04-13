@@ -5,19 +5,23 @@
 #include <kernel/mm/mmu.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/internal/reserve_malloc.h"
-#include "arm/sysregs/sysregs.h"
 #include "kernel/mm.h"
 #include "kernel/panic.h"
+#include "kernel/smp.h"
 #include "lib/mem.h"
 
-mmu_mapping        KERNEL_MAPPING;
-mmu_mapping        UNMAPPED_LO;
-mmu_mapping* const MM_MMU_KERNEL_MAPPING = &KERNEL_MAPPING;
-mmu_mapping* const MM_MMU_UNMAPPED_LO    = &UNMAPPED_LO;
+
+static void*       mm_mmu_default_allocator(size_t bytes);
+static mmu_mapping KERNEL_MAPPING;
+static mmu_mapping UNMAPPED_LO;
+
+mmu_mapping* const       MM_MMU_KERNEL_MAPPING     = &KERNEL_MAPPING;
+mmu_mapping* const       MM_MMU_UNMAPPED_LO        = &UNMAPPED_LO;
+const mmu_allocator      MM_STD_MMU_ALLOCATOR      = mm_mmu_default_allocator;
+const mmu_allocator_free MM_STD_MMU_ALLOCATOR_FREE = raw_kfree;
 
 
 typedef struct {
@@ -25,7 +29,7 @@ typedef struct {
     _Alignas(64) mmu_core_handle handle;
 } local_mmu_core_handle;
 
-static local_mmu_core_handle handles[NUM_CORES];
+static local_mmu_core_handle handles[NUM_CPUS];
 
 
 static void* mm_mmu_default_allocator(size_t bytes)
@@ -34,6 +38,8 @@ static void* mm_mmu_default_allocator(size_t bytes)
     DEBUG_ASSERT(bytes == PAGE_SIZE);
 
     pv_ptr pv = reserve_malloc("mmu table");
+
+    memzero64((void*)pv.va, bytes);
 
     DEBUG_ASSERT(pv.pa % PAGE_SIZE == 0);
 
@@ -62,13 +68,16 @@ static void* unmapped_lo_allocator_first_tbl(size_t _)
         true,
         false);
 
+    memzero64(
+        (void*)pv.pa, // memzero from pa because mmu is not enabled yet
+        _);
+
     return (void*)pv.va;
 }
 
 
-static void* unmapped_lo_allocator(size_t _)
+static void* unmapped_lo_allocator(size_t)
 {
-    (void)_;
     PANIC("MM_MMU_UNMAPPED_LO should allways stay unmapped");
 }
 
@@ -87,24 +96,16 @@ void mm_mmu_early_init()
 }
 
 
-mmu_core_handle* mm_mmu_core_handler_get(uint32_t coreid)
+mmu_core_handle* mm_mmu_core_handler_get(cpuid_t cpuid)
 {
-    if (coreid >= NUM_CORES)
+    if (cpuid >= NUM_CPUS)
         return NULL;
 
-    return &handles[coreid].handle;
+    return &handles[cpuid].handle;
 }
 
 
 mmu_core_handle* mm_mmu_core_handler_get_self()
 {
-    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
-
-    uint32_t mpidr_aff =
-        ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
-        ((MPIDR_EL1 >> 16) & 0xFF) << 16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
-
-    DEBUG_ASSERT(mpidr_aff < NUM_CORES);
-
-    return &handles[mpidr_aff].handle;
+    return &handles[get_cpuid()].handle;
 }

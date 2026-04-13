@@ -1,8 +1,8 @@
 #include <arm/exceptions/exceptions.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
-#include <kernel/lib/smp.h>
 #include <kernel/scheduler.h>
+#include <kernel/smp.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>

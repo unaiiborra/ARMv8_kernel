@@ -48,7 +48,7 @@ void kernel_init(void)
 
 
     GICV3_init_distributor(&GIC_DRIVER);
-    GICV3_init_cpu(&GIC_DRIVER, ARM_get_cpu_affinity().aff0);
+    GICV3_init_cpu(&GIC_DRIVER, arm_get_cpu_affinity().aff0);
 
     for (kernel_initcall_t* fn = __kernel_init_stage1_start;
          fn < __kernel_init_stage1_end;

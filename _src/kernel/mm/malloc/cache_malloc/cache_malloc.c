@@ -126,7 +126,7 @@ static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZES] = {
 };
 
 
-static const size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
     CACHE_8_PAGES,
     CACHE_16_PAGES,
     CACHE_32_PAGES,
@@ -138,7 +138,7 @@ static const size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
 };
 
 
-static const size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZES] = {
     CACHE_8_ENTRIES,
     CACHE_16_ENTRIES,
     CACHE_32_ENTRIES,
@@ -150,7 +150,7 @@ static const size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZES] = {
 };
 
 
-static const size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZES] = {
     BITFIELD_COUNT(CACHE_8_ENTRIES),
     BITFIELD_COUNT(CACHE_16_ENTRIES),
     BITFIELD_COUNT(CACHE_32_ENTRIES),
@@ -211,7 +211,7 @@ get_generic_fields(cache_malloc_size size, void* cache_ptr)
 }
 
 
-static const raw_kmalloc_cfg CACHE_MALLOC_RAW_KMALLOC_CFG = {
+static constexpr raw_kmalloc_cfg CACHE_MALLOC_RAW_KMALLOC_CFG = {
     .assign_pa    = true,
     .fill_reserve = true,
     .device_mem   = false,

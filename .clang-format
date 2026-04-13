@@ -16,7 +16,7 @@ AlignAfterOpenBracket: AlwaysBreak
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowAllArgumentsOnNextLine: false
 PenaltyBreakBeforeFirstCallParameter: 0
-AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterDefinitionReturnType: false
 
 # ---- Indentación ----
 IndentWidth: 4

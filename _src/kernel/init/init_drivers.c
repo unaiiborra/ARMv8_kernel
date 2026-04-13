@@ -31,7 +31,7 @@ static void uart_stage2_()
         irq_id_new(IMX8MP_IRQ_UART2),
         0x80,
         GICV3_LEVEL_SENSITIVE,
-        ARM_get_cpu_affinity());
+        arm_get_cpu_affinity());
 }
 
 KERNEL_INITCALL(uart_stage0_, KERNEL_INITCALL_STAGE0);
@@ -60,7 +60,7 @@ static void tmu_stage2_()
         irq_id_new(IMX8MP_IRQ_ANAMIX_TEMP),
         0x0,
         GICV3_LEVEL_SENSITIVE,
-        ARM_get_cpu_affinity());
+        arm_get_cpu_affinity());
 }
 
 KERNEL_INITCALL(tmu_stage0_, KERNEL_INITCALL_STAGE0);
@@ -73,7 +73,7 @@ static void agt_stage0_()
 }
 static void agt_stage2_()
 {
-    GICV3_enable_ppi(&GIC_DRIVER, irq_id_new(27), ARM_get_cpu_affinity());
+    GICV3_enable_ppi(&GIC_DRIVER, irq_id_new(27), arm_get_cpu_affinity());
 }
 KERNEL_INITCALL(agt_stage0_, KERNEL_INITCALL_STAGE0);
 KERNEL_INITCALL(agt_stage2_, KERNEL_INITCALL_STAGE2);

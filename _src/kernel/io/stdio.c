@@ -25,7 +25,7 @@ void io_early_init()
     uart_early_init(UART2_BASE);
 
     for (size_t i = 0; i < ARRAY_LEN(STDIO_OUTPUTS); i++)
-        term_new(pt_as_kpa(STDIO_OUTPUTS[i]), pt_as_kpa(STDIO_EARLY_PUTC));
+        term_new(as_kpa(STDIO_OUTPUTS[i]), as_kpa(STDIO_EARLY_PUTC));
 }
 
 

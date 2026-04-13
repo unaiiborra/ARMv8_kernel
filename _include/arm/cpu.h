@@ -7,12 +7,12 @@ typedef struct {
     uint8_t aff2;
     uint8_t aff1;
     uint8_t aff0;
-} ARM_cpu_affinity;
+} arm_cpu_affinity;
 
-ARM_cpu_affinity ARM_get_cpu_affinity();
+arm_cpu_affinity arm_get_cpu_affinity();
 
 #define CPU_AFFINITY_FROM_U32(x)               \
-    ((ARM_cpu_affinity) {                      \
+    ((arm_cpu_affinity) {                      \
         .aff0 = (uint8_t)((x) & 0xFF),         \
         .aff1 = (uint8_t)(((x) >> 8) & 0xFF),  \
         .aff2 = (uint8_t)(((x) >> 16) & 0xFF), \

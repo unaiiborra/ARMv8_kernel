@@ -32,7 +32,7 @@ static inline bool GICV3_irq_id_is_spi(irq_id irq)
 void GICV3_route_spi_to_cpu(
     const driver_handle* h,
     irq_id               irq,
-    ARM_cpu_affinity     affinity);
+    arm_cpu_affinity     affinity);
 
 void GICV3_route_spi_to_self(const driver_handle* h, irq_id irq);
 
@@ -65,7 +65,7 @@ void GICV3_init_irq(
     irq_id               irq,
     uint8_t              priority,
     gicv3_irq_trigger    trigger,
-    ARM_cpu_affinity     cpu);
+    arm_cpu_affinity     cpu);
 
 
-void GICV3_enable_ppi(const driver_handle* h, irq_id id, ARM_cpu_affinity cpu);
+void GICV3_enable_ppi(const driver_handle* h, irq_id id, arm_cpu_affinity cpu);

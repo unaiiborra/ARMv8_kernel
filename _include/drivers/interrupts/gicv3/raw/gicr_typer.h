@@ -47,7 +47,7 @@ GICV3_GICR_TYPER_write(uintptr_t base, size_t n, GICR_TYPER_VALUE_STRUCT_NAME v)
 #define AffinityValue_SHIFT 32
 #define AffinityValue_MASK  (0xFFFFFFFFULL << AffinityValue_SHIFT)
 
-static inline ARM_cpu_affinity
+static inline arm_cpu_affinity
 GICV3_GICR_TYPER_BF_get_AffinityValue(const GicrTyper r)
 {
     uint32_t affinity =

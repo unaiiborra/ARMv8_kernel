@@ -47,9 +47,10 @@ void mm_early_init()
     vmalloc_update_memregs(mregs, n);
 
 
-    // reloc kernel: returns to the kernel_entry() with the kernel relocated and
-    // the sp resetted
-    mm_reloc_kernel();
+    // early_reloc_cfg_end() returns to the kernel_entry() with the kernel
+    // relocated and the sp resetted
+    
+    mm_reloc(as_kva((void*)early_reloc_cfg_end));
 }
 
 

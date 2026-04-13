@@ -24,6 +24,19 @@ typedef enum {
 } mm_valoc;
 
 
+extern const mmu_allocator      MM_STD_MMU_ALLOCATOR;
+extern const mmu_allocator_free MM_STD_MMU_ALLOCATOR_FREE;
+extern mmu_mapping* const       MM_MMU_IDENTITY_LO_MAPPING;
+
+
+extern noreturn void _reset_stack_and_return(void* va_ret_addr);
+
+#    define reset_stack_and_return(ret_addr) _reset_stack_and_return(ret_addr)
+
+
+void mm_reloc(void* va_ret_addr);
+
+
 void mm_early_init();
 
 /// it expects to be provided the identity mapping handle. It will free it, and
@@ -65,18 +78,18 @@ static inline bool is_kva_uintptr_t(uintptr_t a)
 }
 
 
-static inline vuintptr_t as_kva(uintptr_t ptr)
+static inline vuintptr_t __as_kva(uintptr_t ptr)
 {
     return is_kva_uintptr_t(ptr) ? ptr : kpa_to_kva(ptr);
 }
 
-static inline puintptr_t as_kpa(uintptr_t ptr)
+static inline puintptr_t __as_kpa(uintptr_t ptr)
 {
     return is_kva_uintptr_t(ptr) ? kva_to_kpa(ptr) : ptr;
 }
 
-#    define pt_as_kva(ptr) ((typeof(ptr))as_kva((uintptr_t)ptr))
-#    define pt_as_kpa(ptr) ((typeof(ptr))as_kpa((uintptr_t)ptr))
+#    define as_kva(ptr) ((typeof(ptr))__as_kva((uintptr_t)(ptr)))
+#    define as_kpa(ptr) ((typeof(ptr))__as_kpa((uintptr_t)(ptr)))
 
 
 #    define is_kva(a) \

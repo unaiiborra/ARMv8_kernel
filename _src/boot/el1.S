@@ -3,8 +3,13 @@
 .section .text
 .align 4
 
+// x0: entry address for el1
+// x1: ctx
 .global _switch_to_el1
 _switch_to_el1:
+    mov x8, x0 // save ret addr in x8
+    mov x9, x1 // save ctx in x9
+
     mrs x0, CurrentEL
     lsr x0, x0, #2
     cmp x0, #2
@@ -42,13 +47,9 @@ _switch_to_el1:
 
     eret
 
-hang:
-    wfe
-    b hang
 
-
-.align 4
-.global _el1_entry
+// x8: entry address for el1
+// x9: ctx
 _el1_entry:
     nop
     mov x0, #1
@@ -64,5 +65,9 @@ _el1_entry:
     msr SCTLR_EL1, x0
     isb
 
-    bl kernel_entry
-    
+    mov x0, x9 // set ctx as arg0
+    br x8   
+
+hang:
+    wfi
+    b hang

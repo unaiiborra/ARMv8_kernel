@@ -63,8 +63,9 @@ typedef enum {
     MMU_HI = 1,
 } mmu_tbl_rng;
 
-/// the return type must be a virtual address that is mapped according to the
-/// provided mmu physmap offset
+
+// must provide a virtual address mapped with the mapping pyhsmap offset (pa +
+// physmap_offset == va). The allocator MUST memzero the allocated memory
 typedef void* (*mmu_allocator)(size_t bytes);
 typedef void (*mmu_allocator_free)(void* addr);
 typedef uint16_t (*mmu_coreid)(void);
@@ -287,7 +288,8 @@ static inline mmu_mapping mmu_mapping_new(
 
     void* tbl = allocator(g);
 
-    ASSERT(tbl && (vuintptr_t)tbl % g == 0);
+    [[maybe_unused]] vuintptr_t pt = (vuintptr_t)tbl;
+    DEBUG_ASSERT(pt && pt % g == 0 && pt % 16 == 0 && g % 64 == 0);
 
     return (mmu_mapping) {
         .rng_            = rng,

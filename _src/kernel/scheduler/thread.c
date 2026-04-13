@@ -2,11 +2,11 @@
 
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
-#include <kernel/lib/smp.h>
 #include <kernel/mm.h>
 #include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
+#include <kernel/smp.h>
 #include <lib/lock.h>
 #include <lib/mem.h>
 #include <stddef.h>

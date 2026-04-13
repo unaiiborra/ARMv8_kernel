@@ -159,7 +159,7 @@ void early_kalloc_init()
 
     ek_node* p = NULL;
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
-        mem_region r = ((mem_region*)pt_as_kpa(MEM_REGIONS.REGIONS))[i];
+        mem_region r = ((mem_region*)as_kpa(MEM_REGIONS.REGIONS))[i];
 
         ek_node* n = i == 0 ? first_node : alloc_node();
 
@@ -172,7 +172,7 @@ void early_kalloc_init()
                     .addr          = r.start,
                     .pages         = div_ceil(r.size, PAGE_SIZE),
                     .free          = r.type == MEM_REGION_DDR ? true : false,
-                    .tag           = pt_as_kpa(r.tag),
+                    .tag           = as_kpa(r.tag),
                     .permanent     = true,
                     .device_memory = r.type == MEM_REGION_MMIO ? true : false,
                 },
@@ -186,14 +186,14 @@ void early_kalloc_init()
 
 
     for (size_t i = 0; i < MEM_REGIONS_RESERVED.REG_COUNT; i++) {
-        mem_region r = pt_as_kpa(MEM_REGIONS_RESERVED.REGIONS)[i];
+        mem_region r = as_kpa(MEM_REGIONS_RESERVED.REGIONS)[i];
 
         reserve_memreg(
             (early_memreg) {
                 .addr          = r.start,
                 .pages         = div_ceil(r.size, PAGE_SIZE),
                 .free          = false,
-                .tag           = pt_as_kpa(r.tag),
+                .tag           = as_kpa(r.tag),
                 .permanent     = true,
                 .device_memory = false,
             },
@@ -259,7 +259,7 @@ early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
                 .addr          = addr,
                 .pages         = pages,
                 .free          = false,
-                .tag           = pt_as_kva(tag),
+                .tag           = as_kva(tag),
                 .permanent     = permanent,
                 .device_memory = device_memory,
             },
@@ -304,7 +304,7 @@ void early_kalloc_get_memregs(early_memreg** mregs, size_t* mreg_struct_count)
 
     // make all tags valid kernel virtual addresses
     for (size_t i = 0; i < memreg_count; i++)
-        memregs_buf[i].tag = pt_as_kva(memregs_buf[i].tag);
+        memregs_buf[i].tag = as_kva(memregs_buf[i].tag);
 }
 
 
@@ -322,7 +322,7 @@ void early_kalloc_debug()
             (void*)c,
             (void*)c->memreg.addr,
             c->memreg.pages * PAGE_SIZE,
-            relocated ? pt_as_kva(c->memreg.tag) : pt_as_kpa(c->memreg.tag),
+            relocated ? as_kva(c->memreg.tag) : as_kpa(c->memreg.tag),
             c->memreg.free ? "true" : "false");
         c = c->next;
     }

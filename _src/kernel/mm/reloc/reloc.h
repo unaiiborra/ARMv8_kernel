@@ -1,4 +1,3 @@
 #pragma once
 
-
-void mm_reloc_kernel();
+void early_reloc_cfg_end();

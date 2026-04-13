@@ -85,7 +85,7 @@ void mm_info_init()
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
         mem_region r =
-            ((const mem_region* const)pt_as_kpa(MEM_REGIONS.REGIONS))[i];
+            ((const mem_region* const)as_kpa(MEM_REGIONS.REGIONS))[i];
 
         switch (r.type) {
             case MEM_REGION_RESERVED:
