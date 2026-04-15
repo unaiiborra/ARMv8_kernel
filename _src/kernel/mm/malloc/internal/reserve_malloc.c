@@ -96,8 +96,7 @@ void reserve_malloc_fill()
     cfg.kmap            = true;
     cfg.assign_pa       = true;
 
-
-    corelocked(&lock)
+    irqlocked() corelocked(&lock)
     {
         while (!RESERVE_IS_FULL()) {
             for (size_t i = 0; i < RESERVE_MALLOC_SIZE; i++) {

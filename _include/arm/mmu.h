@@ -263,6 +263,8 @@ static inline uint32_t mmu_core_get_coreid(const mmu_core_handle* ch)
     return ch->mpidr_aff;
 }
 
+
+
 bool mmu_core_set_mapping(mmu_core_handle* ch, mmu_mapping* t);
 
 bool mmu_core_set_d_cache(mmu_core_handle* ch, bool v);

@@ -13,6 +13,8 @@
 #include <stdint.h>
 
 #include "../../malloc/raw_kmalloc/raw_kmalloc.h"
+#include "lib/branch.h"
+#include "lib/lock.h"
 
 typedef struct cache8 {
     uint64_t       buf[CACHE_8_ENTRIES][ENTRY_SIZE(CACHE_8)];
@@ -125,6 +127,8 @@ static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZES] = {
     "cache malloc 1024",
 };
 
+// this array must stay ordered from smaller to bigger
+static constexpr size_t CACHE_PAGE_SIZES[2] = {4, 8};
 
 static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
     CACHE_8_PAGES,
@@ -161,6 +165,7 @@ static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZES] = {
     BITFIELD_COUNT(CACHE_1024_ENTRIES),
 };
 
+static spinlock_t lock;
 
 static inline cache_fields
 get_generic_fields(cache_malloc_size size, void* cache_ptr)
@@ -337,85 +342,94 @@ void* cache_malloc(cache_malloc_size size)
     void* cache_ptr;
     void* result;
 
-    if (s->first_free_cache.cache) {
-        cache_ptr = s->first_free_cache.cache;
-        bf_n      = s->first_free_cache.bf_n;
-        bf_i      = s->first_free_cache.bf_i;
-    }
-    else {
-        cache_ptr = new_cache(size, s->last_cache);
-
-        if (s->first_cache == NULL) {
-            DEBUG_ASSERT(!s->last_cache);
-            s->first_cache = cache_ptr;
+    irq_spinlocked(&lock)
+    {
+        if (s->first_free_cache.cache) {
+            cache_ptr = s->first_free_cache.cache;
+            bf_n      = s->first_free_cache.bf_n;
+            bf_i      = s->first_free_cache.bf_i;
         }
         else {
-            cache_fields last_f = get_generic_fields(size, s->last_cache);
-            *last_f.next        = (uintptr_t)cache_ptr;
+            cache_ptr = new_cache(size, s->last_cache);
+
+            if (s->first_cache == NULL) {
+                DEBUG_ASSERT(!s->last_cache);
+                s->first_cache = cache_ptr;
+            }
+            else {
+                cache_fields last_f = get_generic_fields(size, s->last_cache);
+                *last_f.next        = (uintptr_t)cache_ptr;
+            }
+
+            s->last_cache             = cache_ptr;
+            s->first_free_cache.cache = cache_ptr;
+
+            bf_n = 0;
+            bf_i = 0;
         }
 
-        s->last_cache             = cache_ptr;
-        s->first_free_cache.cache = cache_ptr;
+        cache_fields c = get_generic_fields(size, cache_ptr);
 
-        bf_n = 0;
-        bf_i = 0;
-    }
+        bool slot_found = find_empty_slot(size, c, &bf_n, &bf_i);
+        ASSERT(slot_found);
+        bitfield_set_high(c.reserved[bf_n], bf_i);
 
-    cache_fields c = get_generic_fields(size, cache_ptr);
+        size_t entry = bf_n * BF_BITS + bf_i;
+        result       = &c.buf[entry * ENTRY_SIZE(size)];
+        DEBUG_ASSERT((puintptr_t)result % size == 0);
 
-    bool slot_found = find_empty_slot(size, c, &bf_n, &bf_i);
-    ASSERT(slot_found);
-    bitfield_set_high(c.reserved[bf_n], bf_i);
+        DEBUG_ASSERT(s->first_cache);
 
-    size_t entry = bf_n * BF_BITS + bf_i;
-    result       = &c.buf[entry * ENTRY_SIZE(size)];
-    DEBUG_ASSERT((puintptr_t)result % size == 0);
-
-    DEBUG_ASSERT(s->first_cache);
-
-    // check if the cache still has empty slots, start from the last iterated
-    // indexes
-    slot_found = find_empty_slot(size, c, &bf_n, &bf_i);
-
-    // still has empty slots
-    if (slot_found) {
-        s->first_free_cache.cache = cache_ptr;
-        s->first_free_cache.bf_n  = bf_n;
-        s->first_free_cache.bf_i  = bf_i;
-
-        return result;
-    }
-
-
-    // the current container is full, so search for the first container with an
-    // empty spot
-    void* cur = s->first_cache;
-    while (cur) {
-        c = get_generic_fields(size, cur);
-
-        bf_n = 0;
-        bf_i = 0;
-
+        // check if the cache still has empty slots, start from the last
+        // iterated indexes
         slot_found = find_empty_slot(size, c, &bf_n, &bf_i);
 
+        // still has empty slots
         if (slot_found) {
-            s->first_free_cache.cache = cur;
+            s->first_free_cache.cache = cache_ptr;
             s->first_free_cache.bf_n  = bf_n;
             s->first_free_cache.bf_i  = bf_i;
 
             return result;
         }
 
-        cur = (void*)(*c.next);
+
+        // the current container is full, so search for the first container with
+        // an empty spot
+        void* cur = s->first_cache;
+        while (cur) {
+            c = get_generic_fields(size, cur);
+
+            bf_n = 0;
+            bf_i = 0;
+
+            slot_found = find_empty_slot(size, c, &bf_n, &bf_i);
+
+            if (slot_found) {
+                s->first_free_cache.cache = cur;
+                s->first_free_cache.bf_n  = bf_n;
+                s->first_free_cache.bf_i  = bf_i;
+
+                return result;
+            }
+
+            cur = (void*)(*c.next);
+        }
+
+        // there is no cache with an available slot, either a new free is made
+        // or the next reserved_slot call will allocate another cache
+        s->first_free_cache.cache = NULL;
+        s->first_free_cache.bf_n  = 0;
+        s->first_free_cache.bf_i  = 0;
+
+        return result;
     }
 
-    // there is no cache with an available slot, either a new free is made or
-    // the next reserved_slot call will allocate another cache
-    s->first_free_cache.cache = NULL;
-    s->first_free_cache.bf_n  = 0;
-    s->first_free_cache.bf_i  = 0;
-
-    return result;
+#ifdef DEBUG
+    PANIC("should be unreachable");
+#else
+    unreachable();
+#endif
 }
 
 
@@ -424,91 +438,94 @@ void cache_free(cache_malloc_size size, void* ptr)
     size_t              i = cache_idx_from_size(size);
     cache_malloc_state* s = &state[i];
 
-    void*        cache_ptr = align_down_pt(ptr, CACHE_PAGES[i] * PAGE_SIZE);
-    cache_fields f         = get_generic_fields(size, cache_ptr);
+    void* const cache_ptr = align_down_pt(ptr, CACHE_PAGES[i] * PAGE_SIZE);
 
-    DEBUG_ASSERT(((uintptr_t)ptr - (uintptr_t)&f.buf[0]) % size == 0);
-    size_t entry_idx = ((uintptr_t)ptr - (uintptr_t)&f.buf[0]) / size;
+    irq_spinlocked(&lock)
+    {
+        cache_fields f = get_generic_fields(size, cache_ptr);
 
-    DEBUG_ASSERT(entry_idx < CACHE_ENTRIES[i]);
+        DEBUG_ASSERT(((uintptr_t)ptr - (uintptr_t)&f.buf[0]) % size == 0);
+        size_t entry_idx = ((uintptr_t)ptr - (uintptr_t)&f.buf[0]) / size;
 
-    size_t bf_i = entry_idx / BF_BITS;
-    size_t bf_n = entry_idx % BF_BITS;
+        DEBUG_ASSERT(entry_idx < CACHE_ENTRIES[i]);
 
-    ASSERT(bitfield_get(f.reserved[bf_i], bf_n), "cache_free: double free");
-    bitfield_clear(f.reserved[bf_i], bf_n);
+        size_t bf_i = entry_idx / BF_BITS;
+        size_t bf_n = entry_idx % BF_BITS;
 
-    bool empty = true;
-    for (size_t j = 0; j < CACHE_BITFIELDS[i]; j++) {
-        if (f.reserved[j] != 0) {
-            empty = false;
-            break;
+        ASSERT(bitfield_get(f.reserved[bf_i], bf_n), "cache_free: double free");
+        bitfield_clear(f.reserved[bf_i], bf_n);
+
+        bool empty = true;
+        for (size_t j = 0; j < CACHE_BITFIELDS[i]; j++) {
+            if (f.reserved[j] != 0) {
+                empty = false;
+                break;
+            }
         }
-    }
 
-    if (!empty) {
+        if (likely(!empty)) {
+            if (!s->first_free_cache.cache) {
+                s->first_free_cache.cache = cache_ptr;
+                s->first_free_cache.bf_i  = bf_i;
+                s->first_free_cache.bf_n  = bf_n;
+            }
+            return;
+        }
+
+
+        if (*f.prev) {
+            cache_fields prev_f = get_generic_fields(size, (void*)(*f.prev));
+            *prev_f.next        = *f.next;
+        }
+        else {
+            s->first_cache = (void*)(*f.next);
+        }
+
+        if (*f.next) {
+            cache_fields next_f = get_generic_fields(size, (void*)(*f.next));
+            *next_f.prev        = *f.prev;
+        }
+        else {
+            s->last_cache = (void*)(*f.prev);
+        }
+
+        if (s->first_free_cache.cache == cache_ptr) {
+            s->first_free_cache.cache = NULL;
+            s->first_free_cache.bf_i  = 0;
+            s->first_free_cache.bf_n  = 0;
+        }
+
+        s->cache_count--;
+
+        DEBUG_ASSERT(
+            (s->cache_count == 0 && s->first_cache == NULL &&
+             s->last_cache == NULL) ||
+            (s->cache_count > 0 && s->first_cache != NULL &&
+             s->last_cache != NULL));
+
         if (!s->first_free_cache.cache) {
-            s->first_free_cache.cache = cache_ptr;
-            s->first_free_cache.bf_i  = bf_i;
-            s->first_free_cache.bf_n  = bf_n;
+            void* cur = s->first_cache;
+            while (cur) {
+                cache_fields cur_f = get_generic_fields(size, cur);
+
+                size_t n = 0, k = 0;
+                if (find_empty_slot(size, cur_f, &n, &k)) {
+                    s->first_free_cache.cache = cur;
+                    s->first_free_cache.bf_n  = n;
+                    s->first_free_cache.bf_i  = k;
+                    break;
+                }
+
+                cur = (void*)(*cur_f.next);
+            }
         }
-        return;
-    }
-
-
-    if (*f.prev) {
-        cache_fields prev_f = get_generic_fields(size, (void*)(*f.prev));
-        *prev_f.next        = *f.next;
-    }
-    else {
-        s->first_cache = (void*)(*f.next);
-    }
-
-    if (*f.next) {
-        cache_fields next_f = get_generic_fields(size, (void*)(*f.next));
-        *next_f.prev        = *f.prev;
-    }
-    else {
-        s->last_cache = (void*)(*f.prev);
-    }
-
-    if (s->first_free_cache.cache == cache_ptr) {
-        s->first_free_cache.cache = NULL;
-        s->first_free_cache.bf_i  = 0;
-        s->first_free_cache.bf_n  = 0;
     }
 
     raw_kfree(cache_ptr);
-    s->cache_count--;
-
-
-    DEBUG_ASSERT(
-        (s->cache_count == 0 && s->first_cache == NULL &&
-         s->last_cache == NULL) ||
-        (s->cache_count > 0 && s->first_cache != NULL &&
-         s->last_cache != NULL));
-
-    if (!s->first_free_cache.cache) {
-        void* cur = s->first_cache;
-        while (cur) {
-            cache_fields cur_f = get_generic_fields(size, cur);
-
-            size_t n = 0, k = 0;
-            if (find_empty_slot(size, cur_f, &n, &k)) {
-                s->first_free_cache.cache = cur;
-                s->first_free_cache.bf_n  = n;
-                s->first_free_cache.bf_i  = k;
-                break;
-            }
-
-            cur = (void*)(*cur_f.next);
-        }
-    }
 }
 
 
-// this array must stay ordered from smaller to bigger
-static const size_t CACHE_PAGE_SIZES[2] = {4, 8};
+
 
 bool cache_malloc_size_from_ptr(void* ptr, cache_malloc_size* out)
 {

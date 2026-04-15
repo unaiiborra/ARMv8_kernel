@@ -1,6 +1,7 @@
 #define __MMU_INTERNAL
 
 #include <arm/cpu.h>
+#include <arm/mmu.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
@@ -9,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/io/stdio.h"
 #include "mmu_tbl_ctrl.h"
 #include "mmu_types.h"
 #include "regs/mmu_sysregs.h"
@@ -18,6 +20,11 @@ const mmu_mapping MMU_NULL_MAPPING = {
     .tbl_ = NULL_MAPPING_TBL,
 };
 
+static inline bool eq_caller_coreid(mmu_core_handle* ch)
+{
+    return (ch->mpidr_aff == arm_get_cpu_affinity_as_u32());
+}
+
 
 static inline bool mmu_on(uint64_t sctlr)
 {
@@ -26,29 +33,12 @@ static inline bool mmu_on(uint64_t sctlr)
 
 static inline bool set_coreid(mmu_core_handle* ch)
 {
-    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
-
-
-    uint32_t mpidr_aff =
-        ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
-        ((MPIDR_EL1 >> 16) & 0xFF) << 16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
-
-    ch->mpidr_aff = mpidr_aff;
+    ch->mpidr_aff = arm_get_cpu_affinity_as_u32();
 
     return true;
 }
 
-static inline bool eq_caller_coreid(mmu_core_handle* ch)
-{
-    uint64_t MPIDR_EL1 = sysreg_read(mpidr_el1);
 
-
-    uint32_t mpidr_aff =
-        ((MPIDR_EL1 >> 0) & 0xFF) | ((MPIDR_EL1 >> 8) & 0xFF) << 8 |
-        ((MPIDR_EL1 >> 16) & 0xFF) << 16 | ((MPIDR_EL1 >> 32) & 0xFF) << 24;
-
-    return ch->mpidr_aff == mpidr_aff;
-}
 
 
 bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
@@ -58,16 +48,14 @@ bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
     if ((t->rng_ == MMU_LO ? ch->lo_mapping : ch->hi_mapping) == t)
         return true; // mapping already set, early return
 
-    if (!mmu_mapping_is_valid(t))
+    if (!mmu_mapping_is_valid(t)) {
+        dbg_print(DEBUG_TRACE, "mmu_core_set_mapping: !mmu_mapping_is_valid(t)");
         return false;
-
+    }
 
     uint64_t sctlr = sysreg_read(sctlr_el1);
 
     if (mmu_on(sctlr)) {
-        if (!eq_caller_coreid(ch))
-            return false;
-
         switch (t->rng_) {
             case MMU_LO:
                 ch->lo_mapping = t;
@@ -89,20 +77,9 @@ bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
 
         MMU_APPLY_CHANGES();
     }
-    else {
-        switch (t->rng_) {
-            case MMU_LO:
-                ch->lo_mapping = t;
-                break;
+    else
+        t->rng_ == MMU_LO ? (ch->lo_mapping = t) : (ch->hi_mapping = t);
 
-            case MMU_HI:
-                ch->hi_mapping = t;
-                break;
-
-            default:
-                PANIC();
-        }
-    }
 
     return true;
 }

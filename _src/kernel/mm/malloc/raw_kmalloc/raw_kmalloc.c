@@ -15,6 +15,8 @@
 #include <stdint.h>
 
 #include "../internal/reserve_malloc.h"
+#include "kernel/hardware.h"
+#include "kernel/smp.h"
 
 
 const raw_kmalloc_cfg RAW_KMALLOC_KMAP_CFG = (raw_kmalloc_cfg) {
@@ -202,13 +204,13 @@ void* __raw_kmalloc(
     const raw_kmalloc_cfg* cfg,
     raw_kmalloc_info*      info)
 {
-    void* va;
+    void* va = NULL;
 
     cfg = (cfg != NULL) ? cfg : &RAW_KMALLOC_DYNAMIC_CFG;
 
     ASSERT(cfg->assign_pa, "TODO: dynamic mapping not implemented yet");
 
-    corelocked(&lock)
+    irqlocked() corelocked(&lock)
     {
         if (cfg->kmap)
             va = raw_kmalloc_kmap(pages, tag, cfg, info);
@@ -242,7 +244,7 @@ void raw_kfree(void* ptr)
     vmalloc_allocated_area_mdt vinfo;
     bool                       result;
 
-    corelocked(&lock)
+    irqlocked() corelocked(&lock)
     {
         vtoken = vmalloc_get_token(ptr);
         vinfo  = vmalloc_get_mdt(vtoken);
@@ -287,8 +289,14 @@ void raw_kfree(void* ptr)
 }
 
 
+struct kmalloc_irqlock_flags {
+    alignas(CACHE_LINE) irqlock_t irqlock;
+};
+static struct kmalloc_irqlock_flags irqlock_flags[NUM_CPUS];
+
 void raw_kmalloc_lock()
 {
+    irqlock_flags[get_cpuid()].irqlock = irq_lock();
     core_lock(&lock);
 }
 
@@ -296,4 +304,5 @@ void raw_kmalloc_lock()
 void raw_kmalloc_unlock(int*)
 {
     core_unlock(&lock);
+    irq_unlock(irqlock_flags[get_cpuid()].irqlock);
 }

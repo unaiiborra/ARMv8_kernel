@@ -10,7 +10,6 @@
 
 #include "arm/exceptions/ctx.h"
 #include "arm/mmu.h"
-#include "arm/reg.h"
 #include "kernel/io/stdio.h"
 #include "kernel/lib/kvec.h"
 #include "kernel/mm.h"
@@ -23,20 +22,11 @@
 #include "task.h"
 #include "thread.h"
 
+
 static thread* schedule();
 
-typedef struct {
-    gpr_t fp, lr;
-
-    sysreg_t spsr_el1;
-    sp_t     sp_el1;
-} pre_sched_mode_ctx;
-
-
-extern void
-_scheduler_loop_cpu_enter(arm_ctx* el0_ctx, pre_sched_mode_ctx* el1_ctx);
-
-extern void _scheduler_loop_cpu_exit(pre_sched_mode_ctx* el1_ctx);
+extern void _scheduler_loop_cpu_enter(arm_ctx* el0_ctx, arm_ctx* el1_ctx);
+extern void _scheduler_loop_cpu_exit(arm_ctx* el1_ctx);
 
 
 typedef struct thread_node {
@@ -52,9 +42,9 @@ typedef struct {
 } runqueue_t;
 
 
-static pre_sched_mode_ctx local_pre_sched_mode_ctx[NUM_CORES];
+static arm_ctx pre_sched_mode_ctx[NUM_CPUS];
 
-static runqueue_t runqueue[NUM_CORES];
+static runqueue_t runqueue[NUM_CPUS];
 
 static atomic_ulong thread_uid_counter;
 
@@ -72,7 +62,7 @@ static inline void set_current_thread(thread* th)
     runqueue[get_cpuid()].current_thread = th;
     sysreg_write(sp_el0, th);
 
-    dbgT(bool) res = mmu_core_set_mapping(
+    [[maybe_unused]] bool res = mmu_core_set_mapping(
         mm_mmu_core_handler_get_self(),
         th ? &th->owner->mapping : MM_MMU_UNMAPPED_LO);
     DEBUG_ASSERT(res);
@@ -90,7 +80,7 @@ void scheduler_init()
         runqueue[i].current_thread = NULL;
         runqueue[i].lock           = CORELOCK_INIT;
 
-        local_pre_sched_mode_ctx[i] = (pre_sched_mode_ctx) {0};
+        pre_sched_mode_ctx[i] = (arm_ctx) {0};
     }
 
     task_ctl_init();
@@ -139,13 +129,13 @@ void scheduler_loop_cpu_enter()
 
     set_current_thread(th);
 
-    _scheduler_loop_cpu_enter(&th->ctx, &local_pre_sched_mode_ctx[cpuid]);
+    _scheduler_loop_cpu_enter(&th->ctx, &pre_sched_mode_ctx[cpuid]);
 }
 
 
 void scheduler_loop_cpu_exit()
 {
-    _scheduler_loop_cpu_exit(&local_pre_sched_mode_ctx[get_cpuid()]);
+    _scheduler_loop_cpu_exit(&pre_sched_mode_ctx[get_cpuid()]);
 }
 
 

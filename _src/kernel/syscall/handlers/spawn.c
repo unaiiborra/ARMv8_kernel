@@ -3,7 +3,6 @@
 #include <kernel/task.h>
 
 #include "../sysc_handlers.h"
-#include "kernel/io/stdio.h"
 #include "kernel/mm.h"
 #include "kernel/panic.h"
 

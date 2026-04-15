@@ -103,8 +103,8 @@ bool AGT_timer_schedule_cycles(
     timer_cb_t           cb,
     timer_arg            arg)
 {
-    agt_state* state = get_state_(h);
-    bool       overrides;
+    agt_state* state     = get_state_(h);
+    bool       overrides = false;
 
     // check if this call has been made under another timer callback, if true,
     // defer the new scheduling
@@ -138,8 +138,8 @@ bool AGT_timer_schedule_delta(
     timer_cb_t           cb,
     timer_arg            arg)
 {
-    agt_state* state = get_state_(h);
-    bool       overrides;
+    agt_state* state     = get_state_(h);
+    bool       overrides = false;
 
     uint64_t cycles = cycles() + AGT_ns_to_cycles(delta_ns);
 

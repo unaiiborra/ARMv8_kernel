@@ -458,7 +458,7 @@ bool TMU_warn_pending(const driver_handle* h)
 {
     tmu_state* state = TMU_get_state_(h);
 
-    bool pending;
+    bool pending = false;
 
     irq_spinlocked(&state->state_lock)
     {

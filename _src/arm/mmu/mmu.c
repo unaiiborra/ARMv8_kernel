@@ -1,4 +1,3 @@
-#include <stdint.h>
 #define __MMU_INTERNAL
 
 #include <arm/mmu.h>
@@ -77,7 +76,7 @@ static inline void get_target_lvl(
     puintptr_t      pa)
 {
     mmu_tbl_level l;
-    size_t        c;
+    size_t        c = 0;
 
     for (l = MMU_TBL_LV1; l <= max_level(g); l++) {
         c = dc_cover_bytes(g, l);

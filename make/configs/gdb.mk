@@ -1,3 +1,3 @@
-OPT_LEVEL 	?= -O0
+OPT_LEVEL 	?= -Og
 DEFINES		+= -DGDB -DTEST -g3
 DEBUG		?= 1

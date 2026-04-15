@@ -21,7 +21,7 @@ _el1_init_vector:
 
 
 .macro EL1_CALL_WITH_CONTEXT label
-    ectx_store    
+    ectx_store
     bl \label
     ectx_load sp
     eret

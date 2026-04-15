@@ -12,6 +12,10 @@ typedef uintptr_t puintptr_t;
 // virt address uintptr_t
 typedef uintptr_t vuintptr_t;
 
+typedef enum {
+    PHYS_PT,
+    VIRT_PT,
+} pt_type;
 
 typedef struct {
     puintptr_t pa;

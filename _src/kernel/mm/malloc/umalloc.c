@@ -1,3 +1,4 @@
+#include "lib/lock.h"
 #define UMALLOC_IMPLEMENTATION
 
 #include <arm/mmu.h>
@@ -38,7 +39,6 @@ static const mmu_pg_cfg KNL_MMU_CFG = (mmu_pg_cfg) {
     .uxn          = true,
     .sw           = 0,
 };
-
 
 
 static inline region_node* node_from_region(task_region* r)
@@ -198,6 +198,9 @@ void* umalloc(
     bool      static_lifetime)
 {
     ASSERT(pages > 0);
+    DEBUG_ASSERT(
+        !spin_try_lock(&t->lock),
+        "task should be locked before calling umalloc");
 
 
     // if pages > 64 the assigned pa bitfield is saved as an allocated array of

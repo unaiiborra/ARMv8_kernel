@@ -2,7 +2,6 @@
 
 #include <kernel/mm.h>
 
-#include "../../phys/page_allocator.h"
 
 #define MIN_CACHE CACHE_8
 #define MAX_CACHE CACHE_1024

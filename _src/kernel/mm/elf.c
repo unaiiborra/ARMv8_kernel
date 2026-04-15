@@ -1,6 +1,8 @@
 #include <kernel/mm/elf.h>
 #include <kernel/mm/umalloc.h>
 
+#include "arm/cpu.h"
+
 
 #define EI_NIDENT 16
 
@@ -59,78 +61,80 @@ extern void _cache_flush_range(void* start, void* end);
 
 elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
 {
-    ASSERT(elf);
+    spinlocked(&t->lock)
+    {
+        ASSERT(elf);
 
-    Elf64_Ehdr* eh = (Elf64_Ehdr*)elf;
+        Elf64_Ehdr* eh = (Elf64_Ehdr*)elf;
 
-    if (eh->e_ident[0] != 0x7F)
-        return ELF_LOAD_BAD_MAGIC;
-    if (eh->e_ident[1] != 'E')
-        return ELF_LOAD_BAD_HDR;
-    if (eh->e_ident[2] != 'L')
-        return ELF_LOAD_BAD_HDR;
-    if (eh->e_ident[3] != 'F')
-        return ELF_LOAD_BAD_HDR;
+        if (eh->e_ident[0] != 0x7F)
+            return ELF_LOAD_BAD_MAGIC;
+        if (eh->e_ident[1] != 'E')
+            return ELF_LOAD_BAD_HDR;
+        if (eh->e_ident[2] != 'L')
+            return ELF_LOAD_BAD_HDR;
+        if (eh->e_ident[3] != 'F')
+            return ELF_LOAD_BAD_HDR;
 
-    if (eh->e_ident[4] != 2)
-        return ELF_LOAD_BAD_HDR; /* ELFCLASS64 */
-    if (eh->e_ident[5] != 1)
-        return ELF_LOAD_BAD_HDR; /* little endian */
-    if (eh->e_machine != 183)
-        return ELF_LOAD_BAD_HDR; /* EM_AARCH64 */
-
-
-    Elf64_Phdr* ph;
-    size_t      ph_n;
-
-    ph   = (Elf64_Phdr*)((vuintptr_t)elf + (vuintptr_t)eh->e_phoff);
-    ph_n = eh->e_phnum;
+        if (eh->e_ident[4] != 2)
+            return ELF_LOAD_BAD_HDR; /* ELFCLASS64 */
+        if (eh->e_ident[5] != 1)
+            return ELF_LOAD_BAD_HDR; /* little endian */
+        if (eh->e_machine != 183)
+            return ELF_LOAD_BAD_HDR; /* EM_AARCH64 */
 
 
-    for (size_t i = 0; i < ph_n; i++) {
-        if (ph[i].p_type != PT_LOAD || ph[i].p_memsz == 0)
-            continue;
+        Elf64_Phdr* ph;
+        size_t      ph_n;
 
-        ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
-        ASSERT(ph[i].p_memsz % PAGE_SIZE == 0);
-        ASSERT(ph[i].p_vaddr % PAGE_SIZE == 0);
-        ASSERT(ph[i].p_align % PAGE_SIZE == 0);
-
-        ASSERT(ph[i].p_flags & PF_R, "elf section marked as read disabled");
-
-        uint64_t data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
+        ph   = (Elf64_Phdr*)((vuintptr_t)elf + (vuintptr_t)eh->e_phoff);
+        ph_n = eh->e_phnum;
 
 
-        void* kva = umalloc(
-            t,
-            ph[i].p_vaddr,
-            ph[i].p_memsz / PAGE_SIZE,
-            data_flags & PF_R,
-            data_flags & PF_W,
-            data_flags & PF_X,
-            true);
+        for (size_t i = 0; i < ph_n; i++) {
+            if (ph[i].p_type != PT_LOAD || ph[i].p_memsz == 0)
+                continue;
+
+            ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
+            ASSERT(ph[i].p_memsz % PAGE_SIZE == 0);
+            ASSERT(ph[i].p_vaddr % PAGE_SIZE == 0);
+            ASSERT(ph[i].p_align % PAGE_SIZE == 0);
+
+            ASSERT(ph[i].p_flags & PF_R, "elf section marked as read disabled");
+
+            uint64_t data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
 
 
-        if (ph[i].p_filesz != 0)
-            memcpy(kva, (uint8_t*)elf + ph[i].p_offset, ph[i].p_filesz);
+            void* kva = umalloc(
+                t,
+                ph[i].p_vaddr,
+                ph[i].p_memsz / PAGE_SIZE,
+                data_flags & PF_R,
+                data_flags & PF_W,
+                data_flags & PF_X,
+                true);
 
 
-        // memzero the remaining area
-        if (ph[i].p_memsz > ph[i].p_filesz) {
-            void*  dst      = (void*)((uintptr_t)kva + ph[i].p_filesz);
-            size_t rem_size = ph[i].p_memsz - ph[i].p_filesz;
+            if (ph[i].p_filesz != 0)
+                memcpy(kva, (uint8_t*)elf + ph[i].p_offset, ph[i].p_filesz);
 
-            memzero(dst, rem_size);
+
+            // memzero the remaining area
+            if (ph[i].p_memsz > ph[i].p_filesz) {
+                void*  dst      = (void*)((uintptr_t)kva + ph[i].p_filesz);
+                size_t rem_size = ph[i].p_memsz - ph[i].p_filesz;
+
+                memzero(dst, rem_size);
+            }
+
+            _cache_flush_range(
+                align_down_pt(kva, 64),
+                align_down_pt((void*)((uintptr_t)kva + ph[i].p_memsz), 64));
         }
 
-        _cache_flush_range(
-            align_down_pt(kva, 64),
-            align_down_pt((void*)((uintptr_t)kva + ph[i].p_memsz), 64));
+        if (out_entry)
+            *out_entry = eh->e_entry;
     }
-
-    if (out_entry)
-        *out_entry = eh->e_entry;
-
 
     return ELF_LOAD_OK;
 }

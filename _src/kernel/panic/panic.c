@@ -8,6 +8,7 @@
 #include <lib/string.h>
 #include <stdbool.h>
 
+#include "kernel/smp.h"
 #include "panic_exception/panic_exception_handlers.h"
 #include "panic_puts.h"
 
@@ -20,7 +21,7 @@ typedef enum {
 
 static void default_info_print(panic_info* info)
 {
-    fkprint(IO_STDPANIC, "\n" ANSI_BG_RED "\n[PANIC]\n");
+    fkprintf(IO_STDPANIC, "\n" ANSI_BG_RED "\n[PANIC CORE %d]\n", get_cpuid());
 
     char* reason;
     switch (info->reason) {

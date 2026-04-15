@@ -5,10 +5,10 @@
 #include <stdint.h>
 
 
-#define __CONCAT2(x, y) x##y
-#define __CONCAT(x, y)  __CONCAT2(x, y)
-#define __ITER_VAR      __CONCAT(__iter_, __LINE__)
-#define __LOCK_VAR      __CONCAT(__lock_, __LINE__)
+#define __CONCAT3(x, y, z) x##y##z
+#define __CONCAT(x, y, z)  __CONCAT3(x, y, z)
+#define __ITER_VAR(name)   __CONCAT(__iter_, __LINE__, name)
+#define __LOCK_VAR(name)   __CONCAT(__lock_, __LINE__, name)
 
 #define __DEFER(cb) __attribute__((unused, cleanup(cb)))
 
@@ -43,12 +43,12 @@ static inline void __spinlocked_defer(spinlock_t** lock)
     }
 }
 
-#define spinlocked(lock)                                       \
-    for (spinlock_t* __ITER_VAR = (void*)1,                    \
-                     __DEFER(__spinlocked_defer)* __LOCK_VAR = \
-                         (_spin_lock(lock), (lock));           \
-         __ITER_VAR;                                           \
-         __ITER_VAR = NULL)
+#define spinlocked(lock)                                                     \
+    for (spinlock_t * __ITER_VAR(spinlocked) = (void*)1,                     \
+                      __DEFER(__spinlocked_defer) * __LOCK_VAR(spinlocked) = \
+                          (_spin_lock(lock), (lock));                        \
+         __ITER_VAR(spinlocked);                                             \
+         __ITER_VAR(spinlocked) = NULL)
 
 
 /*
@@ -71,11 +71,12 @@ static inline void __irqlocked_defer(irqlock_t* v)
     _irq_unlock(*v);
 }
 
-#define irqlocked()                                                     \
-    for (irqlock_t __ITER_VAR                            = {1},         \
-                   __DEFER(__irqlocked_defer) __LOCK_VAR = _irq_lock(); \
-         __ITER_VAR.flags;                                              \
-         __ITER_VAR.flags = 0)
+#define irqlocked()                                         \
+    for (irqlock_t __ITER_VAR(irqlocked) = {1},             \
+                   __DEFER(__irqlocked_defer)               \
+                       __LOCK_VAR(irqlocked) = _irq_lock(); \
+         __ITER_VAR(irqlocked).flags;                       \
+         __ITER_VAR(irqlocked).flags = 0)
 
 /*
 spin + irqlock
@@ -100,13 +101,13 @@ static inline void __spin_irq_defer(__spin_irq_guard_t* v)
         _spin_unlock_irqrestore(v->lock, v->irq);
     }
 }
-#define irq_spinlocked(pt_lock)                                        \
-    for (__spin_irq_guard_t                                            \
-             __ITER_VAR = {NULL, {true}},                              \
-             __DEFER(__spin_irq_defer)                                 \
-                 __LOCK_VAR = {(pt_lock), spin_lock_irqsave(pt_lock)}; \
-         __ITER_VAR.irq.flags;                                         \
-         __ITER_VAR.irq.flags = false)
+#define irq_spinlocked(pt_lock)                                             \
+    for (__spin_irq_guard_t                                                 \
+             __ITER_VAR(irq_spinlocked) = {NULL, {true}},                   \
+             __DEFER(__spin_irq_defer) __LOCK_VAR(                          \
+                 irq_spinlocked) = {(pt_lock), spin_lock_irqsave(pt_lock)}; \
+         __ITER_VAR(irq_spinlocked).irq.flags;                              \
+         __ITER_VAR(irq_spinlocked).irq.flags = false)
 
 
 /*
@@ -138,9 +139,9 @@ static inline void __corelocked_defer(corelock_t** lock)
     }
 }
 
-#define corelocked(lock)                                       \
-    for (corelock_t* __ITER_VAR = (void*)1,                    \
-                     __DEFER(__corelocked_defer)* __LOCK_VAR = \
-                         (core_lock(lock), (lock));            \
-         __ITER_VAR;                                           \
-         __ITER_VAR = NULL)
+#define corelocked(lock)                                                     \
+    for (corelock_t * __ITER_VAR(corelocked) = (void*)1,                     \
+                      __DEFER(__corelocked_defer) * __LOCK_VAR(corelocked) = \
+                          (core_lock(lock), (lock));                         \
+         __ITER_VAR(corelocked);                                             \
+         __ITER_VAR(corelocked) = NULL)

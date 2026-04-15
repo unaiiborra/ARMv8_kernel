@@ -393,7 +393,7 @@ static void reserve(uint32_t i, uint8_t o)
     ASSERT((i & ((1U << o) - 1)) == 0);
 
     uint8_t  k;
-    uint32_t base;
+    uint32_t base = 0;
 
     for (k = o; k <= MAX_ORDER; k++) {
         base         = parent_at_order(i, k);

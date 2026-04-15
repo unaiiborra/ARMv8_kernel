@@ -15,6 +15,7 @@ typedef uint32_t cpuid_t;
 void smp_init();
 
 
+
 static inline cpuid_t get_cpuid()
 {
     // TODO: allow for other affinities

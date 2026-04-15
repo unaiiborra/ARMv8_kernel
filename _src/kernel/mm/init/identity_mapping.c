@@ -58,7 +58,7 @@ void early_identity_mapping()
 {
     mmu_core_handle* core0_handle = mm_mmu_core_handler_get_self();
 
-    identity_lo_mapping = mmu_mapping_new(
+    *as_kpa(MM_MMU_IDENTITY_LO_MAPPING) = mmu_mapping_new(
         MMU_LO,
         MMU_GRANULARITY_4KB,
         48,

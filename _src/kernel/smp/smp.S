@@ -10,6 +10,8 @@
 .endm
 
 
+
+
 // should enter with x0 having the context_id
 .global _smp_wakeup_entry
 _smp_wakeup_entry: 
@@ -33,7 +35,7 @@ _smp_wakeup_entry:
     mov sp, x1
 
     str x0, [sp, #-16]! // save context_id in the stack
-
+    
     bl _setup_stack_el1
     bl _el2_init_vector 
 
@@ -45,3 +47,4 @@ _smp_wakeup_entry:
 hang:
     wfe
     b hang
+

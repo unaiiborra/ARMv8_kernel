@@ -23,6 +23,7 @@
 #include "kernel/smp.h"
 #include "lib/unit/mem.h"
 
+
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
 noreturn void kernel_entry()
 {
@@ -37,6 +38,16 @@ noreturn void kernel_entry()
 
 
     kprint("\n\rSTART\n\r");
+    uint64_t spsr = sysreg_read(spsr_el1);
+
+    kprintf("%p", spsr);
+
+
+    smp_init();
+
+secondary_core:
+    for (size_t i = 0; i < 10; i++)
+        kprintf("Hello from core %d\n\r", get_cpuid());
 
     elf_load_result        elf_res;
     attr(unused) uintptr_t hello_world_entry, print_a_entry, print_b_entry,
@@ -86,15 +97,8 @@ noreturn void kernel_entry()
 
     scheduler_loop_cpu_enter();
 
-    kprint("\n\rscheduler exited\n\r");
+    kprintf("\n\rscheduler exited core %d\n\r", get_cpuid());
 
-    smp_init();
-
-    loop asm volatile("wfi");
-
-secondary_core:
-    for (size_t i = 0; i < 10; i++)
-        kprintf("Hello from core %d\n\r", get_cpuid());
 
     loop asm volatile("wfi");
 }

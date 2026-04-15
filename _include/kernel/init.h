@@ -26,3 +26,5 @@ typedef enum {
 
 void kernel_early_init(void);
 void kernel_init(void);
+
+bool kernel_is_initialized();

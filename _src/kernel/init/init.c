@@ -27,6 +27,8 @@ KERNEL_INITCALL(rust_kernel_initcalls_stage1, KERNEL_INITCALL_STAGE1);
 KERNEL_INITCALL(rust_kernel_initcalls_stage2, KERNEL_INITCALL_STAGE2);
 
 
+static bool kernel_initialized = false;
+
 void kernel_init(void)
 {
     io_init(); // init kprint, kprintf...
@@ -65,4 +67,12 @@ void kernel_init(void)
     term_prints("Identity mapping mmu: \n\r");
     mm_dbg_print_mmu();
 #endif
+
+    kernel_initialized = true;
+}
+
+
+bool kernel_is_initialized()
+{
+    return kernel_initialized;
 }

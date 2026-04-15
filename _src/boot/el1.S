@@ -63,6 +63,10 @@ _el1_entry:
 
     mov x0, #(1 << 11)      
     msr SCTLR_EL1, x0
+
+    mov x0, #0x5
+    msr SPSR_EL1, x0
+
     isb
 
     mov x0, x9 // set ctx as arg0
