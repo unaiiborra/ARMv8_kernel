@@ -58,5 +58,12 @@ define thu
 end
 
 define unlock
-    set smp_gdb_barrier_hang[$arg0 - 1] = 0
+    if $arg0 != -1
+        set smp_gdb_barrier_hang[$arg0 - 1] = 0
+    else
+        set smp_gdb_barrier_hang[0] = 0
+        set smp_gdb_barrier_hang[1] = 0
+        set smp_gdb_barrier_hang[2] = 0
+        set smp_gdb_barrier_hang[3] = 0
+    end
 end

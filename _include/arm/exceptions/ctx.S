@@ -156,24 +156,24 @@
 .endif
 
 2:  // load vregs
-    add x20, \reg_pt, #ECTX_OFFS_V
+    add x1, \reg_pt, #ECTX_OFFS_V
 
-    ld1 {v0.16b,  v1.16b},  [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v2.16b,  v3.16b},  [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v4.16b,  v5.16b},  [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v6.16b,  v7.16b},  [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v8.16b,  v9.16b},  [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v10.16b, v11.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v12.16b, v13.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v14.16b, v15.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v16.16b, v17.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v18.16b, v19.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v20.16b, v21.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v22.16b, v23.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v24.16b, v25.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v26.16b, v27.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v28.16b, v29.16b}, [x20], #(2 * ECTX_SIZEOF_V)
-    ld1 {v30.16b, v31.16b}, [x20], #(2 * ECTX_SIZEOF_V)
+    ld1 {v0.16b,  v1.16b},  [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v2.16b,  v3.16b},  [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v4.16b,  v5.16b},  [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v6.16b,  v7.16b},  [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v8.16b,  v9.16b},  [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v10.16b, v11.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v12.16b, v13.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v14.16b, v15.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v16.16b, v17.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v18.16b, v19.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v20.16b, v21.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v22.16b, v23.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v24.16b, v25.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v26.16b, v27.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v28.16b, v29.16b}, [x1], #(2 * ECTX_SIZEOF_V)
+    ld1 {v30.16b, v31.16b}, [x1], #(2 * ECTX_SIZEOF_V)
 
 
     // load xregs
