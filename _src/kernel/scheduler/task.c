@@ -29,15 +29,14 @@ task* task_new(const char* name, size_t stack_size)
     task* t = kmalloc(sizeof(task));
 
     *t = (task) {
-        .task_uid           = atomic_fetch_add(&task_uid, 1),
-        .local_thid_counter = 0,
-        .name               = name,
-        .lock               = SPINLOCK_INIT,
-        .state              = TASK_NEW,
-        .stack_pages        = DIV_CEIL(stack_size, PAGE_SIZE),
-        .mapping            = mm_mmu_mapping_new(MMU_LO),
-        .regions            = NULL,
-        .threads            = kvec_new(thread*),
+        .task_uid    = atomic_fetch_add(&task_uid, 1),
+        .name        = name,
+        .lock        = SPINLOCK_INIT,
+        .state       = TASK_NEW,
+        .stack_pages = DIV_CEIL(stack_size, PAGE_SIZE),
+        .mapping     = mm_mmu_mapping_new(MMU_LO),
+        .regions     = NULL,
+        .threads     = kvec_new(thread*),
     };
 
     return t;
@@ -47,28 +46,20 @@ task* task_new(const char* name, size_t stack_size)
 static void add_thread_ref(task* t, struct thread* th)
 {
     DEBUG_ASSERT(th != NULL);
-    DEBUG_ASSERT(
-        th->local_th_uid == UNINIT_LOCAL_TH_UID,
-        "add_thread_ref: thread local uid is set by add_thread_ref(), previous "
-        "value must be set as UNINIT_LOCAL_TH_UID");
 
-
-    thread* in = th;
-    size_t  n  = kvec_len(t->threads);
+    size_t n = kvec_len(&t->threads);
 
     thread** threads = kvec_dataT(thread*, &t->threads);
 
     for (size_t i = 0; i < n; i++) {
         if (threads[i] == NULL) {
-            threads[i] = in;
+            threads[i] = th;
             return;
         }
     }
 
-    dbgT(int64_t) idx = kvec_push(&t->threads, &in);
+    dbgT(int64_t) idx = kvec_push(&t->threads, &th);
     DEBUG_ASSERT(idx >= 0);
-
-    th->local_th_uid = atomic_fetch_add(&t->local_thid_counter, 1);
 }
 
 
@@ -100,7 +91,7 @@ void task_delete_thread_ref(task* t, struct thread* th)
 
     irq_spinlocked(&t->lock)
     {
-        size_t n = kvec_len(t->threads);
+        size_t n = kvec_len(&t->threads);
 
         thread** threads = kvec_dataT(thread*, &t->threads);
 
@@ -111,11 +102,11 @@ void task_delete_thread_ref(task* t, struct thread* th)
                     kvec_pop(&t->threads, NULL);
 
                     // pop NULLs until the first valid pt
-                    while (kvec_len(t->threads) > 0) {
+                    while (kvec_len(&t->threads) > 0) {
                         thread* last = NULL;
                         kvec_get_copy(
                             &t->threads,
-                            kvec_len(t->threads) - 1,
+                            kvec_len(&t->threads) - 1,
                             &last);
 
                         if (last != NULL)
@@ -135,7 +126,7 @@ void task_delete_thread_ref(task* t, struct thread* th)
 
         DEBUG_ASSERT(found);
 
-        if (kvec_len(t->threads) == 0) {
+        if (kvec_len(&t->threads) == 0) {
             // TODO: task delete and free
         }
     }

@@ -10,7 +10,6 @@
 #include "lib/branch.h"
 #include "lib/math.h"
 
-
 typedef struct {
     size_t T_size_;
     size_t T_align_;
@@ -33,7 +32,6 @@ static inline kvec __kvec_new(kvec _)
     return _;
 }
 
-
 #define kvec_new(T)                      \
     __kvec_new((kvec) {                  \
         .T_size_          = sizeof(T),   \
@@ -42,7 +40,6 @@ static inline kvec __kvec_new(kvec _)
         .container_bytes_ = 0,           \
         .container_       = NULL,        \
     })
-
 
 static inline void kvec_delete(kvec* k)
 {
@@ -70,12 +67,10 @@ static inline void kvec_empty(kvec* k)
     k->container_       = NULL;
 }
 
-
-static inline size_t kvec_len(kvec k)
+[[gnu::always_inline]] static inline size_t kvec_len(const kvec* k)
 {
-    return k.i_;
+    return k->i_;
 }
-
 
 /// Pushes a new item to the end of the vector. It returns the item idx. It deep
 /// copies the provided in
@@ -85,13 +80,11 @@ int64_t kvec_push(kvec* k, const void* in);
 /// the vec is empty
 int64_t kvec_pop(kvec* k, void* out);
 
-
 bool kvec_set(const kvec* k, size_t i, const void* in, void* prev);
 bool kvec_get_copy(const kvec* k, size_t i, void* out);
 bool kvec_get_mut(const kvec* k, size_t i, void** out);
 
-
-static inline void* kvec_data(const kvec* k)
+[[gnu::always_inline]] static inline void* kvec_data(const kvec* k)
 {
     DEBUG_ASSERT((uintptr_t)k->container_ % k->T_align_ == 0);
     DEBUG_ASSERT((uintptr_t)k->container_ % k->T_size_ == 0);

@@ -3,6 +3,7 @@ TARGET ?= out.elf
 CROSS ?= aarch64-none-elf
 
 CC := $(CROSS)-gcc
+G		?= 0
 
 LD 		= linker.ld
 STL_DIR ?= stl
@@ -10,7 +11,9 @@ INCLUDE ?= include
 
 CFLAGS += -ffreestanding -Wall -Wextra -O2 \
           -I$(STL_DIR)/include \
-          -I$(INCLUDE)
+          -I$(INCLUDE) \
+		  -g$(G)
+
 
 STL_LIB := $(STL_DIR)/libstl.a
 

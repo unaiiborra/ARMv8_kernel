@@ -84,7 +84,6 @@ typedef enum {
 
 typedef struct {
     uint64_t     task_uid;
-    atomic_ulong local_thid_counter; // local thread id counter
     const char*  name;
     spinlock_t   lock;
     task_state   state;

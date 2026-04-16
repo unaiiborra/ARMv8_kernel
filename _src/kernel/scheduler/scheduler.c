@@ -181,9 +181,8 @@ thread* schedule_thread(task* owner, uintptr_t entry, bool start_ready)
 
     thread_node* node = kmalloc(sizeof(thread_node));
     node->th          = (thread) {
-        .th_uid       = atomic_fetch_add(&thread_uid_counter, 1),
-        .local_th_uid = UNINIT_LOCAL_TH_UID,
-        .owner        = owner,
+        .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
+        .owner  = owner,
         .ctx =
             {.fpcr   = 0,
              .fpsr   = 0,
@@ -269,7 +268,7 @@ static void unqueue_thread(thread_node* node, cpuid_t runqueue_id)
 // defer the deleting of threads
 static void free_threads(kvec(thread*) * to_free)
 {
-    size_t n = kvec_len(*to_free);
+    size_t n = kvec_len(to_free);
 
     for (size_t i = 0; i < n; i++) {
         thread_node* fnode;

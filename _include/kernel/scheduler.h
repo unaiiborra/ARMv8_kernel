@@ -50,8 +50,7 @@ typedef enum {
 
 
 typedef struct thread {
-    uint64_t             th_uid;       // global thread id
-    uint64_t             local_th_uid; // thread id local to the task
+    uint64_t             th_uid;
     task*                owner;
     arm_ctx              ctx;
     uint64_t             last_access_time_us;
@@ -78,15 +77,9 @@ thread* schedule_thread(task* owner, uintptr_t entry, bool start_ready);
 
 
 /// deletes a thread and unschedules it
-static inline void unschedule_thread(thread* th)
+[[gnu::always_inline]] static inline thread_state unschedule_thread(thread* th)
 {
-#ifdef DEBUG
-    DEBUG_ASSERT(th);
-    thread_state old = atomic_exchange(&th->state, THREAD_DEAD);
-    DEBUG_ASSERT(old != THREAD_DEAD, "unschedule_thread: double uncheduled");
-#else
-    atomic_store(&th->state, THREAD_DEAD);
-#endif
+    return atomic_exchange(&th->state, THREAD_DEAD);
 }
 
 

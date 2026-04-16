@@ -10,7 +10,8 @@ INCLUDE ?= include
 
 CFLAGS += -ffreestanding -Wall -Wextra -O2 \
           -I$(STL_DIR)/include \
-          -I$(INCLUDE)
+          -I$(INCLUDE) \
+		  -g$(G)
 
 STL_LIB := $(STL_DIR)/libstl.a
 
@@ -23,7 +24,7 @@ SRC  := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 
-all: $(TARGET)
+all: $(TARGET) $(TARGET_SYMBOLS)
 
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(STL_LIB) $(LDFLAGS) -o $@

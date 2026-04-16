@@ -15,7 +15,7 @@ typedef enum {
     // Thread spawn
     SYSC_SPAWN,
 
-    // Thread kill   TODO: implement
+    // Thread kill
     SYSC_KILL,
 
     // Pass control to the kernel and let him decide what to do
@@ -53,12 +53,13 @@ syscall_exit(uint64_t exit_code)
 
 
 
+/// print syscall
 typedef enum {
     SYSC_PRINT_OK          = 0,
     SYSC_PRINT_INVALID_BUF = -1,
 } sysc_print_res;
 
-/// print syscall
+
 __attribute__((always_inline)) static inline sysc_print_res
 syscall_print(const void* buf, size_t size)
 {
@@ -68,6 +69,7 @@ syscall_print(const void* buf, size_t size)
 
 
 
+/// spawn syscall
 typedef enum {
     SYSC_SPAWN_RES_OK = 0,
     // requested fn address is not mapped
@@ -76,19 +78,29 @@ typedef enum {
     SYSC_SPAWN_RES_NOEXEC = -2,
 } sysc_spawn_res;
 
-typedef struct {
-    sysc_spawn_res res_code;
-    uint64_t       thid;
-
-} sysc_spawn_result;
 
 typedef void (*spawn_fn_t)(uint64_t thid, uint64_t arg);
 
-/// spawn syscall
+
 __attribute__((always_inline)) static inline sysc_spawn_res
 syscall_spawn(spawn_fn_t fn, uint64_t arg)
 {
     return syscall((uint64_t)fn, 4096 * 4, arg, 0, 0, 0, SYSC_SPAWN);
+}
+
+
+
+
+/// kill syscall
+typedef enum {
+    SYSC_KILL_OK        = 0,
+    SYSC_KILL_NOT_FOUND = -1,
+} sysc_kill_res;
+
+__attribute__((always_inline)) static inline sysc_kill_res
+syscall_kill(uint64_t thid)
+{
+    return syscall(thid, 0, 0, 0, 0, 0, SYSC_KILL);
 }
 
 

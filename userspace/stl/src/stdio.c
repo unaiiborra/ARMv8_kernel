@@ -1,7 +1,9 @@
+#include "stdio.h"
+
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <syscall.h>
+
+#include "stdlib.h"
+#include "syscall.h"
 
 
 void print(const char* s)

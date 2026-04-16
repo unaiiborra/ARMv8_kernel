@@ -19,15 +19,13 @@ typedef enum {
 } sysc_print_res;
 
 int64_t syscall64_print(
-    sysarg_t buf_pt,
-    sysarg_t buf_sz,
-    sysarg_t a2,
-    sysarg_t a3,
-    sysarg_t a4,
-    sysarg_t a5)
+    sysarg_t                  buf_pt,
+    sysarg_t                  buf_sz,
+    [[maybe_unused]] sysarg_t a2,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5)
 {
-    (void)a2, (void)a3, (void)a4, (void)a5;
-
     task_region* region;
     if (!uregion_is_assigned(
             get_current_thread()->owner,
