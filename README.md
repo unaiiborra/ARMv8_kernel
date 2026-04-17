@@ -85,7 +85,7 @@ Building on top of those, `raw_kmalloc` manages dynamic virtual allocations by m
 
 ### Processes and Userspace
 
-The kernel loads user programs from ELF binaries, maps them into a separate address space, and transitions to EL0 for execution. Returns to kernel mode happen through the exception mechanism. Currently, user binaries are embedded directly into the kernel binary as byte arrays. A filesystem is the planned replacement.
+The kernel loads user programs from ELF binaries, maps them into a separate address space, and transitions to EL0 for execution. Currently, user binaries are embedded directly into the kernel binary as byte arrays. A filesystem is the planned replacement.
 
 ---
 
@@ -161,7 +161,7 @@ make
 
 A minimal C standard library (`userspace/stl/`) and a program template (`userspace/template/`) are provided for writing userspace code. To create a new userspace program, copy the template and implement a `main()` entry point. The provided Makefile links automatically against the STL.
 
-Available STL headers: `stdio.h`, `stdlib.h`, `syscall.h`.
+Available STL headers: `stdio.h`, `stdlib.h`, `syscall.h`, `stdthread.h`.
 
 ### Embedding a userspace binary
 
