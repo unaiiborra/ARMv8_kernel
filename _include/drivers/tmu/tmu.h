@@ -19,14 +19,13 @@ typedef struct {
 typedef struct {
     _Alignas(16) spinlock_t state_lock;
     _Alignas(16) tmu_cfg cfg;
-    _Alignas(16) uint8_t init_stage;
     _Alignas(16) bool warn_pending; // used for the kernel to ask if a temp
                                     // warning arrived
     _Alignas(16) bitfield8 irq_status;
 } tmu_state;
 
-void TMU_init_stage0(const driver_handle* h, tmu_cfg cfg);
-void TMU_init_stage1(const driver_handle* h);
+void TMU_init(const driver_handle* h, tmu_cfg cfg);
+
 
 int8_t TMU_get_temp(const driver_handle* h);
 

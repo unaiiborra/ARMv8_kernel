@@ -32,23 +32,11 @@ SECTIONS {
         *(.rodata.*)
         *(.platform_info)
 
-        /* Stage 0 */
+       
         . = ALIGN(8);
-        __kernel_init_stage0_start = .;
-        KEEP(*(.kernel_init_stage0))
-        __kernel_init_stage0_end = .;
-
-        /* Stage 1 */
-        . = ALIGN(8);
-        __kernel_init_stage1_start = .;
-        KEEP(*(.kernel_init_stage1))
-        __kernel_init_stage1_end = .;
-
-        /* Stage 2 */
-        . = ALIGN(8);
-        __kernel_init_stage2_start = .;
-        KEEP(*(.kernel_init_stage2))
-        __kernel_init_stage2_end = .;
+        __kernel_initcalls_start = .;
+        KEEP(*(.kernel_initcall))
+        __kernel_initcalls_end = .;
 
 
         . = ALIGN(4096);

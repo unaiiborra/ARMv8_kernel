@@ -5,7 +5,6 @@
 #include <kernel/panic.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "drivers/interrupts/gicv3/gicv3.h"
@@ -67,7 +66,7 @@ static void init_irq_handler_table_()
         build_handler_(AGT_handle_irq, &AGT0_DRIVER);
 }
 
-KERNEL_INITCALL(init_irq_handler_table_, KERNEL_INITCALL_STAGE0);
+KERNEL_INITCALL(init_irq_handler_table_);
 
 
 void exception_handler_irq()

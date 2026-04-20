@@ -31,7 +31,11 @@ GDB_SCRIPT="$PROJECT_DIR/tmp/full.gdb"
 sed \
   -e "s|__ENTRY__|$LOW_TEXT|g" \
   -e "s|__ELF_PATH__|$ELF|g" \
+  -e "s|__PORT__|$PORT|g" \
+  -e "s|__LO_TEXT__|$LOW_TEXT|g" \
+  -e "s|__HI_TEXT__|$HI_TEXT|g" \
   "$SCRIPT_DIR/config.gdb" > "$GDB_SCRIPT"
+
   
 ghostty -e bash -c "$GDB $ELF -x $GDB_SCRIPT"
 

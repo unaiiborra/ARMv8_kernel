@@ -35,15 +35,7 @@ typedef enum {
 
 extern void _TMU_critical_hang(const driver_handle*, uint64_t);
 
-#ifdef TEST
-static inline void TMU_panic_if_uninit_(const driver_handle* h)
-{
-    tmu_state* state = (tmu_state*)h->state;
 
-    if (state->init_stage != TMU_FULLY_INITIALIZED)
-        PANIC("MU not fully initialized and attempted to be used");
-};
-#endif
 
 // Helper that checks if the TMU has been initialized and returns the cast of
 // the state as a helper
@@ -51,9 +43,6 @@ static inline tmu_state* TMU_get_state_(const driver_handle* h)
 {
     tmu_state* state = (tmu_state*)h->state;
 
-#ifdef TEST
-    TMU_panic_if_uninit_(h);
-#endif
 
     return state;
 }
@@ -212,17 +201,13 @@ static inline void TMU_ack_irq_(const driver_handle* h, tmu_irq irq)
     TMU_TIDR_write(h->base, r);
 }
 
-void TMU_init_stage0(const driver_handle* h, tmu_cfg cfg)
+void TMU_init(const driver_handle* h, tmu_cfg cfg)
 {
     tmu_state* state = (tmu_state*)h->state;
-
-    if (state->init_stage != TMU_NOT_INITIALIZED)
-        PANIC("Driver initialized multiple times");
 
     state->cfg          = cfg;
     state->irq_status   = 0;
     state->warn_pending = false;
-    state->init_stage   = TMU_NOT_INITIALIZED;
 
     TMU_disable_(h);
 
@@ -236,24 +221,6 @@ void TMU_init_stage0(const driver_handle* h, tmu_cfg cfg)
     TMU_TPS_PROBE_SEL_set(&tps, TMU_TPS_PROBE_SEL_BOTH_PROBES);
     TMU_TPS_write(h->base, tps);
 
-    TMU_enable_(h);
-
-    state->init_stage = TMU_STAGE0_INITIALIZED;
-}
-
-void TMU_init_stage1(const driver_handle* h)
-{
-    // 5.4.3.1 680
-    // State should have been declared before in stage1 init
-
-    tmu_state* state = (tmu_state*)h->state;
-
-    if (state->init_stage != TMU_STAGE0_INITIALIZED)
-        PANIC(
-            "Driver initialized multiple times or not initialized from stage "
-            "0");
-
-    TMU_disable_(h);
 
     // Disable average threashold
     TmuTmhtatrValue tmhtatr = TMU_TMHTATR_read(h->base);
@@ -302,9 +269,8 @@ void TMU_init_stage1(const driver_handle* h)
     TMU_set_irq_status_(h, TMU_IRQ_ATTE1, true);
     TMU_set_irq_status_(h, TMU_IRQ_ATCTE0, true);
     TMU_set_irq_status_(h, TMU_IRQ_ATCTE1, true);
-
-    state->init_stage = TMU_STAGE1_INITIALIZED;
 }
+
 
 typedef void (
     *tmu_irq_handler)(const driver_handle* h, uint64_t probe); // probe 0 or 1
@@ -323,9 +289,7 @@ static void TMU_unhandled_irq_(const driver_handle*, uint64_t probe)
 // warning irq handler
 static void TMU_ATTEX_irq_handler_(const driver_handle* h, uint64_t probe)
 {
-#ifdef TEST
-    TMU_panic_if_uninit_(h);
-#endif
+
 
     tmu_state* state = TMU_get_state_(h);
 
@@ -352,9 +316,7 @@ static const tmu_irq_handler TMU_IRQ_HANDLERS_[TMU_IRQ_COUNT] = {
 
 void TMU_handle_irq(const driver_handle* h)
 {
-#ifdef TEST
-    TMU_panic_if_uninit_(h);
-#endif
+
 
     bitfield8 irq_sources = TMU_get_irq_sources_(h);
 
@@ -370,9 +332,7 @@ void TMU_handle_irq(const driver_handle* h)
  */
 void TMU_set_warn_temp(const driver_handle* h, int8_t temp_c)
 {
-#ifdef TEST
-    TMU_panic_if_uninit_(h);
-#endif
+
     tmu_state* state = TMU_get_state_(h);
 
     irq_spinlocked(&state->state_lock)
@@ -474,9 +434,7 @@ bool TMU_warn_pending(const driver_handle* h)
 // Critical irq allways active, TF-A will shut down the cpu automatically
 void TMU_set_critical_temp(const driver_handle* h, int8_t temp_c)
 {
-#ifdef TEST
-    TMU_panic_if_uninit_(h);
-#endif
+
 
     tmu_state* state = TMU_get_state_(h);
 

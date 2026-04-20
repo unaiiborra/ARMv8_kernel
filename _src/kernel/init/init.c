@@ -5,26 +5,16 @@
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
+#include <kernel/scheduler.h>
 #include <stddef.h>
-#include <stdint.h>
 
-#include "kernel/scheduler.h"
-extern kernel_initcall_t __kernel_init_stage0_start[];
-extern kernel_initcall_t __kernel_init_stage0_end[];
 
-extern kernel_initcall_t __kernel_init_stage1_start[];
-extern kernel_initcall_t __kernel_init_stage1_end[];
 
-extern kernel_initcall_t __kernel_init_stage2_start[];
-extern kernel_initcall_t __kernel_init_stage2_end[];
+extern kernel_initcall_t __kernel_initcalls_start[];
+extern kernel_initcall_t __kernel_initcalls_end[];
 
-extern void rust_kernel_initcalls_stage0(void);
-extern void rust_kernel_initcalls_stage1(void);
-extern void rust_kernel_initcalls_stage2(void);
 
-KERNEL_INITCALL(rust_kernel_initcalls_stage0, KERNEL_INITCALL_STAGE0);
-KERNEL_INITCALL(rust_kernel_initcalls_stage1, KERNEL_INITCALL_STAGE1);
-KERNEL_INITCALL(rust_kernel_initcalls_stage2, KERNEL_INITCALL_STAGE2);
+extern void rust_kernel_initcalls(void);
 
 
 static bool kernel_initialized = false;
@@ -35,9 +25,9 @@ void kernel_init(void)
     mm_init(); // init kmalloc, cache malloc, etc.
     scheduler_init();
 
-    // Stage 0 (pre irq initialization)
-    for (kernel_initcall_t* fn = __kernel_init_stage0_start;
-         fn < __kernel_init_stage0_end;
+
+    for (kernel_initcall_t* fn = __kernel_initcalls_start;
+         fn < __kernel_initcalls_end;
          fn++)
         (*fn)();
 
@@ -52,15 +42,7 @@ void kernel_init(void)
     GICV3_init_distributor(&GIC_DRIVER);
     GICV3_init_cpu(&GIC_DRIVER, arm_get_cpu_affinity().aff0);
 
-    for (kernel_initcall_t* fn = __kernel_init_stage1_start;
-         fn < __kernel_init_stage1_end;
-         fn++)
-        (*fn)();
 
-    for (kernel_initcall_t* fn = __kernel_init_stage2_start;
-         fn < __kernel_init_stage2_end;
-         fn++)
-        (*fn)();
 
 
 #ifdef DEBUG_DUMP

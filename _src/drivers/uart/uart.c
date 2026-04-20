@@ -422,7 +422,7 @@ void uart_handle_irq(const driver_handle* h)
  *      INIT
  *  ------------
  */
-void uart_init_stage0(const driver_handle* h)
+void uart_init(const driver_handle* h)
 {
 #ifdef TEST
     uart_check_handle_(h);
@@ -488,13 +488,12 @@ void uart_init_stage0(const driver_handle* h)
 
     UART_USR1_write(base, (UartUsr1Value) {.val = usr1_v});
     UART_USR2_write(base, (UartUsr2Value) {.val = usr2_v});
-}
 
-void uart_init_stage1(const driver_handle* h)
-{
+
     uart_set_irq_state_(h, UART_IRQ_SRC_RRDY, true);
     uart_set_irq_state_(h, UART_IRQ_SRC_TRDY, true);
 }
+
 
 /*
  *  ------------

@@ -248,7 +248,7 @@ void AGT_handle_irq(const driver_handle* h)
     }
 }
 
-void AGT_init_stage0(const driver_handle* h)
+void AGT_init(const driver_handle* h)
 {
     agt_state* state = get_state_(h);
 

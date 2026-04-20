@@ -49,10 +49,8 @@ term_out_result uart_putc_early(const char c);
 void uart_reset(const driver_handle* h);
 
 // Pre IRQ initialization
-void uart_init_stage0(const driver_handle* h);
+void uart_init(const driver_handle* h);
 
-// Post IRQ initialization
-void uart_init_stage1(const driver_handle* h);
 
 bool uart_read(const driver_handle* h, uint8_t* data);
 

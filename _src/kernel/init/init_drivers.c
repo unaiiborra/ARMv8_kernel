@@ -14,17 +14,14 @@
 // TODO: full remake of this file
 
 
-static void uart_stage0_()
+static void uart_driver_init()
 {
-    uart_init_stage0(&UART2_DRIVER);
+    uart_init(&UART2_DRIVER);
 }
 
-static void uart_stage1_()
-{
-    uart_init_stage1(&UART2_DRIVER);
-}
 
-static void uart_stage2_()
+
+static void uart_register_irq()
 {
     GICV3_init_irq(
         &GIC_DRIVER,
@@ -34,13 +31,14 @@ static void uart_stage2_()
         arm_get_cpu_affinity());
 }
 
-KERNEL_INITCALL(uart_stage0_, KERNEL_INITCALL_STAGE0);
-KERNEL_INITCALL(uart_stage1_, KERNEL_INITCALL_STAGE1);
-KERNEL_INITCALL(uart_stage2_, KERNEL_INITCALL_STAGE2);
+KERNEL_INITCALL(uart_driver_init);
+KERNEL_INITCALL(uart_register_irq);
 
-static void tmu_stage0_()
+
+
+static void tmu_driver_init()
 {
-    TMU_init_stage0(
+    TMU_init(
         &TMU_DRIVER,
         (tmu_cfg) {
             .warn_max     = 40,
@@ -48,12 +46,8 @@ static void tmu_stage0_()
         });
 }
 
-static void tmu_stage1_()
-{
-    TMU_init_stage1(&TMU_DRIVER);
-}
 
-static void tmu_stage2_()
+static void tmu_irq_register()
 {
     GICV3_init_irq(
         &GIC_DRIVER,
@@ -63,17 +57,19 @@ static void tmu_stage2_()
         arm_get_cpu_affinity());
 }
 
-KERNEL_INITCALL(tmu_stage0_, KERNEL_INITCALL_STAGE0);
-KERNEL_INITCALL(tmu_stage1_, KERNEL_INITCALL_STAGE1);
-KERNEL_INITCALL(tmu_stage2_, KERNEL_INITCALL_STAGE2);
+KERNEL_INITCALL(tmu_driver_init);
+KERNEL_INITCALL(tmu_irq_register);
 
-static void agt_stage0_()
+
+static void agt_driver_init()
 {
-    AGT_init_stage0(&AGT0_DRIVER);
+    AGT_init(&AGT0_DRIVER);
 }
-static void agt_stage2_()
+
+static void agt_irq_register()
 {
     GICV3_enable_ppi(&GIC_DRIVER, irq_id_new(27), arm_get_cpu_affinity());
 }
-KERNEL_INITCALL(agt_stage0_, KERNEL_INITCALL_STAGE0);
-KERNEL_INITCALL(agt_stage2_, KERNEL_INITCALL_STAGE2);
+
+KERNEL_INITCALL(agt_driver_init);
+KERNEL_INITCALL(agt_irq_register);
