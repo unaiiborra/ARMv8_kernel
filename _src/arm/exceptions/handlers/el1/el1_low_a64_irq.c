@@ -1,7 +1,7 @@
-#include <kernel/exception/handler.h>
+#include <kernel/exception/irq.h>
 
 
 void el1_low_a64_irq_handler(void)
 {
-    exception_handler_irq();
+    irq_dispatch();
 }

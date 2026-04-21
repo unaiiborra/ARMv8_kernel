@@ -47,7 +47,9 @@ void strcopy(char* dst, const char* src, uint64_t max_size);
 
 
 /// Compares two strings and tells if the contents are equal
-bool strcmp(const char* a, const char* b);
+bool streq(const char* a, const char* b);
+
+size_t strlen(const char* str);
 
 
 /// Converts a uint8_t to a char, as it only converts to one char, it panics

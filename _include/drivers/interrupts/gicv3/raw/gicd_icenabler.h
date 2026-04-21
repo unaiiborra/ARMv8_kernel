@@ -10,13 +10,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define GICD_ISENABLER_OFFSET(n) (0x100UL + (4UL * n))
+#define GICD_ICENABLER_OFFSET(n) (0x180UL + (4UL * (n)))
 
 static inline void
-GICV3_GICD_ISENABLER_set_bit(uintptr_t base, uint32_t n, uint32_t bit)
+GICV3_GICD_ICENABLER_set_bit(uintptr_t base, uint32_t n, uint32_t bit)
 {
     if (bit > 31)
-        PANIC("GICD_ISENABLER: bit must be <= 31");
+        PANIC("GICD_ICENABLER: bit must be <= 31");
 
-    *((reg32_ptr)(base + GICD_ISENABLER_OFFSET(n))) = (1UL << bit);
+    *((reg32_ptr)(base + GICD_ICENABLER_OFFSET(n))) = (1UL << bit);
 }

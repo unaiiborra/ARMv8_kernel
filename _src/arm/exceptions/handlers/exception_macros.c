@@ -2,19 +2,19 @@
 
 panic_exception_src select_src_enum_(const char* origin, const char* stack)
 {
-    if (strcmp(origin, "cur")) {
-        if (strcmp(stack, "sp0"))
+    if (streq(origin, "cur")) {
+        if (streq(stack, "sp0"))
             return PANIC_EXCEPTION_CUR_SP0;
 
-        if (strcmp(stack, "spx"))
+        if (streq(stack, "spx"))
             return PANIC_EXCEPTION_CUR_SPX;
     }
 
-    if (strcmp(origin, "low")) {
-        if (strcmp(stack, "a32"))
+    if (streq(origin, "low")) {
+        if (streq(stack, "a32"))
             return PANIC_EXCEPTION_LOW_A32;
 
-        if (strcmp(stack, "a64"))
+        if (streq(stack, "a64"))
             return PANIC_EXCEPTION_LOW_A64;
     }
 
@@ -24,16 +24,16 @@ panic_exception_src select_src_enum_(const char* origin, const char* stack)
 
 panic_exception_type select_exception_type_enum_(const char* type)
 {
-    if (strcmp(type, "sync"))
+    if (streq(type, "sync"))
         return PANIC_EXCEPTION_TYPE_SYNC;
 
-    if (strcmp(type, "irq"))
+    if (streq(type, "irq"))
         return PANIC_EXCEPTION_TYPE_IRQ;
 
-    if (strcmp(type, "fiq"))
+    if (streq(type, "fiq"))
         return PANIC_EXCEPTION_TYPE_FIQ;
 
-    if (strcmp(type, "serror"))
+    if (streq(type, "serror"))
         return PANIC_EXCEPTION_TYPE_SERROR;
 
     PANIC("non valid configuration from panic exception handler call");

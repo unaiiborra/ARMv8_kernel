@@ -49,9 +49,9 @@ secondary_core:
     for (size_t i = 0; i < 10; i++)
         kprintf("Hello from core %d\n\r", get_cpuid());
 
-    elf_load_result        elf_res;
-    attr(unused) uintptr_t hello_world_entry, print_a_entry, print_b_entry,
-        multithreading_entry;
+    elf_load_result              elf_res;
+    attr(maybe_unused) uintptr_t hello_world_entry, print_a_entry,
+        print_b_entry, multithreading_entry;
 
     task* hello_world    = task_new("hello_world", 4 * MEM_KiB);
     task* print_a        = task_new("print_A", 4 * MEM_KiB);

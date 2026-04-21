@@ -36,7 +36,7 @@ void smp_init()
     cpuid_t self = get_cpuid();
 
 #ifdef GDB
-    for (size_t i = 0; i < NUM_CPUS; i++) {
+    for (cpuid_t i = 0; i < NUM_CPUS; i++) {
         smp_gdb_barrier_detect[i] = 0;
         smp_gdb_barrier_hang[i]   = 1;
     }

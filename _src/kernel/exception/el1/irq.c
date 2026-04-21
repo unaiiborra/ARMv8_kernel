@@ -1,4 +1,4 @@
-#include <drivers/uart/uart.h>
+/*#include <drivers/uart/uart.h>
 #include <kernel/devices/drivers.h>
 #include <kernel/exception/interrupts.h>
 #include <kernel/init.h>
@@ -9,6 +9,7 @@
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "drivers/interrupts/gicv3/gicv3.h"
 #include "drivers/tmu/tmu.h"
+#include "imx8mp.h"
 #include "kernel/devices/device.h"
 #include "kernel/io/stdio.h"
 
@@ -73,8 +74,11 @@ void exception_handler_irq()
 {
     irq_id irq = GICV3_get_intid_el1();
 
+
+
     KERNEL_IRQ_HANDLER_TABLE_[irq.n].handler(
         KERNEL_IRQ_HANDLER_TABLE_[irq.n].h);
 
     GICV3_ack_intid_el1(irq);
 }
+*/

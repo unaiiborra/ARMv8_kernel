@@ -65,9 +65,9 @@ pv_ptr reserve_malloc(const char* new_tag)
                         vmalloc_update_tag(pmap.va, new_tag);
                     const char* p_old_tag =
                         page_allocator_update_tag(pmap.pa, new_tag);
-                    DEBUG_ASSERT(strcmp(v_old_tag, p_old_tag));
-                    DEBUG_ASSERT(strcmp(v_old_tag, RESERVE_MALLOC_TAG));
-                    DEBUG_ASSERT(strcmp(p_old_tag, RESERVE_MALLOC_TAG));
+                    DEBUG_ASSERT(streq(v_old_tag, p_old_tag));
+                    DEBUG_ASSERT(streq(v_old_tag, RESERVE_MALLOC_TAG));
+                    DEBUG_ASSERT(streq(p_old_tag, RESERVE_MALLOC_TAG));
 #else
                     vmalloc_update_tag(pmap.va, new_tag);
                     page_allocator_update_tag(pmap.pa, new_tag);

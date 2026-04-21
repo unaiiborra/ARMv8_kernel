@@ -12,14 +12,14 @@
 
 #include "gicv3_macros.h"
 
-#define GICR_ISENABLER_OFFSET 0x100UL
+#define GICR_ICENABLER_OFFSET 0x180UL
 
 static inline void
-GICV3_GICR_ISENABLER0_set_bit(uintptr_t base, uint32_t cpu, uint32_t intid)
+GICV3_GICR_ICENABLER0_set_bit(uintptr_t base, uint32_t cpu, uint32_t intid)
 {
     if (intid > 31)
-        PANIC("GICD_ISENABLER: bit must be <= 31");
+        PANIC("GICR_ICENABLER0: bit must be <= 31");
 
-    *((reg32_ptr)(GICV3_SGI_BASE(base, cpu) + GICR_ISENABLER_OFFSET)) =
+    *((reg32_ptr)(GICV3_SGI_BASE(base, cpu) + GICR_ICENABLER_OFFSET)) =
         (1UL << intid);
 }

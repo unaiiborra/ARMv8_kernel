@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+
 void strcopy(char* dst, const char* src, uint64_t max_size)
 {
     for (uint64_t i = 0; i < max_size - 1; i++) {
@@ -16,7 +18,7 @@ void strcopy(char* dst, const char* src, uint64_t max_size)
 }
 
 
-bool strcmp(const char* a, const char* b)
+bool streq(const char* a, const char* b)
 {
     if (a == b)
         return true;
@@ -39,4 +41,16 @@ bool strcmp(const char* a, const char* b)
         return true;
 
     return false;
+}
+
+
+size_t strlen(const char* str)
+{
+    const char* s = str;
+
+    while (*s) {
+        s++;
+    }
+
+    return s - str;
 }

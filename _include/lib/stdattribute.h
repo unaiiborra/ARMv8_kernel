@@ -2,17 +2,17 @@
 
 #define STD_ATTRIBUTE
 
-#define attr(...)     __attribute__((__VA_ARGS__))
+#define attr(...)     [[__VA_ARGS__]]
 #define attrT(T, ...) attr(__VA_ARGS__) T
 
 
-#define defer(fn)        attr(cleanup(fn))
-#define deferT(T, defer) attrT(T, cleanup(defer))
+#define defer(fn)        attr(gnu::__cleanup__(fn))
+#define deferT(T, defer) attrT(T, gnu::__cleanup__(defer))
 
 
 
 // debug
-#define dbgT(T) attrT(T, unused)
+#define dbgT(T) [[maybe_unused]] T
 
 #ifdef DEBUG
 #    define dbg_mode() 1

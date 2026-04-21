@@ -5,6 +5,7 @@
 #include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -18,7 +19,7 @@ static uint64_t uniqueid_count;
 void term_new(term_handle* out, term_out output)
 {
     *out = (term_handle) {
-        .id_   = __atomic_add_fetch(&uniqueid_count, 1, __ATOMIC_SEQ_CST),
+        .id_   = atomic_fetch_add(&uniqueid_count, 1),
         .lock_ = {0},
         .buf_  = term_buffer_handle_new(),
         .out_  = output,
