@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "kernel/devices/device.h"
+#include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/devices/drivers.h"
 #include "kernel/smp.h"
 
@@ -16,13 +17,14 @@ typedef union {
 } irq_handler_t;
 
 
+void irq_ctrl_init();
 
 void irq_register(
     uint32_t               irq_id,
     irq_std_handler_t      handler,
     void*                  ctx,
     irq_ctrl_ops_trigger_t trigger,
-    cpuid_t                target_cpu,
+    uint32_t               target_cpu,
     uint8_t                priority);
 
 void irq_register_driver(

@@ -8,10 +8,11 @@
 #include <kernel/init.h>
 #include <lib/stdmacros.h>
 
+#include "../devices/device_map.h"
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
+#include "kernel/devices/device.h"
+#include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/exception/irq.h"
-#include "kernel/io/stdio.h"
-#include "kernel/mm.h"
 #include "target/imx8mp.h"
 
 // TODO: full remake of this file — legacy wrappers hasta migrar drivers al
@@ -21,54 +22,43 @@
 // Legacy wrappers (driver_handle* → void* ctx)
 // ---------------------------------------------------------------------------
 
-static void uart2_irq_wrapper(void* ctx)
-{
-    driver_handle* h = as_kva(ctx);
-    h->base          = as_kva(h->base);
-    h->state         = as_kva(h->state);
-
-    uart_handle_irq(h);
-    io_flush(IO_STDOUT);
-}
+// static void uart2_irq_wrapper(void* ctx)
+// {
+//     uart_handle_irq(ctx);
+// }
 static void tmu_irq_wrapper(void* ctx)
 {
-    driver_handle* h = as_kva(ctx);
-    h->base          = as_kva(h->base);
-    h->state         = as_kva(h->state);
-
-    TMU_handle_irq(h);
+    TMU_handle_irq(ctx);
 }
 static void agt_irq_wrapper(void* ctx)
 {
-    driver_handle* h = as_kva(ctx);
-    h->base          = as_kva(h->base);
-    h->state         = as_kva(h->state);
-
-    AGT_handle_irq(h);
+    AGT_handle_irq(ctx);
 }
 
 // ---------------------------------------------------------------------------
 // UART
 // ---------------------------------------------------------------------------
 
-static void uart_driver_init()
+static void uart_driver_register()
 {
-    uart_init(&UART2_DRIVER);
-}
+    device_register(
+        "imx8mp/uart",
+        DEVICE_CLASS_SERIAL,
+        255,
+        UART2_BASE,
+        IMX8MP_UART_OPS);
 
-static void uart_register_irq()
-{
-    irq_register(
+    irq_register_driver(
         IMX8MP_IRQ_UART2,
-        uart2_irq_wrapper,
-        &UART2_DRIVER,
+        "imx8mp/uart",
+        DEVICE_CLASS_SERIAL,
+        IMX8MP_UART_OPS->irq_handle,
         TRIGGER_LEVEL_SENSITIVE,
-        arm_get_cpu_affinity().aff0,
-        0x80);
+        arm_get_cpu_affinity_as_u32(),
+        0x90);
 }
 
-KERNEL_INITCALL(uart_driver_init);
-KERNEL_INITCALL(uart_register_irq);
+KERNEL_INITCALL(uart_driver_register);
 
 // ---------------------------------------------------------------------------
 // TMU
@@ -91,7 +81,7 @@ static void tmu_irq_register()
         tmu_irq_wrapper,
         &TMU_DRIVER,
         TRIGGER_LEVEL_SENSITIVE,
-        arm_get_cpu_affinity().aff0,
+        arm_get_cpu_affinity_as_u32(),
         0x0);
 }
 
@@ -114,7 +104,7 @@ static void agt_irq_register()
         agt_irq_wrapper,
         &AGT0_DRIVER,
         TRIGGER_LEVEL_SENSITIVE,
-        arm_get_cpu_affinity().aff0,
+        arm_get_cpu_affinity_as_u32(),
         0x80);
 }
 

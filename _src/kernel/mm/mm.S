@@ -2,12 +2,6 @@
 
 .section .text
 
-.global _get_pc
-_get_pc:
-    mov x0, x30
-    ret
-
-
 .global _mm_kva_to_kpa
 //  puintptr_t _mm_kva_to_kpa(vuintptr_t addr)
 _mm_kva_to_kpa:

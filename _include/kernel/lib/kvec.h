@@ -72,7 +72,7 @@ static inline void kvec_empty(kvec* k)
     return k->i_;
 }
 
-/// Pushes a new item to the end of the vector. It returns the item idx. It deep
+/// Pushes a new item to the end of the vector. It returns the item idx. It
 /// copies the provided in
 int64_t kvec_push(kvec* k, const void* in);
 

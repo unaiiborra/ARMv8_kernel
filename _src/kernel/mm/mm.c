@@ -13,14 +13,6 @@
 extern uintptr_t _get_pc(void);
 
 
-bool mm_kernel_is_relocated()
-{
-    uintptr_t pc = _get_pc();
-
-    return ((pc >> 47) & 0x1FFFFUL) == 0x1FFFFUL;
-}
-
-
 void mm_dbg_print_mmu()
 {
     //    mmu_debug_dump(&mm_mmu_h, MMU_TBL_LO);

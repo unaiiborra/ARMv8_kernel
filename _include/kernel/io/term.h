@@ -5,14 +5,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum {
-    TERM_OUT_RES_OK        = 0,
-    TERM_OUT_RES_NOT_TAKEN = 1,
-} term_out_result;
-
 
 typedef uint64_t term_id;
-typedef term_out_result (*term_out)(const char c);
+typedef int32_t (*term_out)(const char c); // < 0: not taken, else taken
 
 
 typedef struct {
@@ -24,7 +19,7 @@ typedef struct {
 
 typedef struct {
     term_id            id_;
-    corelock_t         lock_;
+    spinlock_t         lock_;
     term_out           out_;
     term_buffer_handle buf_;
 } term_handle;
@@ -33,13 +28,25 @@ typedef struct {
 void term_new(term_handle* out, term_out output);
 void term_delete(term_handle* h);
 
-
 /*
  *  Prints
+ *   @return: true if no notification of the term_out as ready is needed, else,
+ *   the caller must notify when the provided output is ready to receive more
+ *   data, in which case the term will fill the term_out function until a not
+ *   taken (< 0) is received
  */
-void term_printc(term_handle* h, const char c);
-void term_prints(term_handle* h, const char* s);
-void term_printf(term_handle* h, const char* s, va_list ap);
+bool term_printc(term_handle* h, const char c);
+bool term_prints(term_handle* h, const char* s);
+bool term_printf(term_handle* h, const char* s, va_list ap);
+
+/*
+ *  notifies that the provided term_out is ready to receive more data.
+ *  @return: true if no more notifications are needed. Else notifications when
+ *  ready are still needed
+ */
+bool term_notify_ready(term_handle* h);
 
 
-void term_flush(term_handle* h);
+
+
+// void term_flush(term_handle* h);

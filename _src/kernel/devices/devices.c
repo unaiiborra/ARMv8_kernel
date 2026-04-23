@@ -54,6 +54,7 @@ void device_register(
     node->next = NULL;
 
 
+
     irq_spinlocked(&locks[class_id])
     {
         device_node_t** head = &device_lists[class_id];

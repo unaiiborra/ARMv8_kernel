@@ -1,14 +1,13 @@
+#include <arm/cpu.h>
 #include <arm/exceptions/exceptions.h>
-#include <drivers/interrupts/gicv3/gicv3.h>
-#include <drivers/interrupts/gicv3/raw/gicv3_raw.h>
+#include <drivers/gicv3.h>
+#include <kernel/devices/drivers.h>
 #include <kernel/panic.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "arm/cpu.h"
-#include "drivers/interrupts/gicv3/raw/gicd_typer.h"
-#include "drivers/interrupts/gicv3/raw/gicr_waker.h"
-#include "kernel/devices/drivers.h"
+#include "raw/gicv3_raw.h" // IWYU pragma: keep
+
 
 extern void     _GICV3_ARM_ICC_SRE_EL1_write(uint64_t v);
 extern void     _GICV3_ARM_ICC_PMR_EL1_write(uint64_t v);
@@ -100,7 +99,7 @@ static int32_t gicv3_irq_disable(driver_handle_t handle, uint32_t irq)
     if (irq < 32) {
         uint32_t rd = arm_get_cpu_affinity_as_u32();
         GICV3_GICR_ICENABLER0_set_bit(handle.base, rd, irq);
-        
+
         return 0;
     }
 

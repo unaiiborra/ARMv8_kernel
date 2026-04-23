@@ -11,6 +11,12 @@
 #include "kernel/mm.h"
 
 
+typedef struct {
+    vuintptr_t   base;
+    void** const state;
+} driver_handle_t;
+
+
 typedef enum {
     DEVICE_CLASS_GENERIC = 0,
     DEVICE_CLASS_IRQ_CTRL,
@@ -45,11 +51,11 @@ const device_t* device_get_by_name(device_class_t class_id, const char* name);
 const device_t* device_get_primary(device_class_t class_id);
 
 
-[[gnu::always_inline]] static inline driver_handle_t
-device_get_driver_handle(const device_t* device)
+[[gnu::always_inline]] static inline driver_handle_t device_get_driver_handle(
+    const device_t* device)
 {
     return (driver_handle_t) {
-        .base  = mm_kernel_is_relocated() ? as_kva(device->base_pa)
+        .base  = mm_kernel_is_relocated() ? kpa_to_kva(device->base_pa)
                                           : device->base_pa,
         .state = (void**)&device->driver_state,
     };

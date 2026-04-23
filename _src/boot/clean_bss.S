@@ -17,12 +17,14 @@ _clean_bss:
     movi    v2.16b, #0
     movi    v3.16b, #0
 
+#ifdef DEBUG
 //  Check 64 byte align
     ands    xzr, x0, #63
     b.ne    hang
 
     ands    xzr, x1, #63
     b.ne    hang
+#endif
 
 1:
     cmp     x0, x1
@@ -33,6 +35,8 @@ _clean_bss:
 2:
     ret
 
+#ifdef DEBUG
 hang:
     wfe
     b hang
+#endif

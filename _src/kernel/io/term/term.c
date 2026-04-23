@@ -1,5 +1,7 @@
 #include "kernel/io/term.h"
 
+#include <kernel/lib/kvec.h>
+#include <kernel/mm.h>
 #include <lib/branch.h>
 #include <lib/lock.h>
 #include <lib/stdattribute.h>
@@ -10,22 +12,18 @@
 #include <stdint.h>
 
 #include "buffers.h"
-#include "kernel/mm.h"
-#include "kernel/panic.h"
 
 
-static uint64_t uniqueid_count;
+static uint64_t uniqueid_count = 0;
 
 void term_new(term_handle* out, term_out output)
 {
     *out = (term_handle) {
         .id_   = atomic_fetch_add(&uniqueid_count, 1),
-        .lock_ = {0},
+        .lock_ = SPINLOCK_INIT,
         .buf_  = term_buffer_handle_new(),
         .out_  = output,
     };
-
-    corelock_init(&out->lock_);
 }
 
 
@@ -45,101 +43,100 @@ void term_delete(term_handle* h)
 }
 
 
-/*
- *  It attempts to push the character to the out fn, if it is not taken, saves
- * it in a buffer. If later calls are made to this fn, if the term buffer is not
- * empty, it will push directly into the buffer in order to mantain coherency of
- * the lifo, (even if the out fn could respond with an OK).
- */
-static inline void putc(term_handle* h, char c)
+bool term_printc(term_handle* h, const char c)
 {
-    if (h->buf_.size == 0) {
-        term_out_result result = h->out_(c);
+    irq_spinlocked(&h->lock_)
+    {
+        if (h->buf_.size == 0) {
+            int32_t result = h->out_(c);
 
-        if (result == TERM_OUT_RES_OK)
-            return;
+            if (result >= 0)
+                return true;
+        }
+
+        term_buffer_push(&h->buf_, c);
     }
 
-    term_buffer_push(&h->buf_, c);
+    return false;
 }
 
 
-void term_printc(term_handle* h, const char c)
+bool term_prints(term_handle* h, const char* s)
 {
-    irqlock_t f = irq_lock();
-    core_lock(&h->lock_);
+    bool finished_output;
 
-    putc(h, c);
+    irqlock_t f = spin_lock_irqsave(&h->lock_);
 
-    core_unlock(&h->lock_);
-    irq_unlock(f);
-}
+    if (h->buf_.size == 0) {
+        while (*s && (h->out_(*s) >= 0))
+            s++;
 
-void term_prints(term_handle* h, const char* s)
-{
-    irqlock_t f = irq_lock();
-    core_lock(&h->lock_);
+        finished_output = *s == '\0';
+    }
+    else
+        finished_output = false;
 
     while (*s)
-        putc(h, *s++);
+        term_buffer_push(&h->buf_, *s++);
 
-    core_unlock(&h->lock_);
-    irq_unlock(f);
+    spin_unlock_irqrestore(&h->lock_, f);
+
+    return finished_output;
 }
 
 
 static void putfmt(char c, void* args)
 {
-    term_handle* h = args;
+    kvec(char)* string = args;
 
-    putc(h, c);
+    kvec_push(string, &c);
 }
 
 
-/// The formatting happens before the printing because in future versions
-/// checking the result of the term_out will be needed and that cannot happen
-/// inside the fmt fn. This fn will need a big remake when kmalloc is
-/// implemented TODO:
-void term_printf(term_handle* h, const char* s, va_list ap)
+bool term_printf(term_handle* h, const char* s, va_list ap)
 {
-    irqlock_t f = irq_lock();
+    // format the string
+    defer(kvec_delete) kvec(char) string = kvec_new(char);
+    str_fmt_print(putfmt, &string, s, ap);
 
-    core_lock(&h->lock_);
-
-    str_fmt_print(putfmt, h, s, ap);
-
-    core_unlock(&h->lock_);
-    irq_unlock(f);
+    return term_prints(h, kvec_data(&string));
 }
 
 
-void term_flush(term_handle* h)
+bool term_notify_ready(term_handle* h)
 {
-    DEBUG_ASSERT(h);
+    irqlock_t f = spin_lock_irqsave(&h->lock_);
 
-    if (h->buf_.size == 0)
-        return;
+    if (unlikely(h->buf_.size == 0)) {
+        spin_unlock_irqrestore(&h->lock_, f);
+        return true;
+    }
 
-
-    char peek, pop;
-
-    irqlock_t f = irq_lock();
-    core_lock(&h->lock_);
+    bool finished_output;
 
     loop
     {
-        if (!term_buffer_peek(&h->buf_, &peek))
+        char c;
+
+        term_buffer_peek(&h->buf_, &c);
+
+        if (likely(h->out_(c) >= 0)) {
+            // taken, apply the peek as a pop
+            size_t size = term_buffer_remove_from_head(&h->buf_);
+
+            if (unlikely(size == 0)) {
+                finished_output = true;
+                break;
+            }
+        }
+        else {
+            // not taken
+            finished_output = false;
             break;
-
-        term_out_result res = h->out_(peek);
-
-        if (res == TERM_OUT_RES_NOT_TAKEN)
-            break;
-
-        dbgT(bool) pop_res = term_buffer_pop(&h->buf_, &pop);
-        DEBUG_ASSERT(pop_res && peek == pop);
+        }
     }
 
-    core_unlock(&h->lock_);
-    irq_unlock(f);
+    spin_unlock_irqrestore(&h->lock_, f);
+
+    return finished_output;
 }

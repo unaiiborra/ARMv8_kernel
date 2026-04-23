@@ -46,8 +46,20 @@ void mm_init();
 
 void mm_dbg_print_mmu();
 
+[[gnu::always_inline]] static inline uintptr_t get_pc()
+{
+    uintptr_t pc;
+    asm volatile("adr %0, ." : "=r"(pc));
+    return pc;
+}
 
-bool mm_kernel_is_relocated();
+
+[[gnu::always_inline]] static inline bool mm_kernel_is_relocated()
+{
+    uintptr_t pc = get_pc();
+
+    return ((pc >> 47) & 0x1FFFFUL) == 0x1FFFFUL;
+}
 
 
 static inline puintptr_t kva_to_kpa(vuintptr_t va)

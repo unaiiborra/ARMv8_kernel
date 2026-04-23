@@ -4,6 +4,10 @@
 #include <kernel/devices/drivers.h>
 #include <kernel/io/stdio.h>
 #include <kernel/io/term.h>
+#include <stdint.h>
+
+#include "kernel/devices/device.h"
+#include "kernel/devices/driver_ops/serial.h"
 
 
 #define ANSI_BG_RED "\x1b[41m"
@@ -21,40 +25,33 @@
 #define ANSI_ERASE_LINE                         "\x1b[K"
 
 
-static term_out_result early_putc(const char c)
+static int32_t std_putc(const char c)
 {
-    return uart_putc_early(c);
+    const device_t*     io_device  = device_get_primary(DEVICE_CLASS_SERIAL);
+    const serial_ops_t* serial_ops = io_device->driver_ops;
+    driver_handle_t     handle     = device_get_driver_handle(io_device);
+
+    return serial_ops->putc(handle, c);
 }
 
 
-static term_out_result std_putc(const char c)
+static int32_t panic_putc(const char c)
 {
-    return uart_putc(&UART2_DRIVER, c);
+    const device_t*     io_device  = device_get_primary(DEVICE_CLASS_SERIAL);
+    const serial_ops_t* serial_ops = io_device->driver_ops;
+    driver_handle_t     handle     = device_get_driver_handle(io_device);
+
+    int32_t res;
+
+    do {
+        res = serial_ops->putc(handle, c);
+    } while (res < 0);
+
+    return 0;
 }
 
 
-static term_out_result panic_putc(const char c)
-{
-    if (uart_putc_sync(&UART2_DRIVER, c) == TERM_OUT_RES_NOT_TAKEN)
-        goto hang;
-
-    if (c == '\n') {
-        const char* str = "\r" ANSI_ERASE_LINE;
-
-        while (*str)
-            if (uart_putc_sync(&UART2_DRIVER, *str++) == TERM_OUT_RES_NOT_TAKEN)
-                goto hang;
-    }
-
-    return TERM_OUT_RES_OK;
-
-hang:
-    while (true)
-        asm volatile("wfi");
-}
-
-
-const term_out STDIO_EARLY_PUTC = early_putc;
+const term_out STDIO_EARLY_PUTC = panic_putc;
 
 const term_out STDIO_PUTC[4] = {
     [IO_STDOUT]   = std_putc,

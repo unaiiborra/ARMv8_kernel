@@ -3,7 +3,7 @@
 #include <arm/smccc/smc.h>
 #include <arm/sysregs/sysregs.h>
 #include <drivers/arm_generic_timer/arm_generic_timer.h>
-#include <drivers/interrupts/gicv3/gicv3.h>
+#include <drivers/gicv3.h>
 #include <drivers/tmu/tmu.h>
 #include <kernel/init.h>
 #include <kernel/lib/kvec.h>
@@ -17,11 +17,14 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
+#include "kernel/devices/device.h"
+#include "kernel/devices/driver_ops/serial.h"
 #include "kernel/io/stdio.h"
 #include "kernel/mm/elf.h"
 #include "kernel/scheduler.h"
 #include "kernel/smp.h"
 #include "lib/unit/mem.h"
+
 
 
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
@@ -36,12 +39,17 @@ noreturn void kernel_entry()
     else
         goto secondary_core;
 
+    const device_t*     uart   = device_get_primary(DEVICE_CLASS_SERIAL);
+    driver_handle_t     handle = device_get_driver_handle(uart);
+    const serial_ops_t* ops    = ((serial_ops_t*)uart->driver_ops);
 
-    kprint("\n\rSTART\n\r");
+    ops->init(handle);
+    ops->set_baud(handle, 115200, 12000000);
+    ops->irq_enable(handle);
+
     uint64_t spsr = sysreg_read(spsr_el1);
 
     kprintf("%p", spsr);
-
 
     smp_init();
 

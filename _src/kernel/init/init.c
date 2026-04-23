@@ -1,8 +1,9 @@
 #include <arm/cpu.h>
 #include <arm/exceptions/exceptions.h>
-#include <drivers/interrupts/gicv3/gicv3.h>
+#include <drivers/gicv3.h>
 #include <kernel/devices/device.h>
 #include <kernel/devices/drivers.h>
+#include <kernel/exception/irq.h>
 #include <kernel/init.h>
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
@@ -10,6 +11,7 @@
 #include <kernel/scheduler.h>
 #include <stddef.h>
 #include <target/imx8mp.h>
+
 
 
 extern kernel_initcall_t __kernel_initcalls_start[];
@@ -27,20 +29,14 @@ void kernel_init(void)
     mm_init(); // init kmalloc, cache malloc, etc.
     scheduler_init();
     device_ctrl_init();
-
-
-    device_register(
-        "gic-v3",
-        DEVICE_CLASS_IRQ_CTRL,
-        255,
-        IMX8MP_A53_GIC_BASE,
-        GICV3_OPS);
+    irq_ctrl_init();
 
 
     for (kernel_initcall_t* fn = __kernel_initcalls_start;
          fn < __kernel_initcalls_end;
          fn++)
         (*fn)();
+
 
     arm_exceptions_set_status((arm_exception_status) {
         .fiq    = true,
@@ -58,7 +54,6 @@ void kernel_init(void)
 
     irq_ops->init(handle);
     irq_ops->init_cpu(handle, arm_get_cpu_affinity().aff0);
-
 
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");

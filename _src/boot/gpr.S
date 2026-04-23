@@ -1,6 +1,6 @@
 .section .text
 
-// http://classweb.ece.umd.edu/enee447.S2021/baremetal_boot_code_for_ARMv8_A_processors.pdf p.41
+
 .global _init_gpr
 _init_gpr:
     str x30, [sp, #-16]!

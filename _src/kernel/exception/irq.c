@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <target/imx8mp.h>
 
+#include "drivers/gicv3.h"
 #include "kernel/devices/device.h"
 #include "kernel/devices/drivers.h"
 #include "kernel/io/stdio.h"
@@ -51,14 +52,14 @@ static irq_entry_t irq_table[MAX_IRQS];
     return device_get_primary(DEVICE_CLASS_IRQ_CTRL);
 }
 
-[[gnu::always_inline]] static inline const irq_ctrl_ops_t*
-irq_ops(const device_t* dev)
+[[gnu::always_inline]] static inline const irq_ctrl_ops_t* irq_ops(
+    const device_t* dev)
 {
     return (const irq_ctrl_ops_t*)dev->driver_ops;
 }
 
-[[gnu::always_inline]] static inline driver_handle_t
-irq_driver_handle(const device_t* dev)
+[[gnu::always_inline]] static inline driver_handle_t irq_driver_handle(
+    const device_t* dev)
 {
     return device_get_driver_handle(dev);
 }
@@ -116,12 +117,23 @@ static void irq_register_type(
 }
 
 
+void irq_ctrl_init()
+{
+    device_register(
+        "gic-v3",
+        DEVICE_CLASS_IRQ_CTRL,
+        255,
+        IMX8MP_A53_GIC_BASE,
+        GICV3_OPS);
+}
+
+
 void irq_register(
     uint32_t               irq_id,
     irq_std_handler_t      handler,
     void*                  ctx,
     irq_ctrl_ops_trigger_t trigger,
-    cpuid_t                target_cpu,
+    uint32_t               target_cpu,
     uint8_t                priority)
 {
     irq_register_type(STD_HANDLER, irq_id, handler, ctx);

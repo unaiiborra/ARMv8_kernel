@@ -3,11 +3,8 @@
 #![allow(non_camel_case_types)]
 #![allow(special_module_name)]
 
-#[macro_use]
-extern crate static_assertions;
 
-mod drivers;
-mod kernel;
+
 mod lib;
 
 use core::panic::PanicInfo;
