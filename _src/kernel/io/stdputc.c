@@ -8,6 +8,7 @@
 
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/serial.h"
+#include "lib/branch.h"
 
 
 #define ANSI_BG_RED "\x1b[41m"
@@ -46,6 +47,11 @@ static int32_t panic_putc(const char c)
     do {
         res = serial_ops->putc(handle, c);
     } while (res < 0);
+
+    if (unlikely(c == '\n'))
+        do {
+            res = serial_ops->putc(handle, '\r');
+        } while (res < 0);
 
     return 0;
 }

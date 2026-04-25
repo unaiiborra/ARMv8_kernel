@@ -18,6 +18,7 @@ AllowAllArgumentsOnNextLine: false
 PenaltyBreakBeforeFirstCallParameter: 0
 AlwaysBreakAfterDefinitionReturnType: false
 PenaltyReturnTypeOnItsOwnLine: 1000000
+PenaltyBreakAssignment: 1000
 
 # ---- Indentación ----
 IndentWidth: 4

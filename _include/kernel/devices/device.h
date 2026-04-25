@@ -2,12 +2,12 @@
 // This header defines an abstraction interface for drivers, where the kernel
 // does not have to know the internals of each driver
 
+#include <kernel/devices/drivers.h>
 #include <lib/mem.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kernel/devices/drivers.h"
 #include "kernel/mm.h"
 
 
@@ -20,8 +20,9 @@ typedef struct {
 typedef enum {
     DEVICE_CLASS_GENERIC = 0,
     DEVICE_CLASS_IRQ_CTRL,
-    DEVICE_CLASS_EARLY_SERIAL,
     DEVICE_CLASS_SERIAL,
+    DEVICE_CLASS_TIMER,
+    DEVICE_CLASS_CLOCKSOURCE,
 
     DEVICE_CLASS_COUNT,
 } device_class_t;

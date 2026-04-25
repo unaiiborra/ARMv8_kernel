@@ -68,7 +68,7 @@ static int32_t gicv3_init_cpu(driver_handle_t handle, uint32_t target_cpu)
     return 0;
 }
 
-static int32_t gicv3_irq_enable(driver_handle_t handle, uint32_t irq)
+static int32_t gicv3_irq_enable_id(driver_handle_t handle, uint32_t irq)
 {
     if (irq < 32) {
         uint32_t rd = arm_get_cpu_affinity_as_u32();
@@ -94,7 +94,7 @@ static int32_t gicv3_irq_enable(driver_handle_t handle, uint32_t irq)
     return 0;
 }
 
-static int32_t gicv3_irq_disable(driver_handle_t handle, uint32_t irq)
+static int32_t gicv3_irq_disable_id(driver_handle_t handle, uint32_t irq)
 {
     if (irq < 32) {
         uint32_t rd = arm_get_cpu_affinity_as_u32();
@@ -123,8 +123,10 @@ static int32_t gicv3_irq_eoi(driver_handle_t handle, uint32_t irq)
     return 0;
 }
 
-static int32_t
-gicv3_irq_set_priority(driver_handle_t handle, uint32_t irq, uint8_t priority)
+static int32_t gicv3_irq_set_priority(
+    driver_handle_t handle,
+    uint32_t        irq,
+    uint8_t         priority)
 {
     if (irq < 32) {
         uint32_t       rd   = arm_get_cpu_affinity_as_u32();
@@ -193,8 +195,10 @@ static int32_t gicv3_irq_set_trigger(
 }
 
 
-static int32_t
-gicv3_irq_set_target(driver_handle_t handle, uint32_t irq, uint32_t target_cpu)
+static int32_t gicv3_irq_set_target(
+    driver_handle_t handle,
+    uint32_t        irq,
+    uint32_t        target_cpu)
 {
     if (irq < 32)
         return target_cpu == arm_get_cpu_affinity_as_u32() ? 0 : -1;
@@ -219,8 +223,8 @@ gicv3_irq_set_target(driver_handle_t handle, uint32_t irq, uint32_t target_cpu)
 static const irq_ctrl_ops_t OPS = {
     .init             = gicv3_init,
     .init_cpu         = gicv3_init_cpu,
-    .irq_enable       = gicv3_irq_enable,
-    .irq_disable      = gicv3_irq_disable,
+    .irq_enable_id    = gicv3_irq_enable_id,
+    .irq_disable_id   = gicv3_irq_disable_id,
     .irq_ack          = gicv3_irq_ack,
     .irq_eoi          = gicv3_irq_eoi,
     .irq_set_priority = gicv3_irq_set_priority,

@@ -16,8 +16,8 @@ typedef struct {
     int32_t (*init)(driver_handle_t handle);
     int32_t (*init_cpu)(driver_handle_t handle, uint32_t target_cpu);
 
-    int32_t (*irq_enable)(driver_handle_t handle, uint32_t irq);
-    int32_t (*irq_disable)(driver_handle_t handle, uint32_t irq);
+    int32_t (*irq_enable_id)(driver_handle_t handle, uint32_t irq);
+    int32_t (*irq_disable_id)(driver_handle_t handle, uint32_t irq);
 
     int32_t (*irq_eoi)(driver_handle_t handle, uint32_t irq);
 
@@ -38,3 +38,10 @@ typedef struct {
         uint32_t               irq,
         irq_ctrl_ops_trigger_t trigger);
 } irq_ctrl_ops_t;
+
+
+#define get_irq_ctrl_ops(dev) \
+    _Generic(                 \
+        (dev),                \
+        const device_t*: (const irq_ctrl_ops_t*)((dev)->driver_ops))
+        

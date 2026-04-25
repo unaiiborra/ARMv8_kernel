@@ -7,7 +7,7 @@
 
 #include "drivers/gicv3.h"
 #include "kernel/devices/device.h"
-#include "kernel/devices/drivers.h"
+#include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/io/stdio.h"
 #include "kernel/panic.h"
 #include "lib/branch.h"
@@ -52,12 +52,6 @@ static irq_entry_t irq_table[MAX_IRQS];
     return device_get_primary(DEVICE_CLASS_IRQ_CTRL);
 }
 
-[[gnu::always_inline]] static inline const irq_ctrl_ops_t* irq_ops(
-    const device_t* dev)
-{
-    return (const irq_ctrl_ops_t*)dev->driver_ops;
-}
-
 [[gnu::always_inline]] static inline driver_handle_t irq_driver_handle(
     const device_t* dev)
 {
@@ -73,7 +67,7 @@ static void irq_ctrl_config(
     uint8_t                priority)
 {
     const device_t*       dev = irq_dev();
-    const irq_ctrl_ops_t* ops = irq_ops(dev);
+    const irq_ctrl_ops_t* ops = get_irq_ctrl_ops(dev);
     driver_handle_t       h   = irq_driver_handle(dev);
 
     dbgT(int32_t) op_res[4];
@@ -81,7 +75,7 @@ static void irq_ctrl_config(
     op_res[0] = ops->irq_set_priority(h, irq_id, priority);
     op_res[1] = ops->irq_set_trigger(h, irq_id, trigger);
     op_res[2] = ops->irq_set_target(h, irq_id, target_cpu);
-    op_res[3] = ops->irq_enable(h, irq_id);
+    op_res[3] = ops->irq_enable_id(h, irq_id);
 
 #ifdef DEBUG
     for (size_t i = 0; i < 4; i++)
@@ -174,11 +168,11 @@ void irq_unregister(uint32_t irq_id)
     ASSERT(ok);
 
     const device_t*       dev = irq_dev();
-    const irq_ctrl_ops_t* ops = irq_ops(dev);
+    const irq_ctrl_ops_t* ops = get_irq_ctrl_ops(dev);
     driver_handle_t       h   = irq_driver_handle(dev);
 
 
-    dbgT(int32_t) op_res = ops->irq_disable(h, irq_id);
+    dbgT(int32_t) op_res = ops->irq_disable_id(h, irq_id);
     DEBUG_ASSERT(op_res >= 0);
 
 
@@ -202,15 +196,16 @@ void irq_dispatch()
 {
     dbgT(int32_t) op_res;
     const device_t*       dev    = irq_dev();
-    const irq_ctrl_ops_t* ops    = irq_ops(dev);
+    const irq_ctrl_ops_t* ops    = get_irq_ctrl_ops(dev);
     driver_handle_t       handle = irq_driver_handle(dev);
 
     uint32_t irq = ops->irq_ack(handle);
 
     irq_entry_t* entry = &irq_table[irq];
 
-    irq_register_status status =
-        atomic_load_explicit(&entry->register_status, memory_order_acquire);
+    irq_register_status status = atomic_load_explicit(
+        &entry->register_status,
+        memory_order_acquire);
 
     if (unlikely(status != IRQ_REGISTERED)) {
         dbg_printf(DEBUG_TRACE, "irqid %d arrived but not registered!", irq);
@@ -229,9 +224,10 @@ void irq_dispatch()
             break;
         }
         case DRIVER_HANDLER: {
-            driver_ctx_t*   dctx = entry->ctx;
-            const device_t* drv_dev =
-                device_get_by_name(dctx->driver_class, dctx->driver_name);
+            driver_ctx_t*   dctx    = entry->ctx;
+            const device_t* drv_dev = device_get_by_name(
+                dctx->driver_class,
+                dctx->driver_name);
             ASSERT(drv_dev != NULL, "irq_dispatch: driver not found");
 
             driver_handle_t drv_handle = device_get_driver_handle(drv_dev);

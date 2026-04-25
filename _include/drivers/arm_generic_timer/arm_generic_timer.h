@@ -2,6 +2,8 @@
 
 
 #include <kernel/devices/device.h>
+#include <kernel/devices/driver_ops/clocksource.h>
+#include <kernel/devices/driver_ops/timer.h>
 #include <lib/lock.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -83,3 +85,7 @@ bool AGT_timer_has_fired(const driver_handle* h);
 
 /// cancels the scheduled timer
 void AGT_timer_cancel(const driver_handle* h);
+
+
+extern const timer_ops_t* const       ARM_GENERIC_TIMER_OPS;
+extern const clocksource_ops_t* const ARM_GENERIC_TIMER_CLOCKSOURCE_OPS;

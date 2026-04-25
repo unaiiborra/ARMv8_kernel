@@ -75,19 +75,21 @@ static void handle_tx_ready_notification(void* ctx)
 
 static void handle_notify_activation(io_term* io, bool finished_output)
 {
+    const device_t* output_dev =
+        (io->device_name == NULL)
+            ? device_get_primary(DEVICE_CLASS_SERIAL)
+            : device_get_by_name(DEVICE_CLASS_SERIAL, io->device_name);
+
+    driver_handle_t     handle = device_get_driver_handle(output_dev);
+    const serial_ops_t* ops    = ((serial_ops_t*)output_dev->driver_ops);
+
+
     irq_spinlocked(&io->lock)
     {
         bool notify_enabled = io->notify_enabled;
 
         if (finished_output == !notify_enabled)
             return;
-
-        const device_t* output_dev =
-            (io->device_name == NULL)
-                ? device_get_primary(DEVICE_CLASS_SERIAL)
-                : device_get_by_name(DEVICE_CLASS_SERIAL, io->device_name);
-        driver_handle_t     handle = device_get_driver_handle(output_dev);
-        const serial_ops_t* ops    = ((serial_ops_t*)output_dev->driver_ops);
 
         int32_t res;
         if (finished_output) {

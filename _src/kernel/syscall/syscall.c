@@ -1,6 +1,7 @@
 #include <arm/exceptions/ctx.h>
 #include <kernel/scheduler.h>
 #include <kernel/syscall.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "sysc_handlers.h"
@@ -15,9 +16,9 @@ static const syscall_handler SYSC64_TABLE[SYSC_COUNT] = {
 };
 
 
-static inline void sysc64_set_result(arm_ctx* ectx, int64_t result)
+static inline void sysc64_set_result(arm_ctx* ctx, int64_t result)
 {
-    ectx->x[SYSC64_RETURN_REG] = result;
+    ctx->x[SYSC64_RETURN_REG] = result;
 }
 
 
@@ -25,7 +26,7 @@ void sysc64_dispatch()
 {
     arm_ctx* ctx = &get_current_thread()->ctx;
 
-    const syscall_e sysc = ctx->x[SYSC64_SYSCNUM_REG];
+    size_t sysc = ctx->x[SYSC64_SYSCNUM_REG];
 
     if (sysc >= SYSC_COUNT)
         return sysc64_set_result(ctx, SYSC64_RES_UNKNOWN);

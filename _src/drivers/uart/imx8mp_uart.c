@@ -3,33 +3,14 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/lock.h>
+#include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "drivers/uart/raw/uart_usr1.h"
-#include "drivers/uart/raw/uart_usr2.h"
-#include "drivers/uart/raw/uart_uts.h"
-#include "kernel/devices/device.h"
-#include "kernel/devices/drivers.h"
-#include "kernel/io/term.h"
-#include "lib/branch.h"
-#include "lib/mem.h"
-#include "lib/stdbitfield.h"
-#include "lib/stdmacros.h"
-#include "target/imx8mp.h"
+
 
 #define RX_FIFO_SZ 32
 #define TX_FIFO_SZ 32
-
-
-// // Rust fns (driver buffer control)
-
-// extern bool uart_txbuf_push(const driver_handle* h, uint8_t v);
-// extern bool uart_rxbuf_push(const driver_handle* h, uint8_t v);
-// extern bool uart_txbuf_pop(const driver_handle* h, uint8_t* v);
-// extern bool uart_rxbuf_pop(const driver_handle* h, uint8_t* v);
-
-
 
 
 typedef enum {
@@ -290,18 +271,6 @@ static int32_t imx8mp_uart_putc(driver_handle_t handle, char c)
     UART_UTXD_write(handle.base, c);
 
     return 0;
-}
-
-
-static int32_t imx8mp_uart_rx_sz([[maybe_unused]] driver_handle_t handle)
-{
-    return RX_FIFO_SZ;
-}
-
-
-static int32_t imx8mp_uart_tx_sz([[maybe_unused]] driver_handle_t handle)
-{
-    return TX_FIFO_SZ;
 }
 
 
@@ -568,8 +537,8 @@ static const serial_ops_t OPS = {
     .tx_full       = imx8mp_uart_tx_full,
     .getc          = imx8mp_uart_getc,
     .putc          = imx8mp_uart_putc,
-    .rx_sz         = imx8mp_uart_rx_sz,
-    .tx_sz         = imx8mp_uart_tx_sz,
+    .rx_sz         = RX_FIFO_SZ,
+    .tx_sz         = TX_FIFO_SZ,
     .irq_enable    = imx8mp_uart_irq_enable,
     .irq_disable   = imx8mp_uart_irq_disable,
     .irq_notify_rx = imx8mp_uart_irq_notify_rx,

@@ -2,8 +2,8 @@
 #include <drivers/uart/uart.h>
 #include <kernel/devices/drivers.h>
 #include <lib/stdmacros.h>
+#include <target/device_map.h>
 
-#include "device_map.h"
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "kernel/mm.h"
 

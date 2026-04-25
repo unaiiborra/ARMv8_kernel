@@ -7,8 +7,8 @@
 #include <kernel/devices/drivers.h>
 #include <kernel/init.h>
 #include <lib/stdmacros.h>
+#include <target/device_map.h>
 
-#include "../devices/device_map.h"
 #include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/irq_ctrl.h"
@@ -29,10 +29,6 @@
 static void tmu_irq_wrapper(void* ctx)
 {
     TMU_handle_irq(ctx);
-}
-static void agt_irq_wrapper(void* ctx)
-{
-    AGT_handle_irq(ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -92,21 +88,30 @@ KERNEL_INITCALL(tmu_irq_register);
 // AGT (PPI — irq 27)
 // ---------------------------------------------------------------------------
 
-static void agt_driver_init()
+static void agt_register()
 {
-    AGT_init(&AGT0_DRIVER);
-}
+    device_register(
+        "arm/generic-timer/clocksource",
+        DEVICE_CLASS_CLOCKSOURCE,
+        255,
+        0x0,
+        ARM_GENERIC_TIMER_CLOCKSOURCE_OPS);
 
-static void agt_irq_register()
-{
-    irq_register(
+    device_register(
+        "arm/generic-timer/timer",
+        DEVICE_CLASS_TIMER,
+        255,
+        0x0,
+        ARM_GENERIC_TIMER_OPS);
+
+    irq_register_driver(
         27,
-        agt_irq_wrapper,
-        &AGT0_DRIVER,
+        "arm/generic-timer/timer",
+        DEVICE_CLASS_TIMER,
+        ARM_GENERIC_TIMER_OPS->irq_handle,
         TRIGGER_LEVEL_SENSITIVE,
         arm_get_cpu_affinity_as_u32(),
-        0x80);
+        0x90);
 }
 
-KERNEL_INITCALL(agt_driver_init);
-KERNEL_INITCALL(agt_irq_register);
+KERNEL_INITCALL(agt_register);

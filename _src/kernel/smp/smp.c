@@ -2,7 +2,6 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/smp.h>
-#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
