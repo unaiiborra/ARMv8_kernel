@@ -28,10 +28,10 @@ void irq_register(
     uint8_t                priority);
 
 void irq_register_driver(
-    uint32_t       irq_id,
-    const char*    driver_name,
-    device_class_t driver_class,
-    void (*driver_irq_handler)(driver_handle_t handle),
+    uint32_t               irq_id,
+    const char*            driver_name,
+    device_class_t         driver_class,
+    const void* const      driver_ops,
     irq_ctrl_ops_trigger_t trigger,
     cpuid_t                target_cpu,
     uint8_t                priority);

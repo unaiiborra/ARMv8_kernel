@@ -23,8 +23,8 @@ typedef struct {
     int32_t (*getc)(driver_handle_t handle);
     int32_t (*putc)(driver_handle_t handle, char c);
 
-    int32_t rx_sz;
-    int32_t tx_sz;
+    int32_t rx_size;
+    int32_t tx_size;
 
     int32_t (*irq_enable)(driver_handle_t handle);
     int32_t (*irq_disable)(driver_handle_t handle);
@@ -47,4 +47,3 @@ typedef struct {
 
 #define get_serial_ops(dev) \
     _Generic((dev), const device_t*: (const serial_ops_t*)((dev)->driver_ops))
-    

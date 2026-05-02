@@ -6,6 +6,7 @@
 #include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stddef.h>
@@ -54,7 +55,7 @@ static void im_free(void* addr)
 }
 
 
-void early_identity_mapping()
+safe_early void early_identity_mapping()
 {
     mmu_core_handle* core0_handle = mm_mmu_core_handler_get_self();
 

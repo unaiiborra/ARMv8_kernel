@@ -8,6 +8,7 @@
 #include <lib/align.h>
 #include <lib/math.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdbitfield.h>
 #include <lib/stdmacros.h>
 #include <lib/unit/mem.h>
@@ -68,7 +69,7 @@ static inline vmalloc_lists list_from_va(vuintptr_t uva)
 }
 
 
-void vmalloc_init()
+safe_early void vmalloc_init()
 {
     vmalloc_init_containers();
     vmalloc_pa_mdt_init();
@@ -94,7 +95,7 @@ void vmalloc_init()
 }
 
 
-vuintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n)
+safe_early vuintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n)
 {
     ASSERT(fva_kmap_list && fva_dynamic_list, "vmalloc: not initialized");
     ASSERT(
@@ -223,8 +224,8 @@ static inline bool dynamic_fits_page_aligned(
 /// p: the requested physical address in case of KMAP_LIST, else ignored
 static vuintptr_t pop_fva(const vmalloc_lists l, size_t pages, puintptr_t p)
 {
-    fva_node** const list =
-        (l == KMAP_LIST) ? &fva_kmap_list : &fva_dynamic_list;
+    fva_node** const list = (l == KMAP_LIST) ? &fva_kmap_list
+                                             : &fva_dynamic_list;
 
     DEBUG_ASSERT(list, "vmalloc: no available free va");
 
@@ -232,9 +233,9 @@ static vuintptr_t pop_fva(const vmalloc_lists l, size_t pages, puintptr_t p)
     fva_node* cur   = *list;
     fva_node* prev  = NULL;
 
-    vuintptr_t kmap_va =
-        l == KMAP_LIST ? vunsign(kpa_to_kva(p)) : (vuintptr_t)NULL;
-    fva_node *fits_dynamic_unaligned      = NULL,
+    vuintptr_t kmap_va                = l == KMAP_LIST ? vunsign(kpa_to_kva(p))
+                                                       : (vuintptr_t)NULL;
+    fva_node * fits_dynamic_unaligned = NULL,
              *fits_dynamic_unaligned_prev = NULL;
 
     size_t pg_align;
@@ -297,10 +298,10 @@ static vuintptr_t pop_fva(const vmalloc_lists l, size_t pages, puintptr_t p)
 
 static void push_fva(const vmalloc_lists l, vuintptr_t va, size_t bytes)
 {
-    fva_node** const list =
-        (l == KMAP_LIST) ? &fva_kmap_list : &fva_dynamic_list;
-    fva_node* cur  = *list;
-    fva_node* prev = NULL;
+    fva_node** const list = (l == KMAP_LIST) ? &fva_kmap_list
+                                             : &fva_dynamic_list;
+    fva_node*        cur  = *list;
+    fva_node*        prev = NULL;
 
 
     while (cur && cur->start < va) {
@@ -478,8 +479,11 @@ static rva_node* push_rva(
 }
 
 
-vuintptr_t
-vmalloc(size_t pages, const char* tag, vmalloc_cfg cfg, vmalloc_token* t)
+vuintptr_t vmalloc(
+    size_t         pages,
+    const char*    tag,
+    vmalloc_cfg    cfg,
+    vmalloc_token* t)
 {
     vmalloc_lists l = cfg.kmap.use_kmap ? KMAP_LIST : DYNAMIC_LIST;
 
@@ -646,8 +650,9 @@ static void validate_vmalloc_token(vmalloc_token t)
         rva_node* cur = lists[i];
         while (cur) {
             if (cur == (rva_node*)t.rva_) {
-                vmalloc_container* c =
-                    (vmalloc_container*)align_down((uintptr_t)cur, PAGE_ALIGN);
+                vmalloc_container* c = (vmalloc_container*)align_down(
+                    (uintptr_t)cur,
+                    PAGE_ALIGN);
                 rva_node* base = &c->rva.data.nodes[0];
 
 #    define T typeof(c->rva.data.reserved_nodes[0])

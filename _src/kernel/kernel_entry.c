@@ -47,10 +47,12 @@ static void notify(void* time)
 
     timer_ops->irq_notify_tick(
         timer_handle,
-        t->freq + clocksource_ops->get_ticks(clocksource_handle),
+        t->freq + clocksource_ops->get_tick(clocksource_handle),
         notify,
         time);
 }
+
+
 
 
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
@@ -91,7 +93,7 @@ noreturn void kernel_entry()
     timer_ops->init(timer_handle);
     timer_ops->irq_notify_tick(
         timer_handle,
-        freq + clocksource_ops->get_ticks(clocksource_handle),
+        freq + clocksource_ops->get_tick(clocksource_handle),
         notify,
         &ctx);
 

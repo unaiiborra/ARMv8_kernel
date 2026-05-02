@@ -1,21 +1,24 @@
 #include <arm/mmu.h>
 #include <kernel/mm.h>
+#include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/unit/mem.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "../init/mem_regions/early_kalloc.h"
-#include "kernel/mm/mmu.h"
 
-extern noreturn void
-_jmp_to_with_offset(puintptr_t to, size_t offset, uint64_t ctx);
+extern noreturn void _jmp_to_with_offset(
+    puintptr_t to,
+    size_t     offset,
+    uint64_t   ctx);
 extern noreturn void _reloc_cfg_end(void);
 
 
-void mm_reloc(void* va_ret_addr)
+safe_early void mm_reloc(void* va_ret_addr)
 {
     ASSERT(mmu_is_active());
 
@@ -56,8 +59,8 @@ void early_reloc_cfg_end()
     size_t        n;
 
     early_kalloc_get_memregs(&mblcks, &n);
-    vuintptr_t free_heap_start =
-        kpa_to_kva(mblcks[n - 1].addr + (mblcks[n - 1].pages * PAGE_SIZE));
+    vuintptr_t free_heap_start = kpa_to_kva(
+        mblcks[n - 1].addr + (mblcks[n - 1].pages * PAGE_SIZE));
 
 
     mmu_core_handle* ch = mm_mmu_core_handler_get_self();

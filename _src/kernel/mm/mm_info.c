@@ -4,6 +4,7 @@
 #include <kernel/panic.h>
 #include <lib/math.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -75,7 +76,7 @@ static bool is_valid_ksection(mm_ksection k)
 /// all this definitions are mostly hardcoded for the imx8mp, the idea is that
 /// they should come from a dtb file or any other valid source that allows the
 /// kernel to dynamically initialize itself
-void mm_info_init()
+safe_early void mm_info_init()
 {
     extern void _start();
 
@@ -84,8 +85,8 @@ void mm_info_init()
 
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
-        mem_region r =
-            ((const mem_region* const)as_kpa(MEM_REGIONS.REGIONS))[i];
+        mem_region r = ((const mem_region* const)as_kpa(
+            MEM_REGIONS.REGIONS))[i];
 
         switch (r.type) {
             case MEM_REGION_RESERVED:

@@ -17,7 +17,7 @@ CPPSTD		:= gnu++20
 
 ASM_FLAGS   = $(DEFINES) -I$(INCLUDE_DIR)
 
-CX_FLAGS 	= $(OPT_LEVEL) $(DEFINES) -mgeneral-regs-only -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include
+CX_FLAGS 	= $(OPT_LEVEL) $(DEFINES) -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include
 
 C_FLAGS     = $(CX_FLAGS) -x c -std=$(CSTD)
 CPP_FLAGS   = $(CX_FLAGS) -x c++ -std=$(CPPSTD)

@@ -7,7 +7,11 @@
 
 #include "drivers/gicv3.h"
 #include "kernel/devices/device.h"
+#include "kernel/devices/driver_ops/clocksource.h"
 #include "kernel/devices/driver_ops/irq_ctrl.h"
+#include "kernel/devices/driver_ops/serial.h"
+#include "kernel/devices/driver_ops/thermal_sensor.h"
+#include "kernel/devices/driver_ops/timer.h"
 #include "kernel/io/stdio.h"
 #include "kernel/panic.h"
 #include "lib/branch.h"
@@ -41,6 +45,7 @@ typedef struct {
 typedef struct {
     char*          driver_name;
     device_class_t driver_class;
+    void*          driver_ops;
 } driver_ctx_t;
 
 
@@ -136,22 +141,59 @@ void irq_register(
 
 
 void irq_register_driver(
-    uint32_t       irq_id,
-    const char*    driver_name,
-    device_class_t driver_class,
-    void (*driver_irq_handler)(driver_handle_t handle),
+    uint32_t               irq_id,
+    const char*            driver_name,
+    device_class_t         driver_class,
+    const void* const      driver_ops,
     irq_ctrl_ops_trigger_t trigger,
     cpuid_t                target_cpu,
     uint8_t                priority)
 {
+    ASSERT(driver_class >= 0 && driver_class < DEVICE_CLASS_COUNT);
+
     driver_ctx_t* ctx = kmalloc(sizeof(driver_ctx_t));
 
     size_t size       = strlen(driver_name) + 1;
     ctx->driver_name  = kmalloc(size);
     ctx->driver_class = driver_class;
+
     strcopy(ctx->driver_name, driver_name, size);
 
-    irq_register_type(DRIVER_HANDLER, irq_id, driver_irq_handler, ctx);
+
+    void (*irq_handle)(driver_handle_t handle) = NULL;
+
+    switch (driver_class) {
+        case DEVICE_CLASS_IRQ_CTRL:
+            PANIC("DEVICE_CLASS_IRQ_CTRL irq should never be registered");
+            break;
+
+        case DEVICE_CLASS_SERIAL:
+            irq_handle = ((serial_ops_t*)driver_ops)->irq_handle;
+            break;
+
+        case DEVICE_CLASS_TIMER:
+            irq_handle = ((timer_ops_t*)driver_ops)->irq_handle;
+            break;
+
+        case DEVICE_CLASS_CLOCKSOURCE:
+            irq_handle = ((clocksource_ops_t*)driver_ops)->irq_handle;
+            break;
+
+        case DEVICE_CLASS_THERMAL_SENSOR:
+            irq_handle = ((thermal_sensor_ops_t*)driver_ops)->irq_handle;
+            break;
+
+
+
+        case DEVICE_CLASS_GENERIC:
+            PANIC("TODO:");
+        case DEVICE_CLASS_COUNT:
+            PANIC();
+            break;
+    }
+
+
+    irq_register_type(DRIVER_HANDLER, irq_id, irq_handle, ctx);
     irq_ctrl_config(irq_id, trigger, target_cpu, priority);
 }
 

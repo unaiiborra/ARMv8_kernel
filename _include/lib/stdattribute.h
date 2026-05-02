@@ -12,7 +12,7 @@
 
 
 // debug
-#define dbgT(T) [[maybe_unused]] T
+#define dbgT(T) attr(maybe_unused) T
 
 #ifdef DEBUG
 #    define dbg_mode() 1
@@ -21,3 +21,8 @@
 #    define dbg_mode() 0
 #    define dbg(code)
 #endif
+
+
+// safe for execution in early stages (with mmu disabled and alignment check
+// enforced)
+#define safe_early attr(gnu::target("general-regs-only"), gnu::cold)

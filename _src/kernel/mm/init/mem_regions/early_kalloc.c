@@ -16,6 +16,7 @@
 #include <lib/lock.h>
 #include <lib/math.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdbitfield.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
@@ -150,12 +151,14 @@ static void reserve_memreg(
     PANIC("reserve_memreg: region not free");
 }
 
-void early_kalloc_init()
+safe_early void early_kalloc_init()
 {
-    next_allocation_node =
-        (ek_node*)(align_down_pt(mm_info_ddr_end(), _Alignof(ek_node))) - 1;
-    first_node       = alloc_node();
-    first_node->next = NULL;
+    next_allocation_node = (ek_node*)(align_down_pt(
+                               mm_info_ddr_end(),
+                               _Alignof(ek_node))) -
+                           1;
+    first_node           = alloc_node();
+    first_node->next     = NULL;
 
     ek_node* p = NULL;
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
@@ -228,8 +231,11 @@ void early_kalloc_init()
 }
 
 
-pv_ptr
-early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
+pv_ptr early_kalloc(
+    size_t      bytes,
+    const char* tag,
+    bool        permanent,
+    bool        device_memory)
 {
     ASSERT(
         !early_kalloc_ended,
@@ -272,7 +278,9 @@ early_kalloc(size_t bytes, const char* tag, bool permanent, bool device_memory)
 }
 
 
-void early_kalloc_get_memregs(early_memreg** mregs, size_t* mreg_struct_count)
+safe_early void early_kalloc_get_memregs(
+    early_memreg** mregs,
+    size_t*        mreg_struct_count)
 {
     bool first_call = !early_kalloc_ended;
 

@@ -4,491 +4,119 @@
 #include <lib/lock.h>
 #include <lib/stdmacros.h>
 
-const int8_t TMU_MAX_SENSOR_TEMP_C = 125;
-const int8_t TMU_MIN_SENSOR_TEMP_C = -40;
-
-const int8_t TMU_MAX_RECCOMENDED_TEMP_C = 85;
-
-typedef enum {
-    TMU_NOT_INITIALIZED = 0,
-    TMU_STAGE0_INITIALIZED,
-    TMU_STAGE1_INITIALIZED,
-    TMU_FULLY_INITIALIZED = TMU_STAGE1_INITIALIZED,
-} tmu_init_stage;
-
-// Represents the bits in the local copy of enabled irqs in the state (bitfield8
-// irq_status)
-typedef enum {
-    TMU_IRQ_START = 0,
-    // Instantaneous warn
-    TMU_IRQ_ITTE0 = 0,
-    TMU_IRQ_ITTE1,
-    // Avg warn
-    TMU_IRQ_ATTE0,
-    TMU_IRQ_ATTE1,
-    // Avg critical
-    TMU_IRQ_ATCTE0,
-    TMU_IRQ_ATCTE1,
-
-    TMU_IRQ_COUNT,
-} tmu_irq;
-
-extern void _TMU_critical_hang(const driver_handle*, uint64_t);
 
 
+typedef struct {
+    spinlock_t lock;
 
-// Helper that checks if the TMU has been initialized and returns the cast of
-// the state as a helper
-static inline tmu_state* TMU_get_state_(const driver_handle* h)
+    void (*warn_handler)(void* ctx);
+    void* warn_ctx;
+
+    void (*critical_handler)(void* ctx);
+    void* critical_ctx;
+
+    bool warn_irq_enabled;
+    bool critical_irq_enabled;
+} tmu_state_t;
+
+
+[[gnu::always_inline]] static inline tmu_state_t* get_state(
+    driver_handle_t handle)
 {
-    tmu_state* state = (tmu_state*)h->state;
-
-
-    return state;
+    return (tmu_state_t*)(*handle.state);
 }
 
-static inline void TMU_disable_(const driver_handle* h)
+int32_t imx8mp_tmu_init(driver_handle_t handle)
 {
-    TmuTerValue r = TMU_TER_read(h->base);
+    ASSERT(*handle.state == NULL, "TMU: Multiple initialization");
 
-    TMU_TER_EN_set(&r, false);
-    TMU_TER_ADC_PD_set(&r, false);
-    TMU_TER_write(h->base, r);
-}
+    *handle.state = kmalloc(sizeof(tmu_state_t));
 
-static inline void TMU_enable_(const driver_handle* h)
-{
-    TmuTerValue r = TMU_TER_read(h->base);
+    tmu_state_t* state = get_state(handle);
 
-    TMU_TER_EN_set(&r, true);
-    TMU_TER_ADC_PD_set(&r, false);
-    TMU_TER_write(h->base, r);
-}
+    *state = (tmu_state_t) {
+        .lock                 = SPINLOCK_INIT,
+        .warn_handler         = NULL,
+        .warn_ctx             = NULL,
+        .critical_handler     = NULL,
+        .critical_ctx         = NULL,
+        .warn_irq_enabled     = false,
+        .critical_irq_enabled = false,
+    };
 
-static inline int8_t TMU_validate_max_temp_(int8_t temp_c)
-{
-    temp_c =
-        (temp_c <= TMU_MAX_SENSOR_TEMP_C) ? temp_c : TMU_MAX_RECCOMENDED_TEMP_C;
-    temp_c =
-        (temp_c >= TMU_MIN_SENSOR_TEMP_C) ? temp_c : TMU_MAX_RECCOMENDED_TEMP_C;
-    return temp_c;
-}
-
-static inline bool TMU_get_irq_status_(const driver_handle* h, tmu_irq irq)
-{
-    tmu_state* state = (tmu_state*)h->state;
-
-    return bitfield_get((state->irq_status), irq);
-}
-
-static inline void
-TMU_set_irq_status_(const driver_handle* h, tmu_irq irq, bool enable)
-{
-    if (enable == TMU_get_irq_status_(h, irq))
-        return;
-
-    tmu_state* state = (tmu_state*)h->state;
-
-    TmuTierValue tier = TMU_TIER_read(h->base);
-    switch (irq) {
-        case TMU_IRQ_ITTE0:
-            TMU_TIER_ITTEIE0_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ITTE0)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ITTE0);
-            break;
-        case TMU_IRQ_ITTE1:
-            TMU_TIER_ITTEIE1_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ITTE1)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ITTE1);
-            break;
-        case TMU_IRQ_ATTE0:
-            TMU_TIER_ATTEIE0_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ATTE0)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ATTE0);
-            break;
-        case TMU_IRQ_ATTE1:
-            TMU_TIER_ATTEIE1_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ATTE1)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ATTE1);
-            break;
-        case TMU_IRQ_ATCTE0:
-            TMU_TIER_ATCTEIE0_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ATCTE0)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ATCTE0);
-            break;
-        case TMU_IRQ_ATCTE1:
-            TMU_TIER_ATCTEIE1_set(&tier, enable);
-            enable ? bitfield_set_high((state->irq_status), TMU_IRQ_ATCTE1)
-                   : bitfield_clear((state->irq_status), TMU_IRQ_ATCTE1);
-            break;
-        default:
-            PANIC("");
-    }
-
-    TMU_TIER_write(h->base, tier);
-}
-
-// Disables/enables both irq0 and 1 of the status, to avoid an irq arriving
-// while disabling one with TMU_set_irq_status and the other one not being
-// disabled.
-static inline void
-TMU_ATTEX_irq_status_set_(const driver_handle* h, bool atte0, bool atte1)
-{
-    tmu_state* state = TMU_get_state_(h);
-
-    if (atte0 == TMU_get_irq_status_(h, TMU_IRQ_ATTE0) &&
-        atte1 == TMU_get_irq_status_(h, TMU_IRQ_ATTE1))
-        return;
-
-    TmuTierValue tier = TMU_TIER_read(h->base);
-    TMU_TIER_ATTEIE0_set(&tier, atte0);
-    TMU_TIER_ATTEIE1_set(&tier, atte1);
-    TMU_TIER_write(h->base, tier);
-
-    atte0 ? bitfield_set_high((state->irq_status), TMU_IRQ_ATTE0)
-          : bitfield_clear((state->irq_status), TMU_IRQ_ATTE0);
-    atte1 ? bitfield_set_high((state->irq_status), TMU_IRQ_ATTE1)
-          : bitfield_clear((state->irq_status), TMU_IRQ_ATTE1);
-}
-
-static inline bitfield8 TMU_get_irq_sources_(const driver_handle* h)
-{
-    TmuTidrValue tidr = TMU_TIDR_read(h->base);
-
-    bitfield8 sources = 0;
-
-#define SET_SRC(bit, status) \
-    sources |= ((bitfield8)(((status) & TMU_get_irq_status_(h, bit)) << (bit)))
-
-    SET_SRC(TMU_IRQ_ITTE0, TMU_TIDR_ITTE0_get(tidr));
-    SET_SRC(TMU_IRQ_ITTE1, TMU_TIDR_ITTE1_get(tidr));
-    SET_SRC(TMU_IRQ_ATTE0, TMU_TIDR_ATTE0_get(tidr));
-    SET_SRC(TMU_IRQ_ATTE1, TMU_TIDR_ATTE1_get(tidr));
-    SET_SRC(TMU_IRQ_ATCTE0, TMU_TIDR_ATCTE0_get(tidr));
-    SET_SRC(TMU_IRQ_ATCTE1, TMU_TIDR_ATCTE1_get(tidr));
-
-#undef SET_SRC
-    return sources;
-}
-
-static inline void TMU_ack_irq_(const driver_handle* h, tmu_irq irq)
-{
-    TmuTidrValue r = {0};
-
-    switch (irq) {
-        case TMU_IRQ_ITTE0:
-            TMU_TIDR_ITTE0_set(&r, true);
-            break;
-        case TMU_IRQ_ITTE1:
-            TMU_TIDR_ITTE1_set(&r, true);
-            break;
-        case TMU_IRQ_ATTE0:
-            TMU_TIDR_ATTE0_set(&r, true);
-            break;
-        case TMU_IRQ_ATTE1:
-            TMU_TIDR_ATTE1_set(&r, true);
-            break;
-        case TMU_IRQ_ATCTE0:
-            TMU_TIDR_ATCTE0_set(&r, true);
-            break;
-        case TMU_IRQ_ATCTE1:
-            TMU_TIDR_ATCTE1_set(&r, true);
-            break;
-        default:
-            PANIC("");
-    }
-
-    TMU_TIDR_write(h->base, r);
-}
-
-void TMU_init(const driver_handle* h, tmu_cfg cfg)
-{
-    tmu_state* state = (tmu_state*)h->state;
-
-    state->cfg          = cfg;
-    state->irq_status   = 0;
-    state->warn_pending = false;
-
-    TMU_disable_(h);
-
+    // Disable TMU before touching any register
     TmuTerValue ter = {0};
     TMU_TER_EN_set(&ter, false);
     TMU_TER_ADC_PD_set(&ter, false);
-    TMU_TER_ALPF_set(&ter, TER_ALPF_VALUE_0_5); // 0.5 low pass filter
-    TMU_TER_write(h->base, ter);
+    TMU_TER_ALPF_set(&ter, TER_ALPF_VALUE_0_5);
+    TMU_TER_write(handle.base, ter);
 
+    // Both probes
     TmuTpsValue tps = {0};
     TMU_TPS_PROBE_SEL_set(&tps, TMU_TPS_PROBE_SEL_BOTH_PROBES);
-    TMU_TPS_write(h->base, tps);
+    TMU_TPS_write(handle.base, tps);
 
-
-    // Disable average threashold
-    TmuTmhtatrValue tmhtatr = TMU_TMHTATR_read(h->base);
+    // Disable all thresholds
+    TmuTmhtatrValue tmhtatr = {0};
     TMU_TMHTATR_EN0_set(&tmhtatr, false);
     TMU_TMHTATR_EN1_set(&tmhtatr, false);
-    TMU_TMHTATR_write(h->base, tmhtatr);
+    TMU_TMHTATR_write(handle.base, tmhtatr);
 
-    // Disable critical threashold
-    TmuTmhtactrValue tmhtactr = TMU_TMHTACTR_read(h->base);
+    TmuTmhtactrValue tmhtactr = {0};
     TMU_TMHTACTR_EN0_set(&tmhtactr, false);
     TMU_TMHTACTR_EN1_set(&tmhtactr, false);
-    TMU_TMHTACTR_write(h->base, tmhtactr);
+    TMU_TMHTACTR_write(handle.base, tmhtactr);
 
-    // Set new average treashold
-    int8_t warn_max = TMU_validate_max_temp_(state->cfg.warn_max);
-    TMU_TMHTATR_TEMP0_set(&tmhtatr, warn_max);
-    TMU_TMHTATR_TEMP1_set(&tmhtatr, warn_max);
-    TMU_TMHTATR_write(h->base, tmhtatr);
+    // Disable all IRQs
+    TmuTierValue tier = {0};
+    TMU_TIER_write(handle.base, tier);
 
-    // Set new critical treashold
-    int8_t critical_max = TMU_validate_max_temp_(state->cfg.critical_max);
-    TMU_TMHTACTR_TEMP0_set(&tmhtactr, critical_max);
-    TMU_TMHTACTR_TEMP1_set(&tmhtactr, critical_max);
-    TMU_TMHTACTR_write(h->base, tmhtactr);
+    // Enable TMU
+    TMU_TER_EN_set(&ter, true);
+    TMU_TER_write(handle.base, ter);
 
-    TMU_enable_(h); // Enable the tmu
-
-    // A delay of at least 5us is needed here to reset the TMU internal states
-    // of the last run. Otherwise, the old values might still be used, leading
-    // to unexpected results.
+    // Mandatory >=5us delay. TRM §5.4.3.1
     for (size_t i = 0; i < 20000; i++)
         asm volatile("nop");
 
-    // Enable warn threashold
-    TMU_TMHTATR_EN0_set(&tmhtatr, true);
-    TMU_TMHTATR_EN1_set(&tmhtatr, true);
-    TMU_TMHTATR_write(h->base, tmhtatr);
-
-    // Enable critical threashold
-    TMU_TMHTACTR_EN0_set(&tmhtactr, true);
-    TMU_TMHTACTR_EN1_set(&tmhtactr, true);
-    TMU_TMHTACTR_write(h->base, tmhtactr);
-
-    // Enable irqs
-    TMU_set_irq_status_(h, TMU_IRQ_ATTE0, true);
-    TMU_set_irq_status_(h, TMU_IRQ_ATTE1, true);
-    TMU_set_irq_status_(h, TMU_IRQ_ATCTE0, true);
-    TMU_set_irq_status_(h, TMU_IRQ_ATCTE1, true);
+    return 0;
 }
 
-
-typedef void (
-    *tmu_irq_handler)(const driver_handle* h, uint64_t probe); // probe 0 or 1
-
-// Irq handlers
-static void TMU_unhandled_irq_(const driver_handle*, uint64_t probe)
+int32_t imx8mp_tmu_exit(driver_handle_t handle)
 {
-    char* panic_msg = "Unhandled irq from probe0";
+    ASSERT(*handle.state != NULL, "TMU: Not initialized");
 
-    if (probe % 2 != 0)
-        panic_msg = "Unhandled irq from probe1";
+    tmu_state_t* state = get_state(handle);
 
-    PANIC(panic_msg);
-}
-
-// warning irq handler
-static void TMU_ATTEX_irq_handler_(const driver_handle* h, uint64_t probe)
-{
-
-
-    tmu_state* state = TMU_get_state_(h);
-
-    TMU_ack_irq_(h, (probe == 0) ? TMU_IRQ_ATTE0 : TMU_IRQ_ATTE1);
-
-    spinlocked(&state->state_lock)
-    { // It should never be locked by the same
-        // core as all the other locks use irqsave
-        TMU_ATTEX_irq_status_set_(h, false, false);
-        state->warn_pending = true;
-    }
-}
-
-static const tmu_irq_handler TMU_IRQ_HANDLERS_[TMU_IRQ_COUNT] = {
-    [TMU_IRQ_ITTE0] = TMU_unhandled_irq_,
-    [TMU_IRQ_ITTE1] = TMU_unhandled_irq_,
-    [TMU_IRQ_ATTE0] = TMU_ATTEX_irq_handler_,
-    [TMU_IRQ_ATTE1] = TMU_ATTEX_irq_handler_,
-    // If executed with TF-A it will never reach this point, the firmware will
-    // automatically take control
-    [TMU_IRQ_ATCTE0] = _TMU_critical_hang,
-    [TMU_IRQ_ATCTE1] = _TMU_critical_hang,
-};
-
-void TMU_handle_irq(const driver_handle* h)
-{
-
-
-    bitfield8 irq_sources = TMU_get_irq_sources_(h);
-
-    for (tmu_irq irq = TMU_IRQ_START; irq < TMU_IRQ_COUNT; irq++) {
-        if (bitfield_get(irq_sources, irq))
-            // The enum is defined so probe 0 is even and probe 1 is odd
-            TMU_IRQ_HANDLERS_[irq](h, irq % 2);
-    }
-}
-
-/*
- *  --- Driver interface fns ---
- */
-void TMU_set_warn_temp(const driver_handle* h, int8_t temp_c)
-{
-
-    tmu_state* state = TMU_get_state_(h);
-
-    irq_spinlocked(&state->state_lock)
+    irq_spinlocked(&state->lock)
     {
-        bool atte0_irq = TMU_get_irq_status_(h, TMU_IRQ_ATTE0);
-        bool atte1_irq = TMU_get_irq_status_(h, TMU_IRQ_ATTE1);
+        // Disable all IRQs and thresholds
+        TmuTierValue tier = {0};
+        TMU_TIER_write(handle.base, tier);
 
-        // They already have early returns if it is already disabled
-        TMU_ATTEX_irq_status_set_(h, false, false);
-
-        if (temp_c != TMU_validate_max_temp_(temp_c))
-            PANIC("Invalid temperature provided, out of sensor range");
-
-        TMU_disable_(h);
-
-        // Disable average threashold
-        TmuTmhtatrValue tmhtatr = TMU_TMHTATR_read(h->base);
+        TmuTmhtatrValue tmhtatr = TMU_TMHTATR_read(handle.base);
         TMU_TMHTATR_EN0_set(&tmhtatr, false);
         TMU_TMHTATR_EN1_set(&tmhtatr, false);
-        TMU_TMHTATR_write(h->base, tmhtatr);
+        TMU_TMHTATR_write(handle.base, tmhtatr);
 
-        // Set new average treashold
-        TMU_TMHTATR_TEMP0_set(&tmhtatr, temp_c);
-        TMU_TMHTATR_TEMP1_set(&tmhtatr, temp_c);
-        TMU_TMHTATR_write(h->base, tmhtatr);
-
-        TMU_enable_(h); // Enable the tmu
-
-        // A delay of at least 5us is needed here to reset the TMU internal
-        // states of the last run. Otherwise, the old values might still be
-        // used, leading to unexpected results.
-        for (size_t i = 0; i < 20000; i++)
-            asm volatile("nop");
-
-        // Enable warn threashold
-        TMU_TMHTATR_EN0_set(&tmhtatr, true);
-        TMU_TMHTATR_EN1_set(&tmhtatr, true);
-        TMU_TMHTATR_write(h->base, tmhtatr);
-
-        state->cfg.warn_max = temp_c;
-
-        TMU_ATTEX_irq_status_set_(h, atte0_irq, atte1_irq);
-    }
-}
-
-bool TMU_get_warnings_enabled(const driver_handle* h)
-{
-    tmu_state* state = TMU_get_state_(h);
-
-    irq_spinlocked(&state->state_lock)
-    {
-        return TMU_get_irq_status_(h, TMU_IRQ_ATTE0) ||
-               TMU_get_irq_status_(h, TMU_IRQ_ATTE1);
-    }
-
-    PANIC("");
-}
-
-void TMU_enable_warnings(const driver_handle* h)
-{
-    tmu_state* state = TMU_get_state_(h);
-
-    irq_spinlocked(&state->state_lock)
-    {
-        TMU_ATTEX_irq_status_set_(h, true, true);
-    }
-}
-
-void TMU_disable_warnings(const driver_handle* h)
-{
-    tmu_state* state = TMU_get_state_(h);
-
-    irq_spinlocked(&state->state_lock)
-    {
-        TMU_ATTEX_irq_status_set_(h, false, false);
-    }
-}
-
-// Tells if the warning temperature threashold was reached, calling this
-// function disables the pending state. When a warning arrives, the warning irq
-// is automatically disabled.
-bool TMU_warn_pending(const driver_handle* h)
-{
-    tmu_state* state = TMU_get_state_(h);
-
-    bool pending = false;
-
-    irq_spinlocked(&state->state_lock)
-    {
-        pending             = state->warn_pending;
-        state->warn_pending = false; // Ack the warning, the kernel must reinit
-
-        // the irqs if it wants new warnings
-    }
-
-    return pending;
-}
-
-// Critical irq allways active, TF-A will shut down the cpu automatically
-void TMU_set_critical_temp(const driver_handle* h, int8_t temp_c)
-{
-
-
-    tmu_state* state = TMU_get_state_(h);
-
-    irq_spinlocked(&state->state_lock)
-    {
-        TMU_set_irq_status_(h, TMU_IRQ_ATCTE0, false);
-        TMU_set_irq_status_(h, TMU_IRQ_ATCTE1, false);
-
-        if (temp_c != TMU_validate_max_temp_(temp_c))
-            PANIC("Invalid temperature provided, out of sensor range");
-
-        TMU_disable_(h);
-
-        // Disable average threashold
-        TmuTmhtactrValue tmhtactr = TMU_TMHTACTR_read(h->base);
+        TmuTmhtactrValue tmhtactr = TMU_TMHTACTR_read(handle.base);
         TMU_TMHTACTR_EN0_set(&tmhtactr, false);
         TMU_TMHTACTR_EN1_set(&tmhtactr, false);
-        TMU_TMHTACTR_write(h->base, tmhtactr);
+        TMU_TMHTACTR_write(handle.base, tmhtactr);
 
-        // Set new average treashold
-        TMU_TMHTACTR_TEMP0_set(&tmhtactr, temp_c);
-        TMU_TMHTACTR_TEMP1_set(&tmhtactr, temp_c);
-        TMU_TMHTACTR_write(h->base, tmhtactr);
-
-        TMU_enable_(h); // Enable the tmu
-
-        // A delay of at least 5us is needed here to reset the TMU internal
-        // states of the last run. Otherwise, the old values might still be
-        // used, leading to unexpected results.
-        for (size_t i = 0; i < 20000; i++)
-            asm volatile("nop");
-
-        // Enable warn threashold
-        TMU_TMHTACTR_EN0_set(&tmhtactr, true);
-        TMU_TMHTACTR_EN1_set(&tmhtactr, true);
-        TMU_TMHTACTR_write(h->base, tmhtactr);
-
-        state->cfg.critical_max = temp_c;
-
-        TMU_set_irq_status_(h, TMU_IRQ_ATCTE0, true);
-        TMU_set_irq_status_(h, TMU_IRQ_ATCTE1, true);
+        TmuTerValue ter = TMU_TER_read(handle.base);
+        TMU_TER_EN_set(&ter, false);
+        TMU_TER_write(handle.base, ter);
     }
+
+    kfree(*handle.state);
+    *handle.state = NULL;
+
+    return 0;
 }
 
-int8_t TMU_get_temp(const driver_handle* h)
+float imx8mp_tmu_read_current_celsius(driver_handle_t handle)
 {
-#ifdef TEST
-    TMU_get_state_(h); // panics if not init
-
-    TmuTpsValue ter = TMU_TPS_read(h->base);
-    if (TMU_TPS_PROBE_SEL_get(ter) != TMU_TPS_PROBE_SEL_BOTH_PROBES)
-        PANIC("TMU not initialized correctly");
-#endif
-
     TmuTratsrValue r = {0};
 
     bool   ready[2] = {false, false};
@@ -496,28 +124,15 @@ int8_t TMU_get_temp(const driver_handle* h)
 
     size_t attempts = 0;
     while (1) {
-        r = TMU_TRATSR_read(h->base);
+        r = TMU_TRATSR_read(handle.base);
 
-        for (size_t i = 0; i < 2; i++) {
-            if (!ready[i]) {
-                switch (i) {
-                    case 0:
-                        ready[i] = TMU_TRATSR_V0_get(r);
-                        break;
-                    case 1:
-                        ready[i] = TMU_TRATSR_V1_get(r);
-                }
-
-                if (ready[i]) {
-                    switch (i) {
-                        case 0:
-                            temps[i] = TMU_TRATSR_TEMP0_get(r);
-                            break;
-                        case 1:
-                            temps[i] = TMU_TRATSR_TEMP1_get(r);
-                    }
-                }
-            }
+        if (!ready[0] && TMU_TRATSR_V0_get(r)) {
+            ready[0] = true;
+            temps[0] = TMU_TRATSR_TEMP0_get(r);
+        }
+        if (!ready[1] && TMU_TRATSR_V1_get(r)) {
+            ready[1] = true;
+            temps[1] = TMU_TRATSR_TEMP1_get(r);
         }
 
         if (ready[0] && ready[1])
@@ -528,5 +143,219 @@ int8_t TMU_get_temp(const driver_handle* h)
     }
 
     int8_t max = (temps[0] > temps[1]) ? temps[0] : temps[1];
-    return max;
+    return (float)max;
 }
+
+int32_t imx8mp_tmu_irq_enable(driver_handle_t handle)
+{
+    tmu_state_t* state = get_state(handle);
+
+    irq_spinlocked(&state->lock)
+    {
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+
+        if (state->warn_handler) {
+            TMU_TIER_ATTEIE0_set(&tier, true);
+            TMU_TIER_ATTEIE1_set(&tier, true);
+            state->warn_irq_enabled = true;
+        }
+
+        if (state->critical_handler) {
+            TMU_TIER_ATCTEIE0_set(&tier, true);
+            TMU_TIER_ATCTEIE1_set(&tier, true);
+            state->critical_irq_enabled = true;
+        }
+
+        TMU_TIER_write(handle.base, tier);
+    }
+
+    return 0;
+}
+
+int32_t imx8mp_tmu_irq_disable(driver_handle_t handle)
+{
+    tmu_state_t* state = get_state(handle);
+
+    irq_spinlocked(&state->lock)
+    {
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+        TMU_TIER_ATTEIE0_set(&tier, false);
+        TMU_TIER_ATTEIE1_set(&tier, false);
+        TMU_TIER_ATCTEIE0_set(&tier, false);
+        TMU_TIER_ATCTEIE1_set(&tier, false);
+        TMU_TIER_write(handle.base, tier);
+
+        state->warn_irq_enabled     = false;
+        state->critical_irq_enabled = false;
+    }
+
+    return 0;
+}
+
+int32_t imx8mp_tmu_irq_notify_warn_over(
+    driver_handle_t handle,
+    float           threshold,
+    void (*handler)(void* ctx),
+    void* ctx)
+{
+    tmu_state_t* state  = get_state(handle);
+    int8_t       temp_c = (int8_t)threshold;
+
+    irq_spinlocked(&state->lock)
+    {
+        state->warn_handler = handler;
+        state->warn_ctx     = ctx;
+
+        // Disable warn IRQ while reconfiguring
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+        TMU_TIER_ATTEIE0_set(&tier, false);
+        TMU_TIER_ATTEIE1_set(&tier, false);
+        TMU_TIER_write(handle.base, tier);
+
+        // Reconfigure threshold. TRM §5.4.3.1
+        TmuTerValue ter = TMU_TER_read(handle.base);
+        TMU_TER_EN_set(&ter, false);
+        TMU_TER_write(handle.base, ter);
+
+        TmuTmhtatrValue tmhtatr = TMU_TMHTATR_read(handle.base);
+        TMU_TMHTATR_EN0_set(&tmhtatr, false);
+        TMU_TMHTATR_EN1_set(&tmhtatr, false);
+        TMU_TMHTATR_write(handle.base, tmhtatr);
+
+        TMU_TMHTATR_TEMP0_set(&tmhtatr, temp_c);
+        TMU_TMHTATR_TEMP1_set(&tmhtatr, temp_c);
+        TMU_TMHTATR_write(handle.base, tmhtatr);
+
+        TMU_TER_EN_set(&ter, true);
+        TMU_TER_write(handle.base, ter);
+
+        for (size_t i = 0; i < 20000; i++)
+            asm volatile("nop");
+
+        TMU_TMHTATR_EN0_set(&tmhtatr, true);
+        TMU_TMHTATR_EN1_set(&tmhtatr, true);
+        TMU_TMHTATR_write(handle.base, tmhtatr);
+
+        // Re-arm IRQ only if globally enabled
+        if (state->warn_irq_enabled) {
+            TMU_TIER_ATTEIE0_set(&tier, true);
+            TMU_TIER_ATTEIE1_set(&tier, true);
+            TMU_TIER_write(handle.base, tier);
+        }
+    }
+
+    return 0;
+}
+
+int32_t imx8mp_tmu_irq_notify_critical_over(
+    driver_handle_t handle,
+    float           threshold,
+    void (*handler)(void* ctx),
+    void* ctx)
+{
+    tmu_state_t* state  = get_state(handle);
+    int8_t       temp_c = (int8_t)threshold;
+
+    irq_spinlocked(&state->lock)
+    {
+        state->critical_handler = handler;
+        state->critical_ctx     = ctx;
+
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+        TMU_TIER_ATCTEIE0_set(&tier, false);
+        TMU_TIER_ATCTEIE1_set(&tier, false);
+        TMU_TIER_write(handle.base, tier);
+
+        TmuTerValue ter = TMU_TER_read(handle.base);
+        TMU_TER_EN_set(&ter, false);
+        TMU_TER_write(handle.base, ter);
+
+        TmuTmhtactrValue tmhtactr = TMU_TMHTACTR_read(handle.base);
+        TMU_TMHTACTR_EN0_set(&tmhtactr, false);
+        TMU_TMHTACTR_EN1_set(&tmhtactr, false);
+        TMU_TMHTACTR_write(handle.base, tmhtactr);
+
+        TMU_TMHTACTR_TEMP0_set(&tmhtactr, temp_c);
+        TMU_TMHTACTR_TEMP1_set(&tmhtactr, temp_c);
+        TMU_TMHTACTR_write(handle.base, tmhtactr);
+
+        TMU_TER_EN_set(&ter, true);
+        TMU_TER_write(handle.base, ter);
+
+        for (size_t i = 0; i < 20000; i++)
+            asm volatile("nop");
+
+        TMU_TMHTACTR_EN0_set(&tmhtactr, true);
+        TMU_TMHTACTR_EN1_set(&tmhtactr, true);
+        TMU_TMHTACTR_write(handle.base, tmhtactr);
+
+        if (state->critical_irq_enabled) {
+            TMU_TIER_ATCTEIE0_set(&tier, true);
+            TMU_TIER_ATCTEIE1_set(&tier, true);
+            TMU_TIER_write(handle.base, tier);
+        }
+    }
+
+    return 0;
+}
+
+void imx8mp_tmu_irq_handle(driver_handle_t handle)
+{
+    tmu_state_t* state = get_state(handle);
+
+    TmuTidrValue tidr = TMU_TIDR_read(handle.base);
+
+    bool warn0 = TMU_TIDR_ATTE0_get(tidr);
+    bool warn1 = TMU_TIDR_ATTE1_get(tidr);
+    bool crit0 = TMU_TIDR_ATCTE0_get(tidr);
+    bool crit1 = TMU_TIDR_ATCTE1_get(tidr);
+
+    // Ack everything seen in one write (TIDR is w1c)
+    TmuTidrValue ack = {0};
+    TMU_TIDR_ATTE0_set(&ack, warn0);
+    TMU_TIDR_ATTE1_set(&ack, warn1);
+    TMU_TIDR_ATCTE0_set(&ack, crit0);
+    TMU_TIDR_ATCTE1_set(&ack, crit1);
+    TMU_TIDR_write(handle.base, ack);
+
+    if (warn0 || warn1) {
+        // Disable warn IRQ until re-enabled, matching original behaviour
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+        TMU_TIER_ATTEIE0_set(&tier, false);
+        TMU_TIER_ATTEIE1_set(&tier, false);
+        TMU_TIER_write(handle.base, tier);
+        state->warn_irq_enabled = false;
+
+        if (state->warn_handler)
+            state->warn_handler(state->warn_ctx);
+    }
+
+    if (crit0 || crit1) {
+        TmuTierValue tier = TMU_TIER_read(handle.base);
+        TMU_TIER_ATCTEIE0_set(&tier, false);
+        TMU_TIER_ATCTEIE1_set(&tier, false);
+        TMU_TIER_write(handle.base, tier);
+        state->critical_irq_enabled = false;
+
+        if (state->critical_handler)
+            state->critical_handler(state->critical_ctx);
+    }
+}
+
+static const thermal_sensor_ops_t OPS = {
+    .init                      = imx8mp_tmu_init,
+    .exit                      = imx8mp_tmu_exit,
+    .precission                = 1.0f,
+    .min_celsius               = -40.0f,
+    .max_celsius               = 105.0f,
+    .read_current_celsius      = imx8mp_tmu_read_current_celsius,
+    .irq_enable                = imx8mp_tmu_irq_enable,
+    .irq_disable               = imx8mp_tmu_irq_disable,
+    .irq_notify_warn_over      = imx8mp_tmu_irq_notify_warn_over,
+    .irq_notify_warn_under     = NULL,
+    .irq_notify_critical_over  = imx8mp_tmu_irq_notify_critical_over,
+    .irq_notify_critical_under = NULL,
+    .irq_handle                = imx8mp_tmu_irq_handle,
+};
+
+const thermal_sensor_ops_t* const IMX8MP_THERMAL_MONITORING_UNIT_OPS = &OPS;

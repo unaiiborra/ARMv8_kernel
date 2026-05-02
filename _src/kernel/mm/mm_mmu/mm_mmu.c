@@ -2,16 +2,17 @@
 
 #include <arm/mmu.h>
 #include <kernel/hardware.h>
+#include <kernel/mm.h>
 #include <kernel/mm/mmu.h>
+#include <kernel/panic.h>
+#include <kernel/smp.h>
+#include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/internal/reserve_malloc.h"
-#include "kernel/mm.h"
-#include "kernel/panic.h"
-#include "kernel/smp.h"
-#include "lib/mem.h"
 
 
 static void*       mm_mmu_default_allocator(size_t bytes);
@@ -82,7 +83,7 @@ static void* unmapped_lo_allocator(size_t)
 }
 
 
-void mm_mmu_early_init()
+safe_early void mm_mmu_early_init()
 {
     UNMAPPED_LO = mmu_mapping_new(
         MMU_LO,

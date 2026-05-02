@@ -4,6 +4,7 @@
 #include <kernel/panic.h>
 #include <lib/lock.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdbitfield.h>
 #include <lib/string.h>
 #include <stddef.h>
@@ -23,7 +24,7 @@ static pv_ptr     reserved_addr[RESERVE_MALLOC_SIZE];
 static bitfield32 reserved_pages;
 
 
-void reserve_malloc_init()
+safe_early void reserve_malloc_init()
 {
     ASSERT(RESERVE_MALLOC_SIZE <= BITFIELD_CAPACITY(reserved_pages));
 
@@ -61,10 +62,10 @@ pv_ptr reserve_malloc(const char* new_tag)
 
                 if (new_tag) {
 #ifdef DEBUG
-                    const char* v_old_tag =
-                        vmalloc_update_tag(pmap.va, new_tag);
-                    const char* p_old_tag =
-                        page_allocator_update_tag(pmap.pa, new_tag);
+                    const char* v_old_tag = vmalloc_update_tag(pmap.va, new_tag);
+                    const char* p_old_tag = page_allocator_update_tag(
+                        pmap.pa,
+                        new_tag);
                     DEBUG_ASSERT(streq(v_old_tag, p_old_tag));
                     DEBUG_ASSERT(streq(v_old_tag, RESERVE_MALLOC_TAG));
                     DEBUG_ASSERT(streq(p_old_tag, RESERVE_MALLOC_TAG));

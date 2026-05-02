@@ -7,6 +7,7 @@
 #include <lib/align.h>
 #include <lib/math.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -432,13 +433,14 @@ static void reserve(uint32_t i, uint8_t o)
     set_order(get_node(cur), o);
 }
 
-void page_allocator_init()
+safe_early void page_allocator_init()
 {
     N         = mm_info_page_count();
     MAX_ORDER = log2_floor(N);
 
-    size_t free_list_bytes =
-        align_up(sizeof(uint32_t*) * MAX_ORDER, _Alignof(page_node));
+    size_t free_list_bytes = align_up(
+        sizeof(uint32_t*) * MAX_ORDER,
+        _Alignof(page_node));
     size_t nodes_bytes = sizeof(page_node) * N;
 
 
@@ -483,7 +485,7 @@ void page_allocator_init()
 }
 
 
-void page_allocator_update_memregs(const early_memreg* mregs, size_t n)
+safe_early void page_allocator_update_memregs(const early_memreg* mregs, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         early_memreg e = mregs[i];

@@ -1,5 +1,8 @@
 // The purpose of this file is to manually set the initialization stages of the
 // drivers, as a driver can need to initialize before and after irqs are enabled
+// NOTE: This should be actually managed by with a dtb file or similar, not
+// semihardcoded like it is, but because writing a module for dtb interpretation
+// escapes the current scope of the project, I just define it directly
 
 #include <arm/cpu.h>
 #include <drivers/tmu/tmu.h>
@@ -15,21 +18,6 @@
 #include "kernel/exception/irq.h"
 #include "target/imx8mp.h"
 
-// TODO: full remake of this file — legacy wrappers hasta migrar drivers al
-// nuevo sistema
-
-// ---------------------------------------------------------------------------
-// Legacy wrappers (driver_handle* → void* ctx)
-// ---------------------------------------------------------------------------
-
-// static void uart2_irq_wrapper(void* ctx)
-// {
-//     uart_handle_irq(ctx);
-// }
-static void tmu_irq_wrapper(void* ctx)
-{
-    TMU_handle_irq(ctx);
-}
 
 // ---------------------------------------------------------------------------
 // UART
@@ -48,10 +36,10 @@ static void uart_driver_register()
         IMX8MP_IRQ_UART2,
         "imx8mp/uart",
         DEVICE_CLASS_SERIAL,
-        IMX8MP_UART_OPS->irq_handle,
+        IMX8MP_UART_OPS,
         TRIGGER_LEVEL_SENSITIVE,
         arm_get_cpu_affinity_as_u32(),
-        0x90);
+        150);
 }
 
 KERNEL_INITCALL(uart_driver_register);
@@ -60,29 +48,27 @@ KERNEL_INITCALL(uart_driver_register);
 // TMU
 // ---------------------------------------------------------------------------
 
-static void tmu_driver_init()
+static void tmu_driver_register()
 {
-    TMU_init(
-        &TMU_DRIVER,
-        (tmu_cfg) {
-            .warn_max     = 40,
-            .critical_max = 85,
-        });
-}
+    device_register(
+        "imx8mp/thermal-monitoring-unit",
+        DEVICE_CLASS_THERMAL_SENSOR,
+        255,
+        UART2_BASE,
+        IMX8MP_THERMAL_MONITORING_UNIT_OPS);
 
-static void tmu_irq_register()
-{
-    irq_register(
+    irq_register_driver(
         IMX8MP_IRQ_ANAMIX_TEMP,
-        tmu_irq_wrapper,
-        &TMU_DRIVER,
+        "imx8mp/thermal-monitoring-unit",
+        DEVICE_CLASS_THERMAL_SENSOR,
+        IMX8MP_THERMAL_MONITORING_UNIT_OPS,
         TRIGGER_LEVEL_SENSITIVE,
         arm_get_cpu_affinity_as_u32(),
-        0x0);
+        0); // Max priority
 }
 
-KERNEL_INITCALL(tmu_driver_init);
-KERNEL_INITCALL(tmu_irq_register);
+KERNEL_INITCALL(tmu_driver_register);
+
 
 // ---------------------------------------------------------------------------
 // AGT (PPI — irq 27)
@@ -108,10 +94,10 @@ static void agt_register()
         27,
         "arm/generic-timer/timer",
         DEVICE_CLASS_TIMER,
-        ARM_GENERIC_TIMER_OPS->irq_handle,
+        ARM_GENERIC_TIMER_OPS,
         TRIGGER_LEVEL_SENSITIVE,
         arm_get_cpu_affinity_as_u32(),
-        0x90);
+        90);
 }
 
 KERNEL_INITCALL(agt_register);

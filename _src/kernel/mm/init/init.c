@@ -2,6 +2,7 @@
 #include <kernel/io/stdio.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
+#include <lib/stdattribute.h>
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/cache_malloc/cache_malloc.h"
@@ -15,7 +16,7 @@
 #include "identity_mapping.h"
 
 
-void mm_early_init()
+safe_early void mm_early_init()
 {
     mm_info_init();
 
@@ -42,14 +43,13 @@ void mm_early_init()
     size_t        n;
     early_kalloc_get_memregs(&mregs, &n);
 
-
     page_allocator_update_memregs(mregs, n);
     vmalloc_update_memregs(mregs, n);
 
 
     // early_reloc_cfg_end() returns to the kernel_entry() with the kernel
     // relocated and the sp resetted
-    
+
     mm_reloc(as_kva((void*)early_reloc_cfg_end));
 }
 
