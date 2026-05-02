@@ -1,5 +1,4 @@
-#include <drivers/uart/uart.h>
-#include <drivers/uart/uart_raw.h>
+#include <drivers/imx8mp_uart.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/lock.h>
@@ -7,6 +6,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "raw/uart_onems.h"
+#include "raw/uart_ubir.h"
+#include "raw/uart_ubmr.h"
+#include "raw/uart_ubrc.h"
+#include "raw/uart_ucr1.h"
+#include "raw/uart_ucr2.h"
+#include "raw/uart_ucr3.h"
+#include "raw/uart_ucr4.h"
+#include "raw/uart_uesc.h"
+#include "raw/uart_ufcr.h"
+#include "raw/uart_umcr.h"
+#include "raw/uart_urxd.h"
+#include "raw/uart_usr1.h"
+#include "raw/uart_usr2.h"
+#include "raw/uart_utim.h"
+#include "raw/uart_uts.h"
+#include "raw/uart_utxd.h"
 
 
 #define RX_FIFO_SZ 32

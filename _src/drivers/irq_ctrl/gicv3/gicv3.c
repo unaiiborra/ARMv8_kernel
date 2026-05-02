@@ -6,7 +6,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "raw/gicv3_raw.h" // IWYU pragma: keep
+#include "gicd_ctlr.h"
+#include "gicd_icenabler.h"
+#include "gicd_icfgr.h"
+#include "gicd_igroupr.h"
+#include "gicd_ipriorityr.h"
+#include "gicd_irouter.h"
+#include "gicd_isenabler.h"
+#include "gicd_typer.h"
+#include "gicr_icenabler0.h"
+#include "gicr_icfgr0.h"
+#include "gicr_igroupr0.h"
+#include "gicr_ipriorityr.h"
+#include "gicr_isenabler0.h"
+#include "gicr_waker.h"
 
 
 extern void     _GICV3_ARM_ICC_SRE_EL1_write(uint64_t v);

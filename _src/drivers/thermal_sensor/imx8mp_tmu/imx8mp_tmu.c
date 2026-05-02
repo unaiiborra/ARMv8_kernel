@@ -1,9 +1,25 @@
-#include <drivers/tmu/tmu.h>
-#include <drivers/tmu/tmu_raw.h>
+#include <drivers/imx8mp_tmu.h>
 #include <kernel/panic.h>
 #include <lib/lock.h>
 #include <lib/stdmacros.h>
 
+#include "tasr.h"
+#include "tcaliv0.h"
+#include "tcaliv1.h"
+#include "tcaliv_m40.h"
+#include "ter.h"
+#include "tidr.h"
+#include "tier.h"
+#include "tmhtactr.h"
+#include "tmhtatr.h"
+#include "tmhtitr.h"
+#include "tmu_map.h"
+#include "tps.h"
+#include "tratsr.h"
+#include "trim.h"
+#include "tritsr.h"
+#include "tscr.h"
+#include "ttmc.h"
 
 
 typedef struct {

@@ -2,7 +2,7 @@
 
 #include <lib/mmio/mmio_regs.h>
 #include <stddef.h>
-#include <stdint.h>
+
 #define MMIO_DECLARE_REG32_VALUE_STRUCT(RegValueStructName) \
     typedef struct {                                        \
         uint32_t val;                                       \

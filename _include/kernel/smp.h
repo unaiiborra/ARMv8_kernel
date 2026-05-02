@@ -16,7 +16,7 @@ void smp_init();
 
 
 
-static inline cpuid_t get_cpuid()
+[[gnu::always_inline]] static inline cpuid_t get_cpuid()
 {
     // TODO: allow for other affinities
     cpuid_t cpuid = sysreg_read(mpidr_el1) & 0xFF;

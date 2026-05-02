@@ -1,4 +1,4 @@
-#include <drivers/uart/uart.h>
+#include <drivers/imx8mp_uart.h>
 #include <kernel/devices/drivers.h>
 #include <kernel/io/stdio.h>
 #include <kernel/io/term.h>
@@ -75,10 +75,11 @@ static void handle_tx_ready_notification(void* ctx)
 
 static void handle_notify_activation(io_term* io, bool finished_output)
 {
-    const device_t* output_dev =
-        (io->device_name == NULL)
-            ? device_get_primary(DEVICE_CLASS_SERIAL)
-            : device_get_by_name(DEVICE_CLASS_SERIAL, io->device_name);
+    const device_t* output_dev = (io->device_name == NULL)
+                                     ? device_get_primary(DEVICE_CLASS_SERIAL)
+                                     : device_get_by_name(
+                                           DEVICE_CLASS_SERIAL,
+                                           io->device_name);
 
     driver_handle_t     handle = device_get_driver_handle(output_dev);
     const serial_ops_t* ops    = ((serial_ops_t*)output_dev->driver_ops);
@@ -101,8 +102,11 @@ static void handle_notify_activation(io_term* io, bool finished_output)
             // irqs disabled but the device couldn't finish the transmision so
             // we must defer the output sending by waiting for the "ready for
             // tx" irq
-            res =
-                ops->irq_notify_tx(handle, 1, handle_tx_ready_notification, io);
+            res = ops->irq_notify_tx(
+                handle,
+                1,
+                handle_tx_ready_notification,
+                io);
             io->notify_enabled = true;
         }
         ASSERT(res >= 0);

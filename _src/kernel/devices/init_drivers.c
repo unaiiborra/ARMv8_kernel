@@ -5,14 +5,14 @@
 // escapes the current scope of the project, I just define it directly
 
 #include <arm/cpu.h>
-#include <drivers/tmu/tmu.h>
-#include <drivers/uart/uart.h>
+#include <drivers/arm_generic_timer.h>
+#include <drivers/imx8mp_tmu.h>
+#include <drivers/imx8mp_uart.h>
 #include <kernel/devices/drivers.h>
 #include <kernel/init.h>
 #include <lib/stdmacros.h>
 #include <target/device_map.h>
 
-#include "drivers/arm_generic_timer/arm_generic_timer.h"
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/exception/irq.h"

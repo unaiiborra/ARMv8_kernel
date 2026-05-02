@@ -1,5 +1,5 @@
 #include <arm/sysregs/sysregs.h>
-#include <drivers/arm_generic_timer/arm_generic_timer.h>
+#include <drivers/arm_generic_timer.h>
 #include <kernel/devices/device.h>
 #include <kernel/devices/driver_ops/clocksource.h>
 #include <lib/lock.h>

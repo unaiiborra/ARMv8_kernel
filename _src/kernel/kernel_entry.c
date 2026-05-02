@@ -2,9 +2,7 @@
 #include <arm/exceptions/exceptions.h>
 #include <arm/smccc/smc.h>
 #include <arm/sysregs/sysregs.h>
-#include <drivers/arm_generic_timer/arm_generic_timer.h>
 #include <drivers/gicv3.h>
-#include <drivers/tmu/tmu.h>
 #include <kernel/init.h>
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
