@@ -1,4 +1,5 @@
 #include <kernel/scheduler.h>
+#include <lib/ansi.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -49,7 +50,15 @@ int64_t syscall64_print(
 
     memcpy(cpy, (void*)kva, buf_sz);
 
+#if DEBUG < DEBUG_TRACE
     fkprint(IO_STDOUT, cpy);
+#else
+    dbg_sysc_print(
+        SYSC_PRINT,
+        "\"" ANSI_RESET "%s" DEBUG_ANSI_FG_COLOR "\"",
+        cpy);
+#endif
+
 
     kfree(cpy);
 

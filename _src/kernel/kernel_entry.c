@@ -97,8 +97,5 @@ noreturn void kernel_entry()
 
     kprintf("\n\rscheduler exited core %d\n\r", get_cpuid());
 
-
-
-
     loop asm volatile("wfi");
 }

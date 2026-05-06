@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/io/stdio.h"
 #include "time.h"
 
 
@@ -194,6 +195,8 @@ bool timer_cancel_event(timer_event_t event)
         if (removed_head && clock->event_list)
             setup_head_timer(clock);
     }
+
+    dbg_printf(DEBUG_TRACE, "timer: canceled event %d", event.event_id);
 
     return true;
 }

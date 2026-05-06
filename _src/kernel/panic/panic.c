@@ -10,7 +10,6 @@
 
 #include "kernel/smp.h"
 #include "panic_exception/panic_exception_handlers.h"
-#include "panic_puts.h"
 
 
 typedef enum {
