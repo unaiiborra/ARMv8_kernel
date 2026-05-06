@@ -25,6 +25,15 @@ void scheduler_ectx_store(arm_ctx* ectx);
 void scheduler_ectx_load(arm_ctx* ectx);
 
 
+uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid);
+void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds);
+
+
+/// notifies that the next context switch or restore, must schedule a new
+/// thread.
+void schedule(cpuid_t runqueue);
+
+
 /* --- Tasks --- */
 
 
@@ -86,8 +95,10 @@ thread* schedule_thread(task* owner, uintptr_t entry, bool start_ready);
 static inline void thread_promote_to_ready(thread* th)
 {
     thread_state expected = THREAD_NEW;
-    bool         was_new =
-        atomic_compare_exchange_strong(&th->state, &expected, THREAD_READY);
+    bool         was_new  = atomic_compare_exchange_strong(
+        &th->state,
+        &expected,
+        THREAD_READY);
 
     ASSERT(
         was_new,

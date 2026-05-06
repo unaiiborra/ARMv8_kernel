@@ -83,8 +83,8 @@ void exception_handler_sync(arm_ctx* ectx)
 
         case ESR_EC_SVC_AARCH64:
             dbg_print(DEBUG_TRACE, "exception: ESR_EC_SVC_AARCH64\n\r");
+
             scheduler_ectx_store(ectx);
-            arm_exceptions_enable_all();
 
             dbgT(thread*) cur = get_current_thread();
             DEBUG_ASSERT(cur);
@@ -92,9 +92,6 @@ void exception_handler_sync(arm_ctx* ectx)
             sysc64_dispatch();
 
             scheduler_ectx_load(ectx);
-            cur = get_current_thread();
-
-            arm_exceptions_disable_all();
             break;
 
         case ESR_EC_SYSREG_AARCH64:
