@@ -57,6 +57,14 @@ void io_init()
     for (size_t i = 0; i < ARRAY_LEN(STDIO_OUTPUTS); i++) {
         io_term_new(STDIO_OUTPUTS[i], NULL, STDIO_PUTC[i]);
     }
+
+    const device_t*     primary_uart = device_get_primary(DEVICE_CLASS_SERIAL);
+    driver_handle_t     uart_handle  = device_get_driver_handle(primary_uart);
+    const serial_ops_t* uart_ops     = get_serial_ops(primary_uart);
+
+    uart_ops->init(uart_handle);
+    uart_ops->set_baud(uart_handle, 115200, 12000000);
+    uart_ops->irq_enable(uart_handle);
 }
 
 

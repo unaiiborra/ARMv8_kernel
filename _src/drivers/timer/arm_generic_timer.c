@@ -11,7 +11,7 @@
 
 /*   CLOCKSOURCE   */
 
-static uint64_t clocksource_get_ticks([[maybe_unused]] driver_handle_t handle)
+static uint64_t clocksource_get_tick([[maybe_unused]] driver_handle_t handle)
 {
     return sysreg_read(CNTPCT_EL0);
 }
@@ -25,8 +25,10 @@ static uint64_t clocksource_get_freq_hz([[maybe_unused]] driver_handle_t handle)
 static const clocksource_ops_t CLOCKSOURCE_OPS = {
     .init        = NULL,
     .exit        = NULL,
-    .get_tick    = clocksource_get_ticks,
+    .get_tick    = clocksource_get_tick,
     .get_freq_hz = clocksource_get_freq_hz,
+    .irq_enable  = NULL,
+    .irq_disable = NULL,
     .irq_handle  = NULL,
 };
 

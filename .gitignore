@@ -5,7 +5,7 @@ compile_commands.json
 /tmp
 .env
 kernel.map
-
+/documentation
 
 
 # Added by cargo

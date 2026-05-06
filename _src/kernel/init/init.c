@@ -9,6 +9,7 @@
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
+#include <kernel/time.h>
 #include <stddef.h>
 #include <target/imx8mp.h>
 
@@ -25,17 +26,19 @@ static bool kernel_initialized = false;
 
 void kernel_init(void)
 {
-    io_init(); // init kprint, kprintf...
+    // TODO: reorder initialization stages, improve the irq initialization stage
+    // and document it
+
     mm_init(); // init kmalloc, cache malloc, etc.
     scheduler_init();
     device_ctrl_init();
     irq_ctrl_init();
 
-
     for (kernel_initcall_t* fn = __kernel_initcalls_start;
          fn < __kernel_initcalls_end;
          fn++)
         (*fn)();
+
 
 
     arm_exceptions_set_status((arm_exception_status) {
@@ -55,10 +58,14 @@ void kernel_init(void)
     irq_ops->init(handle);
     irq_ops->init_cpu(handle, arm_get_cpu_affinity().aff0);
 
+    io_init(); // init kprint, kprintf...
+
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");
     mm_dbg_print_mmu();
 #endif
+
+    time_ctrl_init(); // clock and timer ctrl init
 
     kernel_initialized = true;
 }
