@@ -48,5 +48,4 @@ sed \
   -e "s|__HI_TEXT__|$HI_TEXT|g" \
   "$SCRIPT_DIR/config.gdb" > "$GDB_SCRIPT"
 
-# GDB en foreground — cuando el usuario cierra la ventana, cleanup se dispara
 ghostty -e bash -c "$GDB $ELF -x $GDB_SCRIPT"
