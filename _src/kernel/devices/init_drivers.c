@@ -8,7 +8,6 @@
 #include <drivers/arm_generic_timer.h>
 #include <drivers/imx8mp_tmu.h>
 #include <drivers/imx8mp_uart.h>
-#include <kernel/devices/drivers.h>
 #include <kernel/init.h>
 #include <lib/stdmacros.h>
 #include <target/device_map.h>

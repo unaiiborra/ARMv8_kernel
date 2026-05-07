@@ -9,7 +9,7 @@ typedef struct {
         bool       use_kmap;
         puintptr_t kmap_pa;
     } kmap;
-    bool assing_pa;
+    bool assign_pa;
     bool device_mem;
     bool permanent;
 } vmalloc_cfg;
@@ -30,14 +30,16 @@ typedef struct {
 
 
 vmalloc_token vmalloc_get_token(void* allocation_addr);
-vuintptr_t
-vmalloc(size_t pages, const char* tag, vmalloc_cfg cfg, vmalloc_token* t);
+vuintptr_t    vmalloc(
+    size_t         pages,
+    const char*    tag,
+    vmalloc_cfg    cfg,
+    vmalloc_token* t);
 
 
 /// frees an allocated area, returns the byte count of the area. If provided a
 /// not null info, also provides the freed area info
-size_t
-__vmalloc_token__vfree(vmalloc_token t, vmalloc_allocated_area_mdt* info);
+size_t __vmalloc_token__vfree(vmalloc_token t, vmalloc_allocated_area_mdt* info);
 size_t __voidptr__vfree(void* va, vmalloc_allocated_area_mdt* info);
 #define vfree(T, info)                                                             \
     _Generic((T), vmalloc_token: __vmalloc_token__vfree, void*: __voidptr__vfree)( \

@@ -2,7 +2,6 @@
 #include <arm/exceptions/exceptions.h>
 #include <drivers/gicv3.h>
 #include <kernel/devices/device.h>
-#include <kernel/devices/drivers.h>
 #include <kernel/exception/irq.h>
 #include <kernel/init.h>
 #include <kernel/io/stdio.h>

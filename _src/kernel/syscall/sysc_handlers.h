@@ -27,6 +27,33 @@
 #endif
 
 
+typedef enum {
+    // Exit process
+    SYSC_EXIT,
+
+    // Print buffer
+    SYSC_PRINT,
+
+    // Thread spawn
+    SYSC_SPAWN,
+
+    // Thread kill   TODO: implement
+    SYSC_KILL,
+
+    // Pass control to the kernel and let him decide what to do
+    SYSC_YIELD,
+
+    // Map a memory region
+    SYSC_MMAP,
+
+    // Unmap a memory region
+    SYSC_MUNMAP,
+
+    // Not an actual syscall, used for counting the implemented syscall number
+    SYSC_COUNT,
+} syscall_e;
+
+
 typedef const uint64_t sysarg_t;
 typedef int64_t (*syscall_handler)(
     sysarg_t a0,
@@ -82,9 +109,18 @@ int64_t syscall64_yield(
 
 
 int64_t syscall64_mmap(
-    sysarg_t addr,
-    sysarg_t lenght,
-    sysarg_t prot,
-    sysarg_t flags,
-    sysarg_t fd,
-    sysarg_t offset);
+    sysarg_t                  addr,
+    sysarg_t                  lenght,
+    sysarg_t                  prot,
+    sysarg_t                  flags,
+    [[maybe_unused]] sysarg_t fd,    // TODO: implement fs
+    [[maybe_unused]] sysarg_t offset // TODO: implement fs
+);
+
+int64_t syscall64_unmap(
+    sysarg_t                  addr,
+    sysarg_t                  lenght,
+    [[maybe_unused]] sysarg_t a2,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5);

@@ -30,7 +30,7 @@ void* kmalloc(size_t bytes)
 
 
     // cannot allocate with the cache allocator, alloc raw pages
-    raw_kmalloc_cfg cfg = RAW_KMALLOC_DYNAMIC_CFG;
+    raw_kmalloc_cfg cfg = *RAW_KMALLOC_DYNAMIC_CFG;
     cfg.init_zeroed     = true;
     return raw_kmalloc(div_ceil(bytes, PAGE_SIZE), "kmalloc page", &cfg);
 }

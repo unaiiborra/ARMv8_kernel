@@ -33,7 +33,7 @@ task* task_new(const char* name, size_t stack_size)
         .name        = name,
         .lock        = SPINLOCK_INIT,
         .state       = TASK_NEW,
-        .stack_pages = DIV_CEIL(stack_size, PAGE_SIZE),
+        .stack_pages = div_ceil(stack_size, PAGE_SIZE),
         .mapping     = mm_mmu_mapping_new(MMU_LO),
         .regions     = NULL,
         .threads     = kvec_new(thread*),

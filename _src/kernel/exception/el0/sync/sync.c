@@ -4,6 +4,7 @@
 #include <kernel/exception/handler.h>
 #include <kernel/io/stdio.h>
 #include <kernel/panic.h>
+#include <kernel/scheduler.h>
 #include <kernel/syscall.h>
 #include <lib/lock.h>
 #include <lib/stdattribute.h>

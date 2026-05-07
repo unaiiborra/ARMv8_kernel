@@ -1,5 +1,5 @@
 /*#include <drivers/uart/uart.h>
-#include <kernel/devices/drivers.h>
+
 #include <kernel/exception/interrupts.h>
 #include <kernel/init.h>
 #include <kernel/panic.h>

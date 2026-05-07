@@ -1,9 +1,8 @@
-#include <kernel/mm/umalloc.h>
+#include <kernel/mm/uregion.h>
 #include <kernel/scheduler.h>
 #include <kernel/task.h>
 
 #include "../sysc_handlers.h"
-#include "kernel/mm.h"
 
 
 
@@ -26,10 +25,10 @@ int64_t syscall64_spawn(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
 {
-    task*        owner  = get_current_thread()->owner;
-    task_region* region = NULL;
+    task*      owner  = get_current_thread()->owner;
+    uregion_t* region = NULL;
 
-    bool mapped = uregion_is_mapped(owner, fn, 4, &region);
+    bool mapped = uregion_is_reserved(owner, fn, 4, &region);
 
     if (!mapped) {
         dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_UNMAPPED %p", fn);
@@ -37,7 +36,7 @@ int64_t syscall64_spawn(
         return SYSC_SPAWN_RES_UNMAPPED;
     }
 
-    if (umalloc_get_flag(region, UMALLOC_F_EXEC) == false) {
+    if (uregion_get_flag(region, UREGION_F_EXEC) == false) {
         dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_NOEXEC");
 
         return SYSC_SPAWN_RES_NOEXEC;

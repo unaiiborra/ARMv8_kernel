@@ -200,8 +200,11 @@ mmu_map_result mmu_map(
 }
 
 
-mmu_unmap_result
-mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info)
+mmu_unmap_result mmu_unmap(
+    const mmu_mapping* m,
+    vuintptr_t         va,
+    size_t             size,
+    mmu_op_info*       info)
 {
     size_t          cover;
     size_t          i;
@@ -316,4 +319,62 @@ mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info)
 #endif
 
     return MMU_UNMAP_OK;
+}
+
+
+
+// typedef struct {
+//     enum {
+//         MMU_WALK_NULL_MAPPING,
+//         MMU_WALK_PAGE_UNMAPPED,
+//         MMU_WALK_PAGE_MAPPED,
+//     } walk_result;
+//     mmu_pg_cfg cfg;
+//     puintptr_t pa;
+// } mmu_walk_result;
+
+// walks one page and returns the information
+void mmu_walk_page(const mmu_mapping* m, vuintptr_t va, mmu_walk_result* result)
+{
+    if (unlikely(!m)) {
+        result->walk_result = MMU_WALK_NULL_MAPPING;
+        return;
+    }
+
+    mmu_granularity g    = m->g_;
+    const mmu_tbl   TBL0 = mmu_mapping_get_tbl(m);
+    mmu_tbl         tbl  = TBL0;
+
+    for (mmu_tbl_level l = MMU_TBL_LV0; l <= max_level(g); l++) {
+        size_t    i  = table_index(va, g, l);
+        mmu_hw_dc dc = mmu_tbl_get_dc(tbl, i, g);
+
+        if (!dc_get_valid(dc)) {
+            result->walk_result = MMU_WALK_PAGE_UNMAPPED;
+            return;
+        }
+
+        switch (dc_get_type(dc, g, l)) {
+            case MMU_DESCRIPTOR_TABLE:
+                tbl = tbl_from_td(m, dc, l);
+                continue;
+
+            case MMU_DESCRIPTOR_BLOCK:
+                result->walk_result = MMU_WALK_PAGE_MAPPED;
+                result->cfg         = cfg_from_dc(dc);
+
+                // dc_get_output_address gives the block base pa
+                // add the offset of va within the block to get the exact pa.
+                size_t block_size   = dc_cover_bytes(g, l);
+                size_t block_offset = va & (block_size - 1); // va % block_size
+                result->pa = dc_get_output_address(dc, g) + block_offset;
+
+                return;
+
+            default:
+                PANIC("mmu_walk: unexpected descriptor type");
+        }
+    }
+
+    PANIC("mmu_walk: walked all levels without finding a block descriptor");
 }

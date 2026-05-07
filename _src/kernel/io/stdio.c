@@ -1,5 +1,4 @@
 #include <drivers/imx8mp_uart.h>
-#include <kernel/devices/drivers.h>
 #include <kernel/io/stdio.h>
 #include <kernel/io/term.h>
 #include <kernel/mm.h>

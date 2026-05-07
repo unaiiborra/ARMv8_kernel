@@ -167,8 +167,9 @@ static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZES] = {
 
 static spinlock_t lock;
 
-static inline cache_fields
-get_generic_fields(cache_malloc_size size, void* cache_ptr)
+static inline cache_fields get_generic_fields(
+    cache_malloc_size size,
+    void*             cache_ptr)
 {
     typedef union {
         cache8    c8;
@@ -290,7 +291,7 @@ static inline void* new_cache(cache_malloc_size size, void* prev)
     DEBUG_ASSERT(result);
 
 
-    raw_kmalloc_unlock(NULL);
+    raw_kmalloc_unlock();
 
     return ptr;
 }
@@ -312,9 +313,9 @@ static inline bool find_empty_slot(
 
         // the last bitfield might not have all its
         // bits as valid or useful bits, they must allways be zero
-        size_t     entries = full ? BF_BITS : CACHE_ENTRIES[i] % BF_BITS;
-        bitfield64 full_mask =
-            entries >= 64 ? ~(bitfield64)0 : ((1ULL << entries)) - 1;
+        size_t     entries   = full ? BF_BITS : CACHE_ENTRIES[i] % BF_BITS;
+        bitfield64 full_mask = entries >= 64 ? ~(bitfield64)0
+                                             : ((1ULL << entries)) - 1;
 
         if (c.reserved[*bf_n] == full_mask) {
             first_iter = false;

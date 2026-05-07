@@ -4,7 +4,6 @@
 
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/irq_ctrl.h"
-#include "kernel/devices/drivers.h"
 #include "kernel/smp.h"
 
 typedef void (*irq_std_handler_t)(void* ctx);

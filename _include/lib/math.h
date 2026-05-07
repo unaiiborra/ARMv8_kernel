@@ -56,31 +56,33 @@ static inline uint64_t min(uint64_t a, uint64_t b)
 }
 
 
-#define DIV_CEIL(a, b) ((a + b - 1) / b)
-
 static inline uint64_t div_ceil(uint64_t a, uint64_t b)
 {
-    return DIV_CEIL(a, b);
+    return (a + b - 1) / b;
 }
 
 
-static inline bool is_pow2(uint64_t x)
+[[gnu::always_inline]] static inline bool is_pow2(uint64_t x)
 {
     return x && ((x & (x - 1)) == 0);
 }
 
 
 // https://jameshfisher.com/2018/03/30/round-up-power-2/
-static inline uint32_t next_pow2_u32(uint32_t x)
+[[gnu::always_inline]] static inline uint32_t next_pow2_u32(uint32_t x)
 {
     return x <= 1 ? 1u : 1u << (32 - __builtin_clz(x - 1));
 }
 
 
-static inline uint64_t next_pow2_u64(uint64_t x)
+[[gnu::always_inline]] static inline uint64_t next_pow2_u64(uint64_t x)
 {
     return x <= 1 ? 1ull : 1ull << (64 - __builtin_clzll(x - 1));
 }
 
-#define next_pow2(x) \
-    _Generic((x), uint32_t: next_pow2_u32, uint64_t: next_pow2_u64)(x)
+#define next_pow2(x)             \
+    _Generic(                    \
+        (x),                     \
+        uint32_t: next_pow2_u32, \
+        uint64_t: next_pow2_u64, \
+        default: next_pow2_u64)(x)

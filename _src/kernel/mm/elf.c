@@ -1,7 +1,9 @@
 #include <kernel/mm/elf.h>
-#include <kernel/mm/umalloc.h>
+#include <kernel/mm/uregion.h>
+#include <stdint.h>
 
 #include "arm/cpu.h"
+#include "kernel/panic.h"
 
 
 #define EI_NIDENT 16
@@ -104,16 +106,17 @@ elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
 
             uint64_t data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
 
-
-            void* kva = umalloc(
+            uregion_reserve_static_result_t ureg = uregion_reserve_static(
                 t,
                 ph[i].p_vaddr,
                 ph[i].p_memsz / PAGE_SIZE,
                 data_flags & PF_R,
                 data_flags & PF_W,
-                data_flags & PF_X,
-                true);
+                data_flags & PF_X);
 
+            ASSERT(ureg.result == UREGION_OK);
+
+            void* kva = ureg.knl_va;
 
             if (ph[i].p_filesz != 0)
                 memcpy(kva, (uint8_t*)elf + ph[i].p_offset, ph[i].p_filesz);

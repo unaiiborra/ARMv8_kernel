@@ -126,7 +126,7 @@ safe_early vuintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n
                         .use_kmap = true,
                         .kmap_pa  = mb.addr,
                     },
-                .assing_pa  = true,
+                .assign_pa  = true,
                 .device_mem = mb.device_memory,
                 .permanent  = mb.permanent,
             });
@@ -458,7 +458,7 @@ static rva_node* push_rva(
                     {
                         .tag         = tag,
                         .kmapped     = cfg.kmap.use_kmap,
-                        .pa_assigned = cfg.assing_pa,
+                        .pa_assigned = cfg.assign_pa,
                         .device_mem  = cfg.device_mem,
                         .permanent   = cfg.permanent,
                     },
@@ -493,7 +493,7 @@ vuintptr_t vmalloc(
             is_pow2(pages),
             "vmalloc: only pow2 n pages can be requested for kmapping");
         ASSERT(
-            cfg.assing_pa,
+            cfg.assign_pa,
             "vmalloc: kmap can only be configured with assign_pa = true");
     }
 

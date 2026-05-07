@@ -19,7 +19,7 @@
 #include "kernel/smp.h"
 
 
-const raw_kmalloc_cfg RAW_KMALLOC_KMAP_CFG = (raw_kmalloc_cfg) {
+static const raw_kmalloc_cfg KMAP_CFG = (raw_kmalloc_cfg) {
     .assign_pa    = true,
     .fill_reserve = true,
     .device_mem   = false,
@@ -28,7 +28,7 @@ const raw_kmalloc_cfg RAW_KMALLOC_KMAP_CFG = (raw_kmalloc_cfg) {
     .init_zeroed  = false,
 };
 
-const raw_kmalloc_cfg RAW_KMALLOC_DYNAMIC_CFG = (raw_kmalloc_cfg) {
+static const raw_kmalloc_cfg DYNAMIC_CFG = (raw_kmalloc_cfg) {
     .assign_pa    = true,
     .fill_reserve = true,
     .device_mem   = false,
@@ -36,6 +36,9 @@ const raw_kmalloc_cfg RAW_KMALLOC_DYNAMIC_CFG = (raw_kmalloc_cfg) {
     .kmap         = false,
     .init_zeroed  = false,
 };
+
+const raw_kmalloc_cfg* const RAW_KMALLOC_KMAP_CFG    = &KMAP_CFG;
+const raw_kmalloc_cfg* const RAW_KMALLOC_DYNAMIC_CFG = &DYNAMIC_CFG;
 
 
 static const mmu_pg_cfg STD_MMU_KMEM_CFG = (mmu_pg_cfg) {
@@ -64,11 +67,12 @@ static const mmu_pg_cfg STD_MMU_DEVICE_CFG = (mmu_pg_cfg) {
 static corelock_t lock;
 
 
-static inline vmalloc_cfg
-vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg* cfg, puintptr_t kmap_pa)
+static inline vmalloc_cfg vmalloc_cfg_from_raw_kmalloc_cfg(
+    const raw_kmalloc_cfg* cfg,
+    puintptr_t             kmap_pa)
 {
     return (vmalloc_cfg) {
-        .assing_pa  = cfg->assign_pa,
+        .assign_pa  = cfg->assign_pa,
         .device_mem = cfg->device_mem,
         .permanent  = cfg->permanent,
         .kmap =
@@ -100,13 +104,16 @@ static void* raw_kmalloc_kmap(
             .permanent  = cfg->permanent,
         });
 
-    vuintptr_t va =
-        vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa), NULL);
+    vuintptr_t va = vmalloc(
+        pages,
+        tag,
+        vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa),
+        NULL);
 
     DEBUG_ASSERT(ptrs_are_kmapped(pv_ptr_new(pa, va)));
 
-    const mmu_pg_cfg* mmu_cfg =
-        cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
+    const mmu_pg_cfg* mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG
+                                                : &STD_MMU_KMEM_CFG;
 
     mmu_map_result mmu_res = mmu_map(
         MM_MMU_KERNEL_MAPPING,
@@ -137,12 +144,15 @@ static void* raw_kmalloc_dynamic(
     DEBUG_ASSERT(!cfg->kmap);
     ASSERT(cfg->assign_pa, "vmalloc: TODO: NOT IMPLEMENTED YET");
 
-    const mmu_pg_cfg* mmu_cfg =
-        cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
+    const mmu_pg_cfg* mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG
+                                                : &STD_MMU_KMEM_CFG;
 
     vmalloc_token vtoken;
-    vuintptr_t    start =
-        vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0), &vtoken);
+    vuintptr_t    start = vmalloc(
+        pages,
+        tag,
+        vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0),
+        &vtoken);
 
     vuintptr_t va  = start;
     size_t     rem = pages;
@@ -171,8 +181,13 @@ static void* raw_kmalloc_dynamic(
          *  mmu map the pages
          */
 
-        bool mmu_res =
-            mmu_map(MM_MMU_KERNEL_MAPPING, va, pa, order_bytes, *mmu_cfg, NULL);
+        bool mmu_res = mmu_map(
+            MM_MMU_KERNEL_MAPPING,
+            va,
+            pa,
+            order_bytes,
+            *mmu_cfg,
+            NULL);
         ASSERT(mmu_res == MMU_MAP_OK);
 
 
@@ -206,7 +221,7 @@ void* __raw_kmalloc(
 {
     void* va = NULL;
 
-    cfg = (cfg != NULL) ? cfg : &RAW_KMALLOC_DYNAMIC_CFG;
+    cfg = (cfg != NULL) ? cfg : RAW_KMALLOC_DYNAMIC_CFG;
 
     ASSERT(cfg->assign_pa, "TODO: dynamic mapping not implemented yet");
 
@@ -281,8 +296,11 @@ void raw_kfree(void* ptr)
 
             size_t bytes = vfree(vtoken, NULL);
 
-            result =
-                mmu_unmap(MM_MMU_KERNEL_MAPPING, (vuintptr_t)ptr, bytes, NULL);
+            result = mmu_unmap(
+                MM_MMU_KERNEL_MAPPING,
+                (vuintptr_t)ptr,
+                bytes,
+                NULL);
             ASSERT(result);
         }
     }
@@ -301,7 +319,22 @@ void raw_kmalloc_lock()
 }
 
 
-void raw_kmalloc_unlock(int*)
+void raw_kmalloc_unlock()
+{
+    core_unlock(&lock);
+    irq_unlock(irqlock_flags[get_cpuid()].irqlock);
+}
+
+
+int raw_kmalloc_lock_defer()
+{
+    irqlock_flags[get_cpuid()].irqlock = irq_lock();
+    core_lock(&lock);
+
+    return 1;
+}
+
+void raw_kmalloc_unlock_defer([[maybe_unused]] int* cleanup)
 {
     core_unlock(&lock);
     irq_unlock(irqlock_flags[get_cpuid()].irqlock);

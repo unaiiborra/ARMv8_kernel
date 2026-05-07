@@ -2,7 +2,7 @@
 // This header defines an abstraction interface for drivers, where the kernel
 // does not have to know the internals of each driver
 
-#include <kernel/devices/drivers.h>
+
 #include <lib/mem.h>
 #include <stdbool.h>
 #include <stddef.h>

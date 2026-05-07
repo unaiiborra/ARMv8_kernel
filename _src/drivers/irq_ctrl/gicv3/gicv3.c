@@ -1,7 +1,6 @@
 #include <arm/cpu.h>
 #include <arm/exceptions/exceptions.h>
 #include <drivers/gicv3.h>
-#include <kernel/devices/drivers.h>
 #include <kernel/panic.h>
 #include <stddef.h>
 #include <stdint.h>

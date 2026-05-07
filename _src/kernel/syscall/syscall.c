@@ -8,11 +8,13 @@
 
 
 static const syscall_handler SYSC64_TABLE[SYSC_COUNT] = {
-    [SYSC_EXIT]  = syscall64_exit,
-    [SYSC_PRINT] = syscall64_print,
-    [SYSC_SPAWN] = syscall64_spawn,
-    [SYSC_KILL]  = syscall64_kill,
-    [SYSC_YIELD] = syscall64_yield,
+    [SYSC_EXIT]   = syscall64_exit,
+    [SYSC_PRINT]  = syscall64_print,
+    [SYSC_SPAWN]  = syscall64_spawn,
+    [SYSC_KILL]   = syscall64_kill,
+    [SYSC_YIELD]  = syscall64_yield,
+    [SYSC_MMAP]   = syscall64_mmap,
+    [SYSC_MUNMAP] = syscall64_unmap,
 };
 
 

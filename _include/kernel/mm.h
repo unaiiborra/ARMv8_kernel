@@ -5,6 +5,7 @@
 
 #ifndef __ASSEMBLER__
 #    include <arm/mmu.h>
+#    include <kernel/mm/cache_malloc.h>
 #    include <kernel/mm/page_malloc.h>
 #    include <kernel/mm/vmalloc.h>
 #    include <kernel/panic.h>
@@ -158,8 +159,10 @@ typedef struct {
     } info;
 } raw_kmalloc_info;
 
-extern const raw_kmalloc_cfg RAW_KMALLOC_KMAP_CFG;
-extern const raw_kmalloc_cfg RAW_KMALLOC_DYNAMIC_CFG;
+
+extern const raw_kmalloc_cfg* const RAW_KMALLOC_KMAP_CFG;
+extern const raw_kmalloc_cfg* const RAW_KMALLOC_DYNAMIC_CFG;
+
 
 
 #    define __RAW_KMALLOC_GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
@@ -173,8 +176,11 @@ void* __raw_kmalloc(
     const char*            tag,
     const raw_kmalloc_cfg* cfg,
     raw_kmalloc_info*      info);
-static inline void*
-__raw_kmalloc_null(size_t pages, const char* tag, const raw_kmalloc_cfg* cfg)
+
+[[gnu::always_inline]] static inline void* __raw_kmalloc_null(
+    size_t                 pages,
+    const char*            tag,
+    const raw_kmalloc_cfg* cfg)
 {
     return __raw_kmalloc(pages, tag, cfg, NULL);
 }
@@ -186,21 +192,6 @@ __raw_kmalloc_null(size_t pages, const char* tag, const raw_kmalloc_cfg* cfg)
             __RAW_KMALLOC_4,     \
             __RAW_KMALLOC_3)(__VA_ARGS__)
 void raw_kfree(void* ptr);
-
-
-typedef enum {
-    CACHE_8    = 8,
-    CACHE_16   = 16,
-    CACHE_32   = 32,
-    CACHE_64   = 64,
-    CACHE_128  = 128,
-    CACHE_256  = 256,
-    CACHE_512  = 512,
-    CACHE_1024 = 1024,
-} cache_malloc_size;
-
-void* cache_malloc(cache_malloc_size s);
-void  cache_free(cache_malloc_size s, void* ptr);
 
 
 void* kmalloc(size_t bytes);

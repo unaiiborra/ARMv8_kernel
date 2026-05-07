@@ -113,8 +113,8 @@ static inline mmu_allocator mmu_mapping_get_allocator(const mmu_mapping* m)
     return m->allocator_;
 }
 
-static inline mmu_allocator_free
-mmu_mapping_get_allocator_free(const mmu_mapping* m)
+static inline mmu_allocator_free mmu_mapping_get_allocator_free(
+    const mmu_mapping* m)
 {
     return m->allocator_free_;
 }
@@ -127,26 +127,28 @@ static inline bool mmu_mapping_is_valid(const mmu_mapping* m)
     return m->tbl_ != NULL_MAPPING_TBL;
 }
 
-static inline void
-mmu_mapping_set_physmap_offset(mmu_mapping* m, uint64_t physmap_offset)
+static inline void mmu_mapping_set_physmap_offset(
+    mmu_mapping* m,
+    uint64_t     physmap_offset)
 {
     m->physmap_offset_ = physmap_offset;
 }
 
-static inline void
-mmu_mapping_set_allocator(mmu_mapping* m, mmu_allocator allocator)
+static inline void mmu_mapping_set_allocator(
+    mmu_mapping*  m,
+    mmu_allocator allocator)
 {
     m->allocator_ = allocator;
 }
 
-static inline void
-mmu_mapping_set_allocator_free(mmu_mapping* m, mmu_allocator_free allocator_free)
+static inline void mmu_mapping_set_allocator_free(
+    mmu_mapping*       m,
+    mmu_allocator_free allocator_free)
 {
     m->allocator_free_ = allocator_free;
 }
 
-static inline void
-UNSAFE_mmu_mapping_set_tbl_address(mmu_mapping* m, void* addr)
+static inline void UNSAFE_mmu_mapping_set_tbl_address(mmu_mapping* m, void* addr)
 {
     m->tbl_ = addr;
 }
@@ -218,11 +220,11 @@ static inline uint8_t mmu_core_get_hi_va_bits(const mmu_core_handle* ch)
     return (ch->flags >> COREH_HI_BITS_SHIFT) & COREH_VA_BITS_MASK;
 }
 
-static inline mmu_granularity
-mmu_core_get_lo_granularity(const mmu_core_handle* ch)
+static inline mmu_granularity mmu_core_get_lo_granularity(
+    const mmu_core_handle* ch)
 {
-    uint64_t tg0 =
-        (ch->flags >> COREH_LO_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
+    uint64_t tg0 = (ch->flags >> COREH_LO_GRANULARITY_SHIFT) &
+                   COREH_GRANULARITY_MASK;
 
     switch (tg0) {
         case TG0_4KB:
@@ -238,11 +240,11 @@ mmu_core_get_lo_granularity(const mmu_core_handle* ch)
     PANIC();
 }
 
-static inline mmu_granularity
-mmu_core_get_hi_granularity(const mmu_core_handle* ch)
+static inline mmu_granularity mmu_core_get_hi_granularity(
+    const mmu_core_handle* ch)
 {
-    uint64_t tg1 =
-        (ch->flags >> COREH_HI_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
+    uint64_t tg1 = (ch->flags >> COREH_HI_GRANULARITY_SHIFT) &
+                   COREH_GRANULARITY_MASK;
 
     switch (tg1) {
         case TG1_4KB:
@@ -444,7 +446,27 @@ typedef enum {
     MMU_UNMAP_OK  = 1,
 } mmu_unmap_result;
 
-mmu_unmap_result
-mmu_unmap(const mmu_mapping* m, vuintptr_t va, size_t size, mmu_op_info* info);
+mmu_unmap_result mmu_unmap(
+    const mmu_mapping* m,
+    vuintptr_t         va,
+    size_t             size,
+    mmu_op_info*       info);
+
+
+typedef struct {
+    enum {
+        MMU_WALK_NULL_MAPPING,
+        MMU_WALK_PAGE_UNMAPPED,
+        MMU_WALK_PAGE_MAPPED,
+    } walk_result;
+    mmu_pg_cfg cfg;
+    puintptr_t pa;
+} mmu_walk_result;
+
+// walks one page and returns the information. treats the result as if it found
+// a last level descriptor, even if found at a higher level (if va is not
+// aligned to the real block it gives the corresponding pa to the provided va)
+void mmu_walk_page(const mmu_mapping* m, vuintptr_t va, mmu_walk_result* result);
+
 
 bool mmu_is_active();

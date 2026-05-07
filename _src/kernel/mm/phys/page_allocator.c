@@ -349,9 +349,8 @@ bool page_allocator_get_data(puintptr_t pa, mm_page_data* data)
     page_node* n = get_node(i);
 
 
-    raw_kmalloc_lock();
-    __attribute__((cleanup(raw_kmalloc_unlock))) int __defer
-        __attribute__((unused));
+    deferT(int, raw_kmalloc_unlock_defer)
+        rklock_defer = raw_kmalloc_lock_defer();
 
 
     if (is_inner_idx(i))
@@ -371,9 +370,8 @@ bool page_allocator_set_data(puintptr_t pa, mm_page_data data)
     uint32_t   i = pa / PAGE_SIZE;
     page_node* n = get_node(i);
 
-    raw_kmalloc_lock();
-    __attribute__((cleanup(raw_kmalloc_unlock))) int __defer
-        __attribute__((unused));
+    deferT(int, raw_kmalloc_unlock_defer)
+        rklock_defer = raw_kmalloc_lock_defer();
 
 
     if (is_inner_idx(i))
@@ -485,7 +483,9 @@ safe_early void page_allocator_init()
 }
 
 
-safe_early void page_allocator_update_memregs(const early_memreg* mregs, size_t n)
+safe_early void page_allocator_update_memregs(
+    const early_memreg* mregs,
+    size_t              n)
 {
     for (size_t i = 0; i < n; i++) {
         early_memreg e = mregs[i];

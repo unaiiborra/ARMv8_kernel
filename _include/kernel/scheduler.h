@@ -6,7 +6,6 @@
 #include <kernel/hardware.h>
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
-#include <kernel/mm/umalloc.h>
 #include <kernel/panic.h>
 #include <kernel/smp.h>
 #include <kernel/task.h>

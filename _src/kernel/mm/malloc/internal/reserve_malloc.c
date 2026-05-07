@@ -92,7 +92,7 @@ void reserve_malloc_fill()
     (reserved_pages ==    \
      (typeof(reserved_pages))((1ULL << RESERVE_MALLOC_SIZE) - 1))
 
-    raw_kmalloc_cfg cfg = RAW_KMALLOC_KMAP_CFG;
+    raw_kmalloc_cfg cfg = *RAW_KMALLOC_KMAP_CFG;
     cfg.fill_reserve    = false;
     cfg.kmap            = true;
     cfg.assign_pa       = true;

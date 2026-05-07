@@ -4,11 +4,14 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
+#include "arm/mmu.h"
 #include "kernel/io/stdio.h"
 #include "kernel/mm.h"
-#include "kernel/mm/umalloc.h"
+#include "kernel/mm/uregion.h"
 #include "kernel/panic.h"
 #include "kernel/task.h"
+#include "lib/align.h"
+#include "lib/stdattribute.h"
 
 
 #define BUF_PTR_ARG  0
@@ -27,8 +30,8 @@ int64_t syscall64_print(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
 {
-    task_region* region;
-    if (!uregion_is_assigned(
+    uregion_t* region;
+    if (!uregion_is_committed(
             get_current_thread()->owner,
             buf_pt,
             buf_sz,
@@ -38,12 +41,10 @@ int64_t syscall64_print(
         return SYSC_PRINT_INVALID_BUF;
     }
 
-    uintptr_t kva = task_region_translate(region, buf_pt, REG_TO_KNL);
+    uintptr_t kva;
+    dbgT(bool) valid = uregion_get_knl_access(region, buf_pt, &kva);
+    DEBUG_ASSERT(valid);
 
-#ifdef DEBUG
-    if (kva == TASK_REGION_TRANSLATE_ERR)
-        PANIC("should be handled by uregion_is_assigned");
-#endif
 
     char* cpy   = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
     cpy[buf_sz] = '\0';
