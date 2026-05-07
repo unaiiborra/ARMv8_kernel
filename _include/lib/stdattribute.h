@@ -26,4 +26,4 @@
 // safe for execution in early stages (with mmu disabled and alignment check
 // enforced)
 #define safe_early \
-    attr(gnu::target("general-regs-only"), gnu::cold) attr(gnu::optimize("O1"))
+    attr(gnu::target("general-regs-only"), gnu::cold, gnu::optimize("-O0"))

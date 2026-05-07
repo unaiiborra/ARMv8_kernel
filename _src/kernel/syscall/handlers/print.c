@@ -4,13 +4,11 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
-#include "arm/mmu.h"
 #include "kernel/io/stdio.h"
 #include "kernel/mm.h"
 #include "kernel/mm/uregion.h"
 #include "kernel/panic.h"
 #include "kernel/task.h"
-#include "lib/align.h"
 #include "lib/stdattribute.h"
 
 

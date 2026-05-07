@@ -597,8 +597,7 @@ bool uregion_is_committed(
     if (GET_FLAG(region->flags, F_FULL_MAPPED))
         return true;
 
-    if (!GET_FLAG(region->flags, F_HAS_KNL) ||
-        !GET_FLAG(region->flags, F_PARTIALLY_MAPPED))
+    if (!GET_FLAG(region->flags, F_HAS_KNL))
         return false;
 
     // check bitfield for each page in [start, start+size)

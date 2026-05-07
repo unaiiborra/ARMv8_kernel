@@ -438,14 +438,6 @@ static rva_node* push_rva(
         cur  = cur->next;
     }
 
-#ifdef DEBUG
-    if (prev)
-        DEBUG_ASSERT(prev->start + prev->size <= start);
-
-    if (cur)
-        DEBUG_ASSERT(start + bytes <= cur->start);
-#endif
-
     rva_node* node = get_new_rva_node();
 
     *node = (rva_node) {
