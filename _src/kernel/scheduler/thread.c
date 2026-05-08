@@ -17,7 +17,7 @@
 
 void thread_assign_stack(thread* th)
 {
-    task* t = th->owner;
+    task_t* t = th->owner;
 
 
     spinlocked(&t->lock)

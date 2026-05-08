@@ -241,7 +241,15 @@ void irq_dispatch()
     const irq_ctrl_ops_t* ops    = get_irq_ctrl_ops(dev);
     driver_handle_t       handle = irq_driver_handle(dev);
 
-    uint32_t irq = ops->irq_ack(handle);
+    int32_t irq = ops->irq_ack(handle);
+
+    if (unlikely(irq < 0))
+        return;
+
+    if (unlikely(irq > MAX_IRQS)) {
+        fkprintf(IO_STDPANIC, "received irq %d, out of expected MAX_IRQS", irq);
+        PANIC();
+    }
 
     irq_entry_t* entry = &irq_table[irq];
 

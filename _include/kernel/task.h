@@ -76,20 +76,8 @@ typedef struct {
     mmu_mapping mapping;
     uregion_t*  regions;
     kvec(thread*) threads;
-} task;
+} task_t;
 
 
-task* task_new(const char* name, size_t stack_size);
-
-
-/// adds the reference of the thread to the task and updates the task thread id
-/// (local th uid)
-void task_add_thread_ref(task* t, struct thread* th);
-
-/// adds the reference of the threads to the task and updates the task thread id
-/// (local th uid)
-void task_add_thread_refs(task* t, struct thread** th, size_t count);
-
-void task_delete_thread_ref(task* t, struct thread* th);
-// no batch delete for thread refs because the acutal deleting of threads is
-// allways defered so it is not possible to batch delete
+task_t* task_new(const char* name, size_t stack_size);
+void    terminate_task(uint32_t exit_code);

@@ -49,7 +49,7 @@ typedef enum {
 /// @returns UREGION_OK, UREGION_OVERLAPS if the range collides with an
 ///          existing region, or UREGION_ERROR on invalid input
 uregion_result_e uregion_reserve(
-    task*     t,
+    task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
@@ -77,7 +77,7 @@ typedef struct {
 /// @returns result with UREGION_OK and a valid knl_va on success,
 ///          or UREGION_OVERLAPS / UREGION_ERROR on failure
 uregion_reserve_static_result_t uregion_reserve_static(
-    task*     t,
+    task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
@@ -97,7 +97,7 @@ uregion_reserve_static_result_t uregion_reserve_static(
 /// @param pages  number of pages to commit
 /// @returns kernel VA for the committed range, or NULL if the range is not
 ///          within a reserved region or is already fully mapped
-void* uregion_commit(task* t, uintptr_t usr_va, uint32_t pages);
+void* uregion_commit(task_t* t, uintptr_t usr_va, uint32_t pages);
 
 
 // ─── free ────────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ void* uregion_commit(task* t, uintptr_t usr_va, uint32_t pages);
 /// @param pages  number of pages to free
 /// @returns true on success, false if no matching region was found or the
 ///          range does not exactly cover a reserved region
-bool uregion_free(task* t, uintptr_t usr_va, uint32_t pages);
+bool uregion_free(task_t* t, uintptr_t usr_va, uint32_t pages);
 
 
 // ─── query ───────────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ bool uregion_free(task* t, uintptr_t usr_va, uint32_t pages);
 /// @param out_region if non-NULL and the range is reserved, set to the
 ///                   containing region
 bool uregion_is_reserved(
-    task*       t,
+    task_t*     t,
     uintptr_t   start,
     size_t      size,
     uregion_t** out_region);
@@ -141,7 +141,7 @@ bool uregion_is_reserved(
 /// @param out_region if non-NULL and the range is committed, set to the
 ///                   containing region
 bool uregion_is_committed(
-    task*       t,
+    task_t*     t,
     uintptr_t   start,
     size_t      size,
     uregion_t** out_region);
@@ -153,7 +153,7 @@ bool uregion_is_committed(
 /// @param t     target task
 /// @param pages number of contiguous pages needed
 /// @returns page-aligned VA of the free gap, or UINTPTR_MAX if none found
-uintptr_t uregion_find_free(task* t, uint32_t pages);
+uintptr_t uregion_find_free(task_t* t, uint32_t pages);
 
 /// Translates a userspace VA to its corresponding kernel VA within the same
 /// region. The kernel window mirrors the userspace region and provides

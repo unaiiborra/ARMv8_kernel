@@ -11,3 +11,7 @@ extern const unsigned char PRINT_B_ELF[];
 
 extern const unsigned long MULTITHREADING_ELF_SZ;
 extern const unsigned char MULTITHREADING_ELF[];
+
+
+extern const unsigned long MMAP_ELF_SZ;
+extern const unsigned char MMAP_ELF[];

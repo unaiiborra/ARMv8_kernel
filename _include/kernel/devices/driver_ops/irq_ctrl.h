@@ -21,7 +21,7 @@ typedef struct {
 
     int32_t (*irq_eoi)(driver_handle_t handle, uint32_t irq);
 
-    uint32_t (*irq_ack)(driver_handle_t handle);
+    int32_t (*irq_ack)(driver_handle_t handle);
 
     int32_t (*irq_set_priority)(
         driver_handle_t handle,
@@ -41,7 +41,4 @@ typedef struct {
 
 
 #define get_irq_ctrl_ops(dev) \
-    _Generic(                 \
-        (dev),                \
-        const device_t*: (const irq_ctrl_ops_t*)((dev)->driver_ops))
-        
+    _Generic((dev), const device_t*: (const irq_ctrl_ops_t*)((dev)->driver_ops))

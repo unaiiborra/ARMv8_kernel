@@ -1,6 +1,7 @@
 #include "task.h"
 
 #include <arm/mmu.h>
+#include <kernel/io/stdio.h>
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
@@ -14,7 +15,6 @@
 #include "lib/math.h"
 #include "lib/stdattribute.h"
 
-
 static atomic_ulong task_uid;
 
 
@@ -24,11 +24,11 @@ void task_ctl_init()
 }
 
 
-task* task_new(const char* name, size_t stack_size)
+task_t* task_new(const char* name, size_t stack_size)
 {
-    task* t = kmalloc(sizeof(task));
+    task_t* t = kmalloc(sizeof(task_t));
 
-    *t = (task) {
+    *t = (task_t) {
         .task_uid    = atomic_fetch_add(&task_uid, 1),
         .name        = name,
         .lock        = SPINLOCK_INIT,
@@ -43,7 +43,7 @@ task* task_new(const char* name, size_t stack_size)
 }
 
 
-static void add_thread_ref(task* t, struct thread* th)
+static void add_thread_ref(task_t* t, struct thread* th)
 {
     DEBUG_ASSERT(th != NULL);
 
@@ -63,7 +63,7 @@ static void add_thread_ref(task* t, struct thread* th)
 }
 
 
-void task_add_thread_ref(task* t, struct thread* th)
+void task_add_thread_ref(task_t* t, struct thread* th)
 {
     irqlock_t flags = spin_lock_irqsave(&t->lock);
 
@@ -73,7 +73,7 @@ void task_add_thread_ref(task* t, struct thread* th)
 }
 
 
-void task_add_thread_refs(task* t, struct thread** th, size_t count)
+void task_add_thread_refs(task_t* t, struct thread** th, size_t count)
 {
     irqlock_t flags = spin_lock_irqsave(&t->lock);
 
@@ -85,7 +85,7 @@ void task_add_thread_refs(task* t, struct thread** th, size_t count)
 }
 
 
-void task_delete_thread_ref(task* t, struct thread* th)
+void task_delete_thread_ref(task_t* t, struct thread* th)
 {
     dbgT(bool) found = false;
 
@@ -128,6 +128,31 @@ void task_delete_thread_ref(task* t, struct thread* th)
 
         if (kvec_len(&t->threads) == 0) {
             // TODO: task delete and free
+        }
+    }
+}
+
+
+void terminate_task(uint32_t exit_code)
+{
+    task_t* usr_task = get_current_thread()->owner;
+
+    dbg_printf(
+        DEBUG_TRACE,
+        "[terminate_task] terminated task %s with code %d",
+        usr_task->name,
+        exit_code);
+
+    spinlocked(&usr_task->lock)
+    {
+        size_t n = kvec_len(&usr_task->threads);
+
+        for (size_t i = 0; i < n; i++) {
+            thread* th;
+            dbgT(bool) res = kvec_get_copy(&usr_task->threads, i, &th);
+            DEBUG_ASSERT(res);
+
+            unschedule_thread(th);
         }
     }
 }

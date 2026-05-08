@@ -41,14 +41,16 @@ noreturn void kernel_entry()
 
     kprint("Hello!\n\r");
 
-    elf_load_result              elf_res;
-    attr(maybe_unused) uintptr_t hello_world_entry, print_a_entry,
-        print_b_entry, multithreading_entry;
+    elf_load_result elf_res;
+    uintptr_t       hello_world_entry, print_a_entry, print_b_entry,
+        multithreading_entry, mmap_entry;
 
-    task* hello_world    = task_new("hello_world", 4 * MEM_KiB);
-    task* print_a        = task_new("print_A", 4 * MEM_KiB);
-    task* print_b        = task_new("print_B", 4 * MEM_KiB);
-    task* multithreading = task_new("multithreading", 4 * MEM_KiB);
+    task_t* hello_world    = task_new("hello_world", 4 * MEM_KiB);
+    task_t* print_a        = task_new("print_A", 4 * MEM_KiB);
+    task_t* print_b        = task_new("print_B", 4 * MEM_KiB);
+    task_t* multithreading = task_new("multithreading", 4 * MEM_KiB);
+    task_t* mmap           = task_new("mmap", 4 * MEM_KiB);
+
 
 
     elf_res = elf_load(
@@ -80,6 +82,9 @@ noreturn void kernel_entry()
         &multithreading_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
+    elf_res = elf_load(mmap, (void*)MMAP_ELF, MMAP_ELF_SZ, &mmap_entry);
+    ASSERT(elf_res == ELF_LOAD_OK);
+
 
     schedule_ready_thread(hello_world, hello_world_entry);
     schedule_ready_thread(print_a, print_a_entry);
@@ -92,10 +97,13 @@ noreturn void kernel_entry()
         "\n\rscheduler exited, entering again for multithreading test: \n\r");
 
     schedule_ready_thread(multithreading, multithreading_entry);
-
     scheduler_loop_cpu_enter();
 
-    kprintf("\n\rscheduler exited core %d\n\r", get_cpuid());
+
+
+    schedule_ready_thread(mmap, mmap_entry);
+    scheduler_loop_cpu_enter();
+
 
     loop asm volatile("wfi");
 }

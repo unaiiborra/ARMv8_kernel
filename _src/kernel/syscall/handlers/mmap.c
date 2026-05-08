@@ -18,9 +18,10 @@ typedef enum {
 } sysc_mmap_res;
 
 
+#define PROT_NONE 0
+
 typedef enum {
     // bit positions
-    PROT_NONE  = 0,
     PROT_READ  = 1 << 1,
     PROT_WRITE = 1 << 2,
     PROT_EXEC  = 1 << 3,
@@ -43,16 +44,23 @@ int64_t syscall64_mmap(
     [[maybe_unused]] sysarg_t fd,
     [[maybe_unused]] sysarg_t offset)
 {
-    task* owner = get_current_thread()->owner;
+    task_t* owner = get_current_thread()->owner;
 
 
-    if (unlikely(!(flags & MAP_ANONYMOUS)))
+    if (unlikely(!(flags & MAP_ANONYMOUS))) {
+        dbg_sysc_print(SYSC_MMAP, "SYSC_MMAP_ERR (!MAP_ANONYMOUS)");
         return SYSC_MMAP_ERR;
+    }
 
     if (unlikely(
             addr != (sysarg_t)NULL && (flags & MAP_FIXED) &&
-            (addr % PAGE_ALIGN != 0)))
+            (addr % PAGE_ALIGN != 0))) {
+        dbg_sysc_print(
+            SYSC_MMAP,
+            "SYSC_MMAP_ERR (addr != (sysarg_t)NULL && (flags & MAP_FIXED) && "
+            "(addr %% PAGE_ALIGN != 0))");
         return SYSC_MMAP_ERR;
+    }
 
     if (unlikely(
             prot == PROT_NONE ||
@@ -60,6 +68,7 @@ int64_t syscall64_mmap(
              (prot & PROT_EXEC)))) // wx is not supported by arm mmu
     {
         // TODO: implement PROT_NONE
+        dbg_sysc_print(SYSC_MMAP, "SYSC_MMAP_CFG_NOT_SUPPORTED");
         return SYSC_MMAP_CFG_NOT_SUPPORTED;
     }
 
@@ -87,6 +96,11 @@ int64_t syscall64_mmap(
 
         switch (expect(ures, UREGION_OK)) {
             case UREGION_OK:
+                dbg_sysc_print(
+                    SYSC_MMAP,
+                    "UREGION_OK [%p %d pages]",
+                    address,
+                    pages);
                 return address;
 
             case UREGION_OVERLAPS:
@@ -96,8 +110,10 @@ int64_t syscall64_mmap(
                 // other pages) so the kernel will decide where to map the
                 // pages
 
-                if (flags & MAP_FIXED)
+                if (flags & MAP_FIXED) {
+                    dbg_sysc_print(SYSC_MMAP, "SYSC_MMAP_ERR (MAP_FIXED)");
                     return SYSC_MMAP_ERR;
+                }
 
                 address = uregion_find_free(owner, pages);
 
@@ -111,12 +127,27 @@ int64_t syscall64_mmap(
 
                 DEBUG_ASSERT(ures == UREGION_OK);
 
+                dbg_sysc_print(
+                    SYSC_MMAP,
+                    "UREGION_OK [requested %p but was not available, provided "
+                    "%p %d pages]",
+                    addr,
+                    address,
+                    pages);
+
                 return address;
 
             case UREGION_ERROR:
+                dbg_sysc_print(
+                    SYSC_MMAP,
+                    "UREGION_ERROR (uregion_reserve error!)");
+
                 return SYSC_MMAP_ERR;
+
+            default:
+                PANIC();
         }
     }
 
-    PANIC();
+    unreachable();
 }

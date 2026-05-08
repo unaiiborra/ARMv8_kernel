@@ -266,7 +266,7 @@ void scheduler_ectx_load(arm_ctx* ectx)
 
 
 /// creates a new thread and adds it to the scheduler
-thread* schedule_thread(task* owner, uintptr_t entry, bool start_ready)
+thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 {
     cpuid_t cpuid = get_cpuid();
 

@@ -61,7 +61,7 @@ typedef enum {
 
 extern void _cache_flush_range(void* start, void* end);
 
-elf_load_result elf_load(task* t, void* elf, size_t size, uintptr_t* out_entry)
+elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry)
 {
     spinlocked(&t->lock)
     {

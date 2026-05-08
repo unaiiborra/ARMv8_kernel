@@ -19,6 +19,8 @@
 #include "gicr_ipriorityr.h"
 #include "gicr_isenabler0.h"
 #include "gicr_waker.h"
+#include "kernel/io/stdio.h"
+#include "lib/branch.h"
 
 
 extern void     _GICV3_ARM_ICC_SRE_EL1_write(uint64_t v);
@@ -121,10 +123,20 @@ static int32_t gicv3_irq_disable_id(driver_handle_t handle, uint32_t irq)
     return 0;
 }
 
-static uint32_t gicv3_irq_ack(driver_handle_t handle)
+static int32_t gicv3_irq_ack(driver_handle_t handle)
 {
     (void)handle;
-    return (uint32_t)(_GICV3_ARM_ICC_IAR1_EL1_read() & 0xFFFFFF);
+    uint32_t irq = (uint32_t)(_GICV3_ARM_ICC_IAR1_EL1_read() & 0xFFFFFF);
+
+    if (irq >= 1020) {
+        dbg_printf(
+            DEBUG_TRACE,
+            "[GICv3] spurious irq %d, returning code -1",
+            irq);
+        return -1;
+    }
+
+    return (int32_t)irq;
 }
 
 static int32_t gicv3_irq_eoi(driver_handle_t handle, uint32_t irq)

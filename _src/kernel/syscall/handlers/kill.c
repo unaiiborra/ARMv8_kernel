@@ -10,7 +10,7 @@
 typedef enum {
     SYSC_KILL_OK        = 0,
     SYSC_KILL_NOT_FOUND = -1,
-} sysc_kill_res;
+} sysc_kill_res_e;
 
 int64_t syscall64_kill(
     sysarg_t                  thid,

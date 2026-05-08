@@ -22,7 +22,6 @@
 
 
 
-
 /// flags of the entire region. It is uregion_flags_e + internal flags
 typedef enum {
     F_READ  = UREGION_F_READ,
@@ -60,7 +59,7 @@ typedef struct uregion_node {
 } uregion_node_t;
 
 
-[[gnu::always_inline]] static inline uregion_node_t* get_head_node(task* t)
+[[gnu::always_inline]] static inline uregion_node_t* get_head_node(task_t* t)
 {
     if (!t->regions)
         return NULL;
@@ -98,6 +97,10 @@ static inline void committed_set(
         size_t bf_n = idx / N;
         size_t bf_i = idx % N;
         DEBUG_ASSERT(region->pages <= N ? bf_n == 0 : true);
+        DEBUG_ASSERT(
+            bitfield_get(bf[bf_n], bf_i) == 0,
+            "tried to commit a page that was already commited");
+
         bitfield_set_high(bf[bf_n], bf_i);
     }
 }
@@ -156,7 +159,7 @@ static mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
 
 
 // finds the node whose region contains the usr va
-static uregion_node_t* region_find_usrva(task* t, uintptr_t usrva)
+static uregion_node_t* region_find_usrva(task_t* t, uintptr_t usrva)
 {
     uregion_node_t* curr = get_head_node(t);
 
@@ -174,7 +177,7 @@ static uregion_node_t* region_find_usrva(task* t, uintptr_t usrva)
 }
 
 // ordered by usr_start, returns false if it overlaps (and does not insert)
-static bool region_insert(task* t, uregion_node_t* node)
+static bool region_insert(task_t* t, uregion_node_t* node)
 {
     uintptr_t new_start = node->region.usr_start;
     uintptr_t new_end   = new_start + node->region.pages * PAGE_SIZE;
@@ -213,7 +216,7 @@ static bool region_insert(task* t, uregion_node_t* node)
     return true;
 }
 
-static bool region_remove(task* t, uregion_node_t* node)
+static bool region_remove(task_t* t, uregion_node_t* node)
 {
     uregion_node_t* prev = NULL;
     uregion_node_t* curr = get_head_node(t);
@@ -268,7 +271,7 @@ static uregion_node_t* node_malloc(
 
 
 uregion_result_e uregion_reserve(
-    task*     t,
+    task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
@@ -291,7 +294,7 @@ uregion_result_e uregion_reserve(
 
 
 uregion_reserve_static_result_t uregion_reserve_static(
-    task*     t,
+    task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
@@ -358,8 +361,10 @@ uregion_reserve_static_result_t uregion_reserve_static(
 }
 
 
-void* uregion_commit(task* t, uintptr_t usrva, uint32_t pages)
+void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
 {
+    // TODO: consider if a page is already commited
+
     const char* tag = "non static lifetime uregion kernel access";
 
     constexpr mmu_pg_cfg KNL_ACCESS_MMU_CFG = (mmu_pg_cfg) {
@@ -473,7 +478,7 @@ void* uregion_commit(task* t, uintptr_t usrva, uint32_t pages)
 // uregion_free
 
 
-static void region_destroy(task* t, uregion_node_t* node)
+static void region_destroy(task_t* t, uregion_node_t* node)
 {
     mmu_unmap_result mmu_res;
     uregion_t*       region = &node->region;
@@ -521,7 +526,7 @@ static void region_destroy(task* t, uregion_node_t* node)
 }
 
 
-bool uregion_free(task* t, uintptr_t usrva, uint32_t pages)
+bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
 {
     uregion_node_t* node = region_find_usrva(t, usrva);
     if (unlikely(!node))
@@ -552,7 +557,7 @@ bool uregion_free(task* t, uintptr_t usrva, uint32_t pages)
 
 
 bool uregion_is_reserved(
-    task*       t,
+    task_t*     t,
     uintptr_t   start,
     size_t      size,
     uregion_t** out_region)
@@ -580,7 +585,7 @@ bool uregion_is_reserved(
 
 
 bool uregion_is_committed(
-    task*       t,
+    task_t*     t,
     uintptr_t   start,
     size_t      size,
     uregion_t** out_region)
@@ -625,7 +630,7 @@ bool uregion_is_committed(
 static const uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
                                            ~(0xFFFF000000000000ULL);
 
-uintptr_t uregion_find_free(task* t, uint32_t pages)
+uintptr_t uregion_find_free(task_t* t, uint32_t pages)
 {
     size_t size = pages * PAGE_SIZE;
 

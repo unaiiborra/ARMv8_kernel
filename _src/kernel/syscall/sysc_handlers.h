@@ -37,7 +37,7 @@ typedef enum {
     // Thread spawn
     SYSC_SPAWN,
 
-    // Thread kill   TODO: implement
+    // Thread kill
     SYSC_KILL,
 
     // Pass control to the kernel and let him decide what to do

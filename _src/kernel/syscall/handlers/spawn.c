@@ -12,7 +12,7 @@ typedef enum {
     SYSC_SPAWN_RES_UNMAPPED = -1,
     // requested fn address region is marked as not executable
     SYSC_SPAWN_RES_NOEXEC = -2,
-} sysc_spawn_res;
+} sysc_spawn_res_e;
 
 
 int64_t syscall64_spawn(
@@ -25,7 +25,7 @@ int64_t syscall64_spawn(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
 {
-    task*      owner  = get_current_thread()->owner;
+    task_t*    owner  = get_current_thread()->owner;
     uregion_t* region = NULL;
 
     bool mapped = uregion_is_reserved(owner, fn, 4, &region);

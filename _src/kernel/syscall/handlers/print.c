@@ -18,7 +18,7 @@
 typedef enum {
     SYSC_PRINT_OK          = 0,
     SYSC_PRINT_INVALID_BUF = -1,
-} sysc_print_res;
+} sysc_print_res_e;
 
 int64_t syscall64_print(
     sysarg_t                  buf_pt,

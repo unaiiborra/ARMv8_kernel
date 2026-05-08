@@ -36,8 +36,8 @@ void schedule(cpuid_t runqueue);
 /* --- Tasks --- */
 
 
-task* task_new(const char* name, size_t stack_size);
-void  task_delete(task* ut);
+task_t* task_new(const char* name, size_t stack_size);
+void    task_delete(task_t* ut);
 
 
 /* --- Threads --- */
@@ -59,7 +59,7 @@ typedef enum {
 
 typedef struct thread {
     uint64_t             th_uid;
-    task*                owner;
+    task_t*              owner;
     arm_ctx              ctx;
     uint64_t             last_access_time_us;
     uint32_t             th_flags;
@@ -71,7 +71,7 @@ typedef struct thread {
 void scheduler_init();
 
 
-thread* schedule_thread(task* owner, uintptr_t entry, bool start_ready);
+thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
 
 /// creates a new thread and adds it to the scheduler. The thread will be marked
 /// as new so it will not execute until marked as READY.
