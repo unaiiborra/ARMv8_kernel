@@ -366,7 +366,7 @@ static int32_t imx8mp_uart_irq_notify_rx(
         return -1; // threshold not valid
     }
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         state->notify_rx_data_handler = handler;
         state->notify_rx_data_ctx     = ctx;
@@ -411,7 +411,7 @@ static int32_t imx8mp_uart_irq_notify_tx(
     if (unlikely(threshold > (uint32_t)TX_FIFO_SZ))
         return -1;
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         state->notify_tx_data_handler = handler;
         state->notify_tx_data_ctx     = ctx;
@@ -446,13 +446,13 @@ static void handle_RRDY(driver_handle_t handle)
 {
     uart_state_t* state = *handle.state;
 
-    irqlock_t flags = _spin_lock_irqsave(&state->lock);
+    irqflags_t flags = spinlock_acquire_irqsave(&state->lock);
 
     // copy locked to have coherency between the two variables
     void (*notify_rx_data_handler)(void*) = state->notify_rx_data_handler;
     void* notify_rx_data_ctx              = state->notify_rx_data_ctx;
 
-    spin_unlock_irqrestore(&state->lock, flags);
+    spinlock_release_irqrestore(&state->lock, flags);
 
     // call while unlocked to allow for new imx8mp_uart_irq_notify_tx calls
     if (notify_rx_data_handler != NULL)
@@ -464,13 +464,13 @@ static void handle_TRDY(driver_handle_t handle)
     uart_state_t* state = *handle.state;
 
 
-    irqlock_t flags = _spin_lock_irqsave(&state->lock);
+    irqflags_t flags = spinlock_acquire_irqsave(&state->lock);
 
     // copy locked to have coherency between the two variables
     void (*notify_tx_data_handler)(void*) = state->notify_tx_data_handler;
     void* notify_tx_data_ctx              = state->notify_tx_data_ctx;
 
-    spin_unlock_irqrestore(&state->lock, flags);
+    spinlock_release_irqrestore(&state->lock, flags);
 
     // call while unlocked to allow for new imx8mp_uart_irq_notify_tx calls
     if (notify_tx_data_handler != NULL)

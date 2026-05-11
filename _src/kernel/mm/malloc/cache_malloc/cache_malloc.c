@@ -343,7 +343,7 @@ void* cache_malloc(cache_malloc_size size)
     void* cache_ptr;
     void* result;
 
-    irq_spinlocked(&lock)
+    spinlocked_irqsave(&lock)
     {
         if (s->first_free_cache.cache) {
             cache_ptr = s->first_free_cache.cache;
@@ -441,7 +441,7 @@ void cache_free(cache_malloc_size size, void* ptr)
 
     void* const cache_ptr = align_down_pt(ptr, CACHE_PAGES[i] * PAGE_SIZE);
 
-    irq_spinlocked(&lock)
+    spinlocked_irqsave(&lock)
     {
         cache_fields f = get_generic_fields(size, cache_ptr);
 

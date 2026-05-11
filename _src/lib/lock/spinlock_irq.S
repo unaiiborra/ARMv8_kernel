@@ -2,10 +2,10 @@
 .align 4
 
 
-.global _spin_lock_irqsave
+.global spinlock_acquire_irqsave
 // x0 = spinlock_t *lock
 // return uint64_t flags
-_spin_lock_irqsave:
+spinlock_acquire_irqsave:
     mrs     x4, DAIF
     msr     DAIFSET, #0b10    // disable irq
     
@@ -17,10 +17,10 @@ _spin_lock_irqsave:
     ret
 
 
-.global _spin_unlock_irqrestore
+.global _spinlock_release_irqrestore
 // x0 = spinlock_t *lock
 // x1 = uint64_t flags
-_spin_unlock_irqrestore:
+_spinlock_release_irqrestore:
     mov     x4, x1
     
     stp     x29, x30, [sp, #-16]!

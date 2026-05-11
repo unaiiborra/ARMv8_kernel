@@ -68,13 +68,13 @@ typedef enum {
 
 
 typedef struct {
-    uint64_t    task_uid;
-    const char* name;
-    spinlock_t  lock;
-    task_state  state;
-    uint32_t    stack_pages;
-    mmu_mapping mapping;
-    uregion_t*  regions;
+    uint64_t           task_uid;
+    const char*        name;
+    spinlock_t         lock;
+    _Atomic task_state state;
+    uint32_t           stack_pages;
+    mmu_mapping        mapping;
+    uregion_t*         regions;
     kvec(thread*) threads;
 } task_t;
 

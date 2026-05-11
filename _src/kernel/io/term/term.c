@@ -45,7 +45,7 @@ void term_delete(term_handle* h)
 
 bool term_printc(term_handle* h, const char c)
 {
-    irq_spinlocked(&h->lock_)
+    spinlocked_irqsave(&h->lock_)
     {
         if (h->buf_.size == 0) {
             int32_t result = h->out_(c);
@@ -65,7 +65,7 @@ bool term_prints(term_handle* h, const char* s)
 {
     bool finished_output;
 
-    irqlock_t f = spin_lock_irqsave(&h->lock_);
+    irqflags_t f = spinlock_acquire_irqsave(&h->lock_);
 
     if (h->buf_.size == 0) {
         while (*s && (h->out_(*s) >= 0))
@@ -79,7 +79,7 @@ bool term_prints(term_handle* h, const char* s)
     while (*s)
         term_buffer_push(&h->buf_, *s++);
 
-    spin_unlock_irqrestore(&h->lock_, f);
+    spinlock_release_irqrestore(&h->lock_, f);
 
     return finished_output;
 }
@@ -105,10 +105,10 @@ bool term_printf(term_handle* h, const char* s, va_list ap)
 
 bool term_notify_ready(term_handle* h)
 {
-    irqlock_t f = spin_lock_irqsave(&h->lock_);
+    irqflags_t f = spinlock_acquire_irqsave(&h->lock_);
 
     if (unlikely(h->buf_.size == 0)) {
-        spin_unlock_irqrestore(&h->lock_, f);
+        spinlock_release_irqrestore(&h->lock_, f);
         return true;
     }
 
@@ -136,7 +136,7 @@ bool term_notify_ready(term_handle* h)
         }
     }
 
-    spin_unlock_irqrestore(&h->lock_, f);
+    spinlock_release_irqrestore(&h->lock_, f);
 
     return finished_output;
 }

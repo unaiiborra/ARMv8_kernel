@@ -106,7 +106,7 @@ static int32_t timer_irq_notify_tick(
     agt_timer_state_t* state = *handle.state;
 
     if (handler == NULL) {
-        irqlock_t l = irq_lock();
+        irqflags_t l = irqsave();
 
         sysreg_write(CNTV_CTL_EL0, IMASK(false) | IENABLE(false));
 
@@ -114,12 +114,12 @@ static int32_t timer_irq_notify_tick(
         state->ctx     = NULL;
         state->running = false;
 
-        irq_unlock(l);
+        irqrestore(l);
 
         return 0;
     }
 
-    irqlock_t l = irq_lock();
+    irqflags_t l = irqsave();
 
     state->handler = handler;
     state->ctx     = ctx;
@@ -128,7 +128,7 @@ static int32_t timer_irq_notify_tick(
     sysreg_write(CNTV_CVAL_EL0, tick);
     sysreg_write(CNTV_CTL_EL0, IMASK(false) | IENABLE(true));
 
-    irq_unlock(l);
+    irqrestore(l);
 
     return 0;
 }
@@ -140,7 +140,7 @@ static int32_t timer_is_running([[maybe_unused]] driver_handle_t handle)
 
 static void timer_irq_handle(driver_handle_t handle)
 {
-    irqlock_t l = irq_lock();
+    irqflags_t l = irqsave();
 
     agt_timer_state_t* state = *handle.state;
 
@@ -163,7 +163,7 @@ static void timer_irq_handle(driver_handle_t handle)
         state->running = false;
     }
 
-    irq_unlock(l);
+    irqrestore(l);
 }
 
 

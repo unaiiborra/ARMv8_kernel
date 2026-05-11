@@ -15,14 +15,14 @@ RS_TARGET	?= aarch64-unknown-none
 CSTD		:= gnu23
 CPPSTD		:= gnu++20 
 
-ASM_FLAGS   = $(DEFINES) -I$(INCLUDE_DIR)
+ASM_FLAGS   += $(DEFINES) -I$(INCLUDE_DIR)
 
-CX_FLAGS 	= $(OPT_LEVEL) $(DEFINES) -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include
+CX_FLAGS 	+= $(OPT_LEVEL) $(DEFINES) -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -mno-outline-atomics -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include 
 
-C_FLAGS     = $(CX_FLAGS) -x c -std=$(CSTD)
-CPP_FLAGS   = $(CX_FLAGS) -x c++ -std=$(CPPSTD)
+C_FLAGS     += $(CX_FLAGS) -x c -std=$(CSTD)
+CPP_FLAGS   += $(CX_FLAGS) -x c++ -std=$(CPPSTD)
 
-LD_FLAGS    = -T linker.ld -Map $(MAP)
+LD_FLAGS    += -T linker.ld -Map $(MAP) --gc-sections
 
 
 $(OBJ_DIR)/drivers/%.o: C_FLAGS += -DDRIVERS

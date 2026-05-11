@@ -1,147 +1,375 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <arm/sysregs/sysregs.h>
+#include <kernel/smp.h>
+#include <stdatomic.h>
 
+
+
+
+/* ---- Memory barriers ---- */
+
+#define dsb_sy() __asm__ volatile("dsb sy" ::: "memory");
+#define isb()    __asm__ volatile("isb" ::: "memory");
+#define wfe()    __asm__ volatile("wfe" ::: "memory");
+
+
+
+
+/* ---- Event barriers ---- */
+
+#define sev()  __asm__ volatile("sev" ::: "memory");
+#define sevl() __asm__ volatile("sevl" ::: "memory");
+
+
+
+
+/* ---- Irqlock ---- */
+
+typedef struct {
+    uint32_t flags;
+} irqflags_t;
+
+[[gnu::always_inline]]
+static inline irqflags_t irqsave(void)
+{
+    irqflags_t irqflags;
+    irqflags.flags = sysreg_read(daif);
+
+    __asm__ volatile("msr daifset, #0xf" ::: "memory");
+    __asm__ volatile("isb" ::: "memory");
+
+    return irqflags;
+}
+
+[[gnu::always_inline]]
+static inline void irqrestore(irqflags_t irqflags)
+{
+    __asm__ volatile("isb" ::: "memory");
+    sysreg_write(daif, irqflags.flags);
+    __asm__ volatile("isb" ::: "memory");
+}
+
+
+
+
+/* ---- Spinlock ---- */
+
+typedef struct {
+    atomic_int flag;
+} spinlock_t;
+
+#define SPINLOCK_INIT (spinlock_t) {.flag = 0}
+
+[[gnu::always_inline]] static inline void spinlock_acquire(spinlock_t* lock)
+{
+    int expected;
+
+    sevl();
+
+    do {
+        do {
+            wfe();
+        } while (atomic_load_explicit(&lock->flag, memory_order_relaxed) != 0);
+
+        expected = 0;
+    } while (!atomic_compare_exchange_weak_explicit(
+        &lock->flag,
+        &expected,
+        1,
+        memory_order_acquire,
+        memory_order_relaxed));
+}
+
+[[gnu::always_inline]] static inline void spinlock_release(spinlock_t* lock)
+{
+    atomic_store_explicit(&lock->flag, 0, memory_order_release);
+    sev();
+}
+
+[[gnu::always_inline]] static inline bool spinlock_trylock(spinlock_t* lock)
+{
+    int expected = 0;
+    return atomic_compare_exchange_strong_explicit(
+        &lock->flag,
+        &expected,
+        1,
+        memory_order_acquire,
+        memory_order_relaxed);
+}
+
+// not for flow control as the state can change after the load
+[[gnu::always_inline]] static inline bool spinlock_is_locked(spinlock_t* lock)
+{
+    return atomic_load_explicit(&lock->flag, memory_order_relaxed);
+}
+
+
+
+
+/* ---- Spinlock + Irqlock ---- */
+
+[[gnu::always_inline]]
+static inline irqflags_t spinlock_acquire_irqsave(spinlock_t* lock)
+{
+    irqflags_t irqflags = irqsave();
+    spinlock_acquire(lock);
+
+    return irqflags;
+}
+
+[[gnu::always_inline]]
+static inline void spinlock_release_irqrestore(
+    spinlock_t* lock,
+    irqflags_t  irqflags)
+{
+    spinlock_release(lock);
+    irqrestore(irqflags);
+}
+
+[[gnu::always_inline]]
+static inline bool spinlock_trylock_irqsave(
+    spinlock_t* lock,
+    irqflags_t* irqflags)
+{
+    *irqflags = irqsave();
+
+    if (spinlock_trylock(lock)) {
+        return true;
+    }
+
+    irqrestore(*irqflags);
+    return false;
+}
+
+
+
+
+/* ---- Cpulock (CPU recursive lock) ---- */
+
+typedef struct {
+    atomic_int flag;
+    int        count;
+} cpulock_t;
+
+#define CPULOCK_INIT (cpulock_t) {.flag = -1, .count = 0}
+
+[[gnu::always_inline]]
+static inline void cpulock_acquire(cpulock_t* lock)
+{
+    cpuid_t cpuid = get_cpuid();
+
+    if (unlikely(
+            atomic_load_explicit(&lock->flag, memory_order_relaxed) ==
+            (int)cpuid)) {
+        lock->count++;
+        return;
+    }
+
+    int expected;
+
+    sevl();
+
+    do {
+        do {
+            wfe();
+        } while (atomic_load_explicit(&lock->flag, memory_order_relaxed) != -1);
+
+        expected = -1;
+    } while (!atomic_compare_exchange_weak_explicit(
+        &lock->flag,
+        &expected,
+        (int)cpuid,
+        memory_order_acquire,
+        memory_order_relaxed));
+
+    lock->count = 1;
+}
+
+[[gnu::always_inline]]
+static inline void cpulock_release(cpulock_t* lock)
+{
+    lock->count--;
+
+    if (lock->count == 0) {
+        atomic_store_explicit(&lock->flag, -1, memory_order_release);
+
+        sev();
+    }
+}
+
+[[gnu::always_inline]]
+static inline bool cpulock_trylock(cpulock_t* lock)
+{
+    cpuid_t cpuid = get_cpuid();
+
+    if (atomic_load_explicit(&lock->flag, memory_order_relaxed) == (int)cpuid) {
+        lock->count++;
+        return true;
+    }
+
+    int  expected = -1;
+    bool acquired = atomic_compare_exchange_strong_explicit(
+        &lock->flag,
+        &expected,
+        (int)cpuid,
+        memory_order_acquire,
+        memory_order_relaxed);
+
+    if (acquired) {
+        lock->count = 1;
+    }
+
+    return acquired;
+}
+
+
+[[gnu::always_inline]]
+static inline bool cpulock_is_locked(cpulock_t* lock)
+{
+    return atomic_load_explicit(&lock->flag, memory_order_relaxed) != -1;
+}
+
+[[gnu::always_inline]]
+static inline bool cpulock_is_owner(cpulock_t* lock)
+{
+    return atomic_load_explicit(&lock->flag, memory_order_relaxed) ==
+           (int)get_cpuid();
+}
+
+
+
+/* ---- Cpulock (CPU recursive lock) + Irqlock ---- */
+// NOTE: make sure this is the required lock, use only if a recursive zone must
+// be protected from access through irqs from the same core. If the idea is to
+// protect from deadlock coming from irqs, use spinlock_acquire_irqsave instead
+
+[[gnu::always_inline]]
+static inline irqflags_t cpulock_acquire_irqsave(cpulock_t* lock)
+{
+    irqflags_t irqflags = irqsave();
+    cpulock_acquire(lock);
+
+    return irqflags;
+}
+
+[[gnu::always_inline]]
+static inline void cpulock_release_irqrestore(
+    cpulock_t* lock,
+    irqflags_t irqflags)
+{
+    cpulock_release(lock);
+    irqrestore(irqflags);
+}
+
+[[gnu::always_inline]]
+static inline bool cpulock_trylock_irqsave(cpulock_t* lock, irqflags_t* irqflags)
+{
+    *irqflags = irqsave();
+
+    if (cpulock_trylock(lock)) {
+        return true;
+    }
+
+    irqrestore(*irqflags);
+    return false;
+}
+
+
+
+
+/* ---- for like macros  ---- */
+// wrap the following code of the macros with { code } and the code will be
+// protected depending on the type of lock
 
 #define __CONCAT3(x, y, z) x##y##z
 #define __CONCAT(x, y, z)  __CONCAT3(x, y, z)
 #define __ITER_VAR(name)   __CONCAT(__iter_, __LINE__, name)
 #define __LOCK_VAR(name)   __CONCAT(__lock_, __LINE__, name)
 
-#define __DEFER(cb) __attribute__((unused, cleanup(cb)))
+#define __DEFER(cleanup_fn) __attribute__((unused, cleanup(cleanup_fn)))
 
-
-/*
-Spinlock
-*/
-
-typedef struct {
-    volatile uint32_t slock; // 0 free / 1 locked
-} spinlock_t;
-
-#define SPINLOCK_INIT (spinlock_t) {.slock = 0}
-
-static inline void spinlock_init(spinlock_t* l)
+[[gnu::always_inline]] static inline void irqrestore_cleanup(
+    irqflags_t* irqflags_pt)
 {
-    *l = SPINLOCK_INIT;
+    irqrestore(*irqflags_pt);
 }
 
-extern bool _spin_try_lock(spinlock_t* lock);
-extern void _spin_lock(spinlock_t* lock);
-extern void _spin_unlock(spinlock_t* lock);
-
-#define spin_try_lock(l) _spin_try_lock(l)
-#define spin_lock(l)     _spin_lock(l)
-#define spin_unlock(l)   _spin_unlock(l)
-
-static inline void __spinlocked_defer(spinlock_t** lock)
+[[gnu::always_inline]]
+static inline void spinlock_release_cleanup(spinlock_t** lock)
 {
     if (lock && *lock) {
-        _spin_unlock(*lock);
+        spinlock_release(*lock);
     }
 }
 
-#define spinlocked(lock)                                                     \
-    for (spinlock_t * __ITER_VAR(spinlocked) = (void*)1,                     \
-                      __DEFER(__spinlocked_defer) * __LOCK_VAR(spinlocked) = \
-                          (_spin_lock(lock), (lock));                        \
-         __ITER_VAR(spinlocked);                                             \
-         __ITER_VAR(spinlocked) = NULL)
-
-
-/*
-irqlock
-*/
-
-typedef struct {
-    uint64_t flags;
-} irqlock_t;
-
-extern irqlock_t _irq_lock(void);
-
-extern void _irq_unlock(irqlock_t l);
-
-#define irq_lock()    _irq_lock()
-#define irq_unlock(l) _irq_unlock(l)
-
-static inline void __irqlocked_defer(irqlock_t* v)
+[[gnu::always_inline]]
+static inline void cpulock_release_cleanup(cpulock_t** lock)
 {
-    _irq_unlock(*v);
+    if (lock && *lock) {
+        cpulock_release(*lock);
+    }
 }
-
-#define irqlocked()                                         \
-    for (irqlock_t __ITER_VAR(irqlocked) = {1},             \
-                   __DEFER(__irqlocked_defer)               \
-                       __LOCK_VAR(irqlocked) = _irq_lock(); \
-         __ITER_VAR(irqlocked).flags;                       \
-         __ITER_VAR(irqlocked).flags = 0)
-
-/*
-spin + irqlock
-*/
-
-
-extern irqlock_t _spin_lock_irqsave(spinlock_t* lock);
-extern void      _spin_unlock_irqrestore(spinlock_t* lock, irqlock_t flags);
-
-#define spin_lock_irqsave(lock)             _spin_lock_irqsave(lock)
-#define spin_unlock_irqrestore(lock, flags) _spin_unlock_irqrestore(lock, flags)
-
 
 typedef struct {
     spinlock_t* lock;
-    irqlock_t   irq;
-} __spin_irq_guard_t;
+    irqflags_t  irqflags;
+} spinlock_irqrestore_cleanup_t;
 
-static inline void __spin_irq_defer(__spin_irq_guard_t* v)
+[[gnu::always_inline]]
+static inline void spinlock_release_irqrestore_cleanup(
+    spinlock_irqrestore_cleanup_t* cleanup)
 {
-    if (v && v->lock) {
-        _spin_unlock_irqrestore(v->lock, v->irq);
-    }
+    spinlock_release_irqrestore(cleanup->lock, cleanup->irqflags);
 }
-#define irq_spinlocked(pt_lock)                                             \
-    for (__spin_irq_guard_t                                                 \
-             __ITER_VAR(irq_spinlocked) = {NULL, {true}},                   \
-             __DEFER(__spin_irq_defer) __LOCK_VAR(                          \
-                 irq_spinlocked) = {(pt_lock), spin_lock_irqsave(pt_lock)}; \
-         __ITER_VAR(irq_spinlocked).irq.flags;                              \
-         __ITER_VAR(irq_spinlocked).irq.flags = false)
-
-
-/*
-corelock
-*/
-
 
 typedef struct {
-    uint32_t          n;
-    volatile uint32_t l;
-} corelock_t;
+    cpulock_t* lock;
+    irqflags_t irqflags;
+} cpulock_irqrestore_cleanup_t;
 
-#define CORELOCK_INIT (corelock_t) {.l = ~(uint32_t)0, .n = 0}
-
-static inline void corelock_init(corelock_t* l)
+[[gnu::always_inline]]
+static inline void cpulock_release_irqrestore_cleanup(
+    cpulock_irqrestore_cleanup_t* cleanup)
 {
-    *l = CORELOCK_INIT;
+    cpulock_release_irqrestore(cleanup->lock, cleanup->irqflags);
 }
 
-extern void core_lock(corelock_t* l);
 
-extern void core_unlock(corelock_t* l);
-extern bool core_try_lock(corelock_t* l);
+#define irqlocked()                                        \
+    for (irqflags_t __ITER_VAR(irqlocked) = {0},           \
+                    __DEFER(irqrestore_cleanup)            \
+                        __LOCK_VAR(irqlocked) = irqsave(); \
+         __ITER_VAR(irqlocked).flags < 1;                  \
+         __ITER_VAR(irqlocked).flags++)
 
-static inline void __corelocked_defer(corelock_t** lock)
-{
-    if (lock && *lock) {
-        core_unlock(*lock);
-    }
-}
+#define spinlocked(lock)                                              \
+    for (spinlock_t __ITER_VAR(spinlocked) = {0},                     \
+                    *__DEFER(spinlock_release_cleanup) __LOCK_VAR(    \
+                        spinlocked) = (spinlock_acquire(lock), lock); \
+         __ITER_VAR(spinlocked).flag < 1;                             \
+         __ITER_VAR(spinlocked).flag++)
 
-#define corelocked(lock)                                                     \
-    for (corelock_t * __ITER_VAR(corelocked) = (void*)1,                     \
-                      __DEFER(__corelocked_defer) * __LOCK_VAR(corelocked) = \
-                          (core_lock(lock), (lock));                         \
-         __ITER_VAR(corelocked);                                             \
-         __ITER_VAR(corelocked) = NULL)
+#define cpulocked(lock)                                                       \
+    for (cpulock_t __ITER_VAR(cpulocked) = {0, 0},                            \
+                   *__DEFER(cpulock_release_cleanup)                          \
+                       __LOCK_VAR(cpulocked) = (cpulock_acquire(lock), lock); \
+         __ITER_VAR(cpulocked).count < 1;                                     \
+         __ITER_VAR(cpulocked).count++)
+
+#define spinlocked_irqsave(lock)                                               \
+    for (spinlock_irqrestore_cleanup_t *                                       \
+             __ITER_VAR(spinlocked_irqsave) =                                  \
+             (spinlock_irqrestore_cleanup_t*)0,                                \
+             __DEFER(spinlock_release_irqrestore_cleanup) __LOCK_VAR(          \
+                 spinlocked_irqsave) = {lock, spinlock_acquire_irqsave(lock)}; \
+         (unsigned long)__ITER_VAR(spinlocked_irqsave) < 1;                    \
+         __ITER_VAR(spinlocked_irqsave) = (spinlock_irqrestore_cleanup_t*)1)
+
+#define cpulocked_irqsave(lock)                                                \
+    for (cpulock_irqrestore_cleanup_t *                                        \
+             __ITER_VAR(cpulocked_irqsave) = (cpulock_irqrestore_cleanup_t*)0, \
+             __DEFER(cpulock_release_irqrestore_cleanup) __LOCK_VAR(           \
+                 cpulocked_irqsave) = {lock, cpulock_acquire_irqsave(lock)};   \
+         (unsigned long)__ITER_VAR(cpulocked_irqsave) < 1;                     \
+         __ITER_VAR(cpulocked_irqsave) = (cpulock_irqrestore_cleanup_t*)1)

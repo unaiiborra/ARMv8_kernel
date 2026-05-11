@@ -23,7 +23,7 @@ int64_t syscall64_kill(
     thread* th      = get_current_thread();
     bool    deleted = false;
 
-    irq_spinlocked(&th->owner->lock)
+    spinlocked_irqsave(&th->owner->lock)
     {
         size_t   n       = kvec_len(&th->owner->threads);
         thread** threads = kvec_data(&th->owner->threads);

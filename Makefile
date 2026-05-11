@@ -9,17 +9,20 @@ all: $(BIN)
 
 
 # Embedded binary objects
+.ONESHELL:
+
 $(OBJ_DIR)/_binary_%.o: $(EMBEDDED_BINARIES_PATH)/%
 	mkdir -p $(dir $@)
 	$(eval SYM := $(shell echo '$*' | tr '.-/ ' '_'))
-	@printf '.section .rodata\n\
-			.global _embed_$(SYM)_start\n\
-			.global _embed_$(SYM)_end\n\
-			.align 6\n\
-			_embed_$(SYM)_start:\n\
-				.incbin "$<"\n\
-			_embed_$(SYM)_end:\n'\
-	> $(OBJ_DIR)/_binary_$*.S
+	cat > $(OBJ_DIR)/_binary_$*.S <<'EOF'
+	.section .rodata._embed_$(SYM),"aG",%progbits,_embed_$(SYM),comdat
+	.global _embed_$(SYM)_start
+	.global _embed_$(SYM)_end
+	.align 6
+	_embed_$(SYM)_start:
+		.incbin "$<"
+	_embed_$(SYM)_end:
+	EOF
 	$(ASM) $(ASM_FLAGS) -c $(OBJ_DIR)/_binary_$*.S -o $@
 
 

@@ -43,7 +43,7 @@ int64_t syscall64_unmap(
     size_t  pages = lenght / PAGE_SIZE;
     bool    freed;
 
-    irq_spinlocked(&owner->lock)
+    spinlocked_irqsave(&owner->lock)
     {
         freed = uregion_free(owner, addr, pages);
     }

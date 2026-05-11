@@ -104,7 +104,7 @@ int32_t imx8mp_tmu_exit(driver_handle_t handle)
 
     tmu_state_t* state = get_state(handle);
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         // Disable all IRQs and thresholds
         TmuTierValue tier = {0};
@@ -166,7 +166,7 @@ int32_t imx8mp_tmu_irq_enable(driver_handle_t handle)
 {
     tmu_state_t* state = get_state(handle);
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         TmuTierValue tier = TMU_TIER_read(handle.base);
 
@@ -192,7 +192,7 @@ int32_t imx8mp_tmu_irq_disable(driver_handle_t handle)
 {
     tmu_state_t* state = get_state(handle);
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         TmuTierValue tier = TMU_TIER_read(handle.base);
         TMU_TIER_ATTEIE0_set(&tier, false);
@@ -217,7 +217,7 @@ int32_t imx8mp_tmu_irq_notify_warn_over(
     tmu_state_t* state  = get_state(handle);
     int8_t       temp_c = (int8_t)threshold;
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         state->warn_handler = handler;
         state->warn_ctx     = ctx;
@@ -272,7 +272,7 @@ int32_t imx8mp_tmu_irq_notify_critical_over(
     tmu_state_t* state  = get_state(handle);
     int8_t       temp_c = (int8_t)threshold;
 
-    irq_spinlocked(&state->lock)
+    spinlocked_irqsave(&state->lock)
     {
         state->critical_handler = handler;
         state->critical_ctx     = ctx;

@@ -43,45 +43,46 @@ task_t* task_new(const char* name, size_t stack_size)
 }
 
 
-static void add_thread_ref(task_t* t, struct thread* th)
+static inline bool add_thread_ref(task_t* t, struct thread* th)
 {
     DEBUG_ASSERT(th != NULL);
 
-    size_t n = kvec_len(&t->threads);
-
+    size_t   n       = kvec_len(&t->threads);
     thread** threads = kvec_dataT(thread*, &t->threads);
 
     for (size_t i = 0; i < n; i++) {
         if (threads[i] == NULL) {
             threads[i] = th;
-            return;
+            return true;
         }
     }
 
     dbgT(int64_t) idx = kvec_push(&t->threads, &th);
     DEBUG_ASSERT(idx >= 0);
+
+    return true;
 }
 
 
 void task_add_thread_ref(task_t* t, struct thread* th)
 {
-    irqlock_t flags = spin_lock_irqsave(&t->lock);
+    irqflags_t flags = spinlock_acquire_irqsave(&t->lock);
 
     add_thread_ref(t, th);
 
-    spin_unlock_irqrestore(&t->lock, flags);
+    spinlock_release_irqrestore(&t->lock, flags);
 }
 
 
 void task_add_thread_refs(task_t* t, struct thread** th, size_t count)
 {
-    irqlock_t flags = spin_lock_irqsave(&t->lock);
+    irqflags_t flags = spinlock_acquire_irqsave(&t->lock);
 
     for (size_t i = 0; i < count; i++) {
         add_thread_ref(t, th[i]);
     }
 
-    spin_unlock_irqrestore(&t->lock, flags);
+    spinlock_release_irqrestore(&t->lock, flags);
 }
 
 
@@ -89,7 +90,7 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
 {
     dbgT(bool) found = false;
 
-    irq_spinlocked(&t->lock)
+    spinlocked_irqsave(&t->lock)
     {
         size_t n = kvec_len(&t->threads);
 
@@ -137,22 +138,22 @@ void terminate_task(uint32_t exit_code)
 {
     task_t* usr_task = get_current_thread()->owner;
 
+    atomic_store(&usr_task->state, TASK_DYING);
+
+    spinlocked(&usr_task->lock)
+    {
+        size_t   n       = kvec_len(&usr_task->threads);
+        thread** threads = kvec_data(&usr_task->threads);
+
+        for (size_t i = 0; i < n; i++) {
+            unschedule_thread(threads[i]);
+        }
+    }
+
+    (void)exit_code;
     dbg_printf(
         DEBUG_TRACE,
         "[terminate_task] terminated task %s with code %d",
         usr_task->name,
         exit_code);
-
-    spinlocked(&usr_task->lock)
-    {
-        size_t n = kvec_len(&usr_task->threads);
-
-        for (size_t i = 0; i < n; i++) {
-            thread* th;
-            dbgT(bool) res = kvec_get_copy(&usr_task->threads, i, &th);
-            DEBUG_ASSERT(res);
-
-            unschedule_thread(th);
-        }
-    }
 }

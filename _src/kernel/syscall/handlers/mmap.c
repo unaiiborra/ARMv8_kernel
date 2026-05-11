@@ -83,7 +83,7 @@ int64_t syscall64_mmap(
         address = align_down(addr, PAGE_ALIGN);
 
 
-    irq_spinlocked(&owner->lock)
+    spinlocked_irqsave(&owner->lock)
     {
         uregion_result_e ures = uregion_reserve(
             owner,

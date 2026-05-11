@@ -49,7 +49,7 @@ static void handle_events(void* clock)
 
     clock_t* clk = clock;
 
-    irq_spinlocked(&clk->timer_lock)
+    spinlocked_irqsave(&clk->timer_lock)
     {
         timer_node_t* cur = clk->event_list;
 
@@ -109,7 +109,7 @@ timer_event_t timer_create_event(
     };
 
 
-    irq_spinlocked(&clock->timer_lock)
+    spinlocked_irqsave(&clock->timer_lock)
     {
         if (clock->event_list) {
             timer_node_t* curr = clock->event_list;
@@ -169,7 +169,7 @@ bool timer_cancel_event(timer_event_t event)
 {
     clock_t* clock = event.clock;
 
-    irq_spinlocked(&clock->timer_lock)
+    spinlocked_irqsave(&clock->timer_lock)
     {
         timer_node_t* curr = clock->event_list;
 

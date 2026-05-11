@@ -35,9 +35,9 @@ _core_lock:
     b       0b
 
 
-// void _core_unlock(volatile uint32_t* l);
-.global _core_unlock
-_core_unlock:
+// void _cpulock_release(volatile uint32_t* l);
+.global _cpulock_release
+_cpulock_release:
     mrs     x2, MPIDR_EL1
     and     w2, w2, #0xFF
 

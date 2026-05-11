@@ -64,7 +64,7 @@ static const mmu_pg_cfg STD_MMU_DEVICE_CFG = (mmu_pg_cfg) {
 };
 
 
-static corelock_t lock;
+static cpulock_t lock;
 
 
 static inline vmalloc_cfg vmalloc_cfg_from_raw_kmalloc_cfg(
@@ -209,7 +209,7 @@ static void* raw_kmalloc_dynamic(
 
 void raw_kmalloc_init()
 {
-    corelock_init(&lock);
+    lock = CPULOCK_INIT;
 }
 
 
@@ -225,7 +225,7 @@ void* __raw_kmalloc(
 
     ASSERT(cfg->assign_pa, "TODO: dynamic mapping not implemented yet");
 
-    irqlocked() corelocked(&lock)
+    irqlocked() cpulocked(&lock)
     {
         if (cfg->kmap)
             va = raw_kmalloc_kmap(pages, tag, cfg, info);
@@ -259,7 +259,7 @@ void raw_kfree(void* ptr)
     vmalloc_allocated_area_mdt vinfo;
     bool                       result;
 
-    irqlocked() corelocked(&lock)
+    irqlocked() cpulocked(&lock)
     {
         vtoken = vmalloc_get_token(ptr);
         vinfo  = vmalloc_get_mdt(vtoken);
@@ -308,34 +308,34 @@ void raw_kfree(void* ptr)
 
 
 struct kmalloc_irqlock_flags {
-    alignas(CACHE_LINE) irqlock_t irqlock;
+    alignas(CACHE_LINE) irqflags_t irqlock;
 };
 static struct kmalloc_irqlock_flags irqlock_flags[NUM_CPUS];
 
 void raw_kmalloc_lock()
 {
-    irqlock_flags[get_cpuid()].irqlock = irq_lock();
-    core_lock(&lock);
+    irqlock_flags[get_cpuid()].irqlock = irqsave();
+    cpulock_acquire(&lock);
 }
 
 
 void raw_kmalloc_unlock()
 {
-    core_unlock(&lock);
-    irq_unlock(irqlock_flags[get_cpuid()].irqlock);
+    cpulock_release(&lock);
+    irqrestore(irqlock_flags[get_cpuid()].irqlock);
 }
 
 
 int raw_kmalloc_lock_defer()
 {
-    irqlock_flags[get_cpuid()].irqlock = irq_lock();
-    core_lock(&lock);
+    irqlock_flags[get_cpuid()].irqlock = irqsave();
+    cpulock_acquire(&lock);
 
     return 1;
 }
 
 void raw_kmalloc_unlock_defer([[maybe_unused]] int* cleanup)
 {
-    core_unlock(&lock);
-    irq_unlock(irqlock_flags[get_cpuid()].irqlock);
+    cpulock_release(&lock);
+    irqrestore(irqlock_flags[get_cpuid()].irqlock);
 }

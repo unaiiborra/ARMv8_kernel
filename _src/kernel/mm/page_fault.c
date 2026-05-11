@@ -163,9 +163,9 @@ void page_fault_handler()
 {
     uint64_t esr = sysreg_read(esr_el1);
 
-    [[maybe_unused]] esr_ec exception_class = ESR_EC(esr);
-    uint64_t                il              = ESR_IL(esr); // instruction lenght
-    uint64_t                iss             = ESR_ISS(esr);
+    [[maybe_unused]] esr_ec   exception_class = ESR_EC(esr);
+    [[maybe_unused]] uint64_t il  = ESR_IL(esr); // instruction lenght
+    uint64_t                  iss = ESR_ISS(esr);
     // uint64_t iss2 = ESR_ISS2(esr_el1);
 
     DEBUG_ASSERT(exception_class == ESR_EC_DABT_LOWER_EL);

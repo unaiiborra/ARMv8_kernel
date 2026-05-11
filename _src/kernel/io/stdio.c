@@ -92,7 +92,7 @@ static void handle_notify_activation(io_term* io, bool finished_output)
     const serial_ops_t* ops    = ((serial_ops_t*)output_dev->driver_ops);
 
 
-    irq_spinlocked(&io->lock)
+    spinlocked_irqsave(&io->lock)
     {
         bool notify_enabled = io->notify_enabled;
 

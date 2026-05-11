@@ -55,7 +55,7 @@ void device_register(
 
 
 
-    irq_spinlocked(&locks[class_id])
+    spinlocked_irqsave(&locks[class_id])
     {
         device_node_t** head = &device_lists[class_id];
 
@@ -98,7 +98,7 @@ const device_t* device_get_by_name(device_class_t class_id, const char* name)
 
     const device_t* device = NULL;
 
-    irq_spinlocked(&locks[class_id])
+    spinlocked_irqsave(&locks[class_id])
     {
         device_node_t* cur = device_lists[class_id];
 
@@ -122,7 +122,7 @@ const device_t* device_get_primary(device_class_t class_id)
 
     const device_t* device = NULL;
 
-    irq_spinlocked(&locks[class_id])
+    spinlocked_irqsave(&locks[class_id])
     {
         if (device_lists[class_id] == NULL)
             return NULL;

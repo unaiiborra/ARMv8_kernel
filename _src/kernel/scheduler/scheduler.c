@@ -42,7 +42,7 @@ typedef struct thread_node {
 
 
 typedef struct {
-    _Alignas(CACHE_LINE) corelock_t lock;
+    _Alignas(CACHE_LINE) cpulock_t lock;
     thread_node* list;
     thread*      current_thread;
 
@@ -105,7 +105,7 @@ void scheduler_init()
     for (size_t i = 0; i < NUM_CORES; i++) {
         runqueue[i].list              = NULL;
         runqueue[i].current_thread    = NULL;
-        runqueue[i].lock              = CORELOCK_INIT;
+        runqueue[i].lock              = CPULOCK_INIT;
         runqueue[i].schedule_required = false;
         atomic_init(
             &runqueue[i].preemptive_duration_microsec,
@@ -139,6 +139,16 @@ void schedule(cpuid_t cpuid)
 
         runqueue[cpuid].schedule_required = true;
     }
+}
+
+
+// must be called with the runqueue lock taken
+static bool schedule_is_required(cpuid_t cpuid)
+{
+    thread_state state = atomic_load(&get_current_thread()->state);
+
+    return runqueue[cpuid].schedule_required || state == THREAD_SLEEPING ||
+           state == THREAD_DEAD;
 }
 
 
@@ -223,7 +233,7 @@ void scheduler_ectx_store(arm_ctx* ectx)
 {
     cpuid_t cpuid = get_cpuid();
 
-    core_lock(&runqueue[cpuid].lock);
+    cpulock_acquire(&runqueue[cpuid].lock);
 
     // restore into sp_el0 the active thread
     thread* curr = runqueue[get_cpuid()].current_thread;
@@ -245,12 +255,15 @@ void scheduler_ectx_load(arm_ctx* ectx)
 
     arm_exceptions_disable_all();
 
-    thread* curr = runqueue[cpuid].schedule_required
-                       // schedule_required == true: schedule a new thread
+
+    thread* curr = schedule_is_required(cpuid)
+                       // schedule_required == true:
+                       // schedule a new thread
                        ? runqueue_schedule()
 
-                       // schedule_required == false: continue with the current
-                       // thread
+                       // schedule_required ==
+                       // false: continue with the
+                       // current thread
                        : get_current_thread();
 
 
@@ -261,7 +274,7 @@ void scheduler_ectx_load(arm_ctx* ectx)
 
     *ectx = curr->ctx;
 
-    core_unlock(&runqueue[cpuid].lock);
+    cpulock_release(&runqueue[cpuid].lock);
 }
 
 
@@ -292,7 +305,7 @@ thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
     task_add_thread_ref(node->th.owner, &node->th); // sets the local_th_uid
     thread_assign_stack(&node->th);
 
-    corelocked(&runqueue[cpuid].lock)
+    cpulocked(&runqueue[cpuid].lock)
     {
         thread_node** first = &runqueue[cpuid].list;
 
@@ -384,28 +397,31 @@ static void free_threads(kvec(thread*) * to_free)
 
 static thread* runqueue_schedule()
 {
-    cpuid_t      cpuid = get_cpuid();
-    thread*      th    = get_current_thread();
-    thread_node* node  = node_from_thread(th);
+    const cpuid_t      cpuid = get_cpuid();
+    thread* const      curr  = get_current_thread();
+    thread_node* const node  = node_from_thread(curr);
 
-    ASSERT(th);
+    ASSERT(curr);
 
     deferT(kvec(thread*), free_threads) to_free = kvec_new(thread_node*);
 
-    corelocked(&runqueue[cpuid].lock)
+
+    cpulocked(&runqueue[cpuid].lock)
     {
-        DEBUG_ASSERT(th && th->sched_cpu == cpuid);
+        DEBUG_ASSERT(curr && curr->sched_cpu == cpuid);
 
         // at this point the current thread is the thread that was being
         // executed by the core, its state should still be RUNNING, althought it
         // could also be DEAD (killed by other thread) or SLEEPING
 
+
+        /* --- handle the current thread's state --- */
         thread_state
             expected = THREAD_RUNNING; // most probable state is RUNNING,
                                        // then SLEEPING, then DEAD
 
         if (unlikely(!atomic_compare_exchange_strong(
-                &th->state,
+                &curr->state,
                 &expected,
                 THREAD_READY))) {
             switch (expected) {
@@ -427,51 +443,82 @@ static thread* runqueue_schedule()
             return NULL; // No threads remaining in the runqueue
 
 
-        // select next thread in the queue
-        node     = node->next;
-        expected = THREAD_READY;
 
-        while (unlikely(!atomic_compare_exchange_strong(
-            &node->th.state,
-            &expected,
-            THREAD_RUNNING))) {
-            switch (expect(expected, THREAD_SLEEPING)) {
-                case THREAD_NEW:
-                    // NEW threads cannot be executed as they are still being
-                    // configured, so just avoid it
-                    break;
 
-                case THREAD_DEAD:
-                    // we own the lock and are the runqueue core so its safe to
-                    // remove the thread from the runqueue
-                    unqueue_thread(node, cpuid);
-                    kvec_push(&to_free, &node);
+        /* --- select a new valid thread as scheduled --- */
+        thread_node* selected_node = node;
 
-                    if (runqueue[cpuid].list == NULL)
-                        return NULL; // No threads remaining in the runqueue,
-                                     // set by unqueue_thread()
+        while (true) {
+            // select next thread in the queue
+            selected_node = selected_node->next;
+            expected      = THREAD_READY;
 
-                    break;
+            // check that the thread's owner is not dying
+            task_state owner_state = atomic_load(
+                &selected_node->th.owner->state);
 
-                case THREAD_RUNNING:
-                    PANIC("no thread should be running because we are scheduling");
-                    break;
+            DEBUG_ASSERT(
+                owner_state != TASK_DEAD,
+                "no threads of a dead task should be in the runqueue");
 
-                case THREAD_SLEEPING:
-                    PANIC("TODO: implement THREAD_SLEEPING");
-                    break;
+            if (unlikely(owner_state == TASK_DYING)) {
+                unqueue_thread(selected_node, cpuid);
+                kvec_push(&to_free, &selected_node);
 
-                default:
-                    PANIC();
+                if (runqueue[cpuid].list == NULL)
+                    return NULL;
+
+                continue;
             }
 
-            node = node->next; // node has not been freed yet, only removed from
-                               // the runqueue, next is valid
-            expected = THREAD_READY;
+
+            bool scheduled_as_ready = atomic_compare_exchange_strong(
+                &selected_node->th.state,
+                &expected,
+                THREAD_RUNNING);
+
+
+            if (likely(scheduled_as_ready))
+                break; // exit the loop
+
+
+            // The thread was not READY, check the state it was in
+            switch (expected) {
+                case THREAD_NEW: {
+                    // NEW threads cannot be executed as they are still
+                    // being configured, so just avoid it
+                } break;
+
+                case THREAD_DEAD: {
+                    // we own the lock and are the runqueue core so its safe
+                    // to remove the thread from the runqueue
+                    unqueue_thread(selected_node, cpuid);
+                    kvec_push(&to_free, &selected_node);
+
+                    if (runqueue[cpuid].list == NULL)
+                        return NULL; // No threads remaining in the
+                                     // runqueue, set by unqueue_thread()
+                } break;
+
+                case THREAD_RUNNING: {
+                    PANIC(
+                        "no thread should be running because we are "
+                        "scheduling");
+                }
+
+                case THREAD_SLEEPING: {
+                    PANIC("TODO: implement THREAD_SLEEPING");
+                }
+
+                default: {
+                    PANIC();
+                }
+            }
         }
 
-        th = &node->th;
-        set_current_thread(th);
+
+        thread* selected_thread = &selected_node->th;
+        set_current_thread(selected_thread);
 
         runqueue[cpuid].preemptive_event = timer_create_event_delta(
             HRTIMER,
@@ -480,5 +527,5 @@ static thread* runqueue_schedule()
             atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000);
     }
 
-    return th;
+    return curr;
 }

@@ -19,7 +19,7 @@ static const char* RESERVE_MALLOC_TAG = "reserved page";
 const size_t RESERVE_MALLOC_RESERVE_SIZE = RESERVE_MALLOC_SIZE;
 
 
-static corelock_t lock;
+static cpulock_t  lock;
 static pv_ptr     reserved_addr[RESERVE_MALLOC_SIZE];
 static bitfield32 reserved_pages;
 
@@ -29,7 +29,7 @@ safe_early void reserve_malloc_init()
     ASSERT(RESERVE_MALLOC_SIZE <= BITFIELD_CAPACITY(reserved_pages));
 
     reserved_pages = 0;
-    lock           = CORELOCK_INIT;
+    lock           = CPULOCK_INIT;
 
     for (size_t i = 0; i < RESERVE_MALLOC_SIZE; i++) {
         ASSERT(!bitfield_get(reserved_pages, i));
@@ -51,7 +51,7 @@ safe_early void reserve_malloc_init()
 
 pv_ptr reserve_malloc(const char* new_tag)
 {
-    corelocked(&lock)
+    cpulocked(&lock)
     {
         for (size_t i = 0; i < RESERVE_MALLOC_SIZE; i++) {
             if (bitfield_get(reserved_pages, i)) {
@@ -97,7 +97,7 @@ void reserve_malloc_fill()
     cfg.kmap            = true;
     cfg.assign_pa       = true;
 
-    irqlocked() corelocked(&lock)
+    irqlocked() cpulocked(&lock)
     {
         while (!RESERVE_IS_FULL()) {
             for (size_t i = 0; i < RESERVE_MALLOC_SIZE; i++) {
