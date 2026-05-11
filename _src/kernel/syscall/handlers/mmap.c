@@ -22,9 +22,9 @@ typedef enum {
 
 typedef enum {
     // bit positions
-    PROT_READ  = 1 << 1,
-    PROT_WRITE = 1 << 2,
-    PROT_EXEC  = 1 << 3,
+    PROT_READ  = 1 << 0,
+    PROT_WRITE = 1 << 1,
+    PROT_EXEC  = 1 << 2,
 } sysc_mmap_prot;
 
 

@@ -16,6 +16,7 @@ int64_t syscall64_exit(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
 {
+    dbg_sysc_print(SYSC_EXIT, );
     terminate_task(exit_code);
 
     return 0;

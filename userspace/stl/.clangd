@@ -1,0 +1,16 @@
+CompileFlags:
+  Compiler: aarch64-none-elf-g++
+  Add:
+    - -Icinclude
+    - -Wall
+    - -Wextra
+    - -Werror
+    - -ffreestanding
+    - -nostdlib
+    - -nostartfiles
+    - -fno-exceptions
+    - -fno-rtti
+    - -std=gnu++20
+    - --target=aarch64-none-elf
+  Remove:
+    - -std=gnu23

@@ -7,11 +7,27 @@ include make/Files.mk
 
 all: $(BIN)
 
+
+# Embedded binary objects
+$(OBJ_DIR)/_binary_%.o: $(EMBEDDED_BINARIES_PATH)/%
+	mkdir -p $(dir $@)
+	$(eval SYM := $(shell echo '$*' | tr '.-/ ' '_'))
+	@printf '.section .rodata\n\
+			.global _embed_$(SYM)_start\n\
+			.global _embed_$(SYM)_end\n\
+			.align 6\n\
+			_embed_$(SYM)_start:\n\
+				.incbin "$<"\n\
+			_embed_$(SYM)_end:\n'\
+	> $(OBJ_DIR)/_binary_$*.S
+	$(ASM) $(ASM_FLAGS) -c $(OBJ_DIR)/_binary_$*.S -o $@
+
+
 # Assembly files
 $(OBJ_DIR)/__%.o: $(SRC_DIR)/%.S
 	mkdir -p $(dir $@)
 	$(ASM) $(ASM_FLAGS) -c $< -o $@
-
+	
 
 # C files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
@@ -33,16 +49,19 @@ $(OBJ_DIR)/rslib.a: Cargo.toml _src/*.rs
 
 
 # Link
-$(TARGET): $(OBJ_DIR)/rslib.a $(OBJ)
+$(TARGET): $(OBJ_DIR)/rslib.a $(OBJ) $(EMBED_OBJS)
 	mkdir -p $(dir $@)
 	$(LD) $(LD_FLAGS) -o $@ \
+	$(EMBED_OBJS) \
     $(OBJ) \
-    $(OBJ_DIR)/rslib.a
+    $(OBJ_DIR)/rslib.a \
+
 
 # BIN
 $(BIN): $(TARGET)
 	mkdir -p $(dir $@)
 	$(OBJCOPY) -O binary $(TARGET) $(BIN)
+	
 
 
 clean:

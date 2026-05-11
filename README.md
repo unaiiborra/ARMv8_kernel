@@ -159,42 +159,54 @@ make
 
 ## Userspace
 
-A minimal C standard library (`userspace/stl/`) and a program template (`userspace/template/`) are provided for writing userspace code. To create a new userspace program, copy the template and implement a `main()` entry point. The provided Makefile links automatically against the STL.
+A minimal C and Rust standard library (`userspace/stl/`) and a program template (`userspace/template/`) are provided for writing userspace code. To create a new userspace program, copy the template and implement a `main()` entry point, either in rust (with #[unsafe(no_mangle)]) or c. Make sure to update the path to the stl crate at the Cargo.toml.
 
 Available STL headers: `stdio.h`, `stdlib.h`, `syscall.h`, `stdthread.h`.
 
 ### Embedding a userspace binary
-
-Since no filesystem is implemented yet, userspace binaries are embedded into the kernel as C byte arrays. To do this:
-
-1. Build your userspace program to get an ELF binary
-2. Run the embedding script:
-
-```bash
-python3 user_examples/bin_to_array.py <your_binary.elf>
+ 
+Since no filesystem is implemented yet, userspace binaries are embedded directly into the kernel binary at link time. Place your compiled ELF (or any binary) in the directory defined by `EMBEDDED_BINARIES_PATH` in your `.env`:
+ 
+```dotenv
+EMBEDDED_BINARIES_PATH = embedded
 ```
-
-3. Add the generated text to a `.c` file to the kernel build
-4. Schedule the program from `_src/kernel/kernel_entry.c`:
-
+ 
+The build system will automatically discover all the files in that directory and embed them as raw bytes in the `.rodata` section.
+ 
+To access an embedded binary from kernel code, include the header and use the provided macros:
+ 
 ```c
-task* ex_task = task_new("my_program", 4 * MEM_KiB);
-
-uintptr_t entry;
-elf_load(ex_task, (void*)MY_ELF, MY_ELF_SIZE, &entry);
-
-schedule_thread(ex_task, entry);
-scheduler_loop_cpu_enter();
+#include <kernel/embedded_binary.h>
+ 
+// File: embedded/my_program.elf
+// Macro name: replace '.' and '-' with '_' → my_program_elf
+ 
+elf_load(task, EMBEDDED_BINARY(my_program_elf), EMBEDDED_BINARY_SIZE(my_program_elf), &entry);
 ```
-
-This will be replaced by proper filesystem-based loading once FAT32 support is implemented.
-
----
+ 
+The macro name is derived from the filename with `.` and `-` replaced by `_`:
+ 
+| File | Macro name |
+|---|---|
+| `embedded/hello_world.elf` | `hello_world_elf` |
+| `embedded/firmware.bin` | `firmware_bin` |
+ 
+Available macros:
+ 
+```c
+EMBEDDED_BINARY(name)       // const void*    — pointer to the start of the binary
+EMBEDDED_BINARY_START(name) // const uint8_t* — same as above
+EMBEDDED_BINARY_END(name)   // const uint8_t* — pointer past the last byte
+EMBEDDED_BINARY_SIZE(name)  // size_t         — size in bytes (end - start)
+```
+ 
+This replaces the previous workflow of manually running `bin_to_array.py` and adding generated C arrays to the build. This also will be replaced once a proper filesystem is implemented.
+ 
 
 ## Roadmap
 
 - [ ] Complete kernel thread support (scheduler currently handles user threads only)
-- [ ] Full preemptive multithreading
+- [X] Full preemptive multithreading
 - [ ] FAT32 filesystem to replace binary embedding with proper file loading
 - [ ] Port to Raspberry Pi 5
 - [ ] Port to Raspberry Pi Zero 2 W

@@ -4,6 +4,7 @@
 
 #include "arm/cpu.h"
 #include "kernel/panic.h"
+#include "lib/align.h"
 
 
 #define EI_NIDENT 16
@@ -98,18 +99,20 @@ elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry
                 continue;
 
             ASSERT(ph[i].p_offset + ph[i].p_filesz <= size);
-            ASSERT(ph[i].p_memsz % PAGE_SIZE == 0);
             ASSERT(ph[i].p_vaddr % PAGE_SIZE == 0);
             ASSERT(ph[i].p_align % PAGE_SIZE == 0);
 
             ASSERT(ph[i].p_flags & PF_R, "elf section marked as read disabled");
+
+            uint64_t memsz = align_up(ph[i].p_memsz, PAGE_SIZE);
+
 
             uint64_t data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
 
             uregion_reserve_static_result_t ureg = uregion_reserve_static(
                 t,
                 ph[i].p_vaddr,
-                ph[i].p_memsz / PAGE_SIZE,
+                memsz / PAGE_SIZE,
                 data_flags & PF_R,
                 data_flags & PF_W,
                 data_flags & PF_X);
@@ -123,16 +126,16 @@ elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry
 
 
             // memzero the remaining area
-            if (ph[i].p_memsz > ph[i].p_filesz) {
+            if (memsz > ph[i].p_filesz) {
                 void*  dst      = (void*)((uintptr_t)kva + ph[i].p_filesz);
-                size_t rem_size = ph[i].p_memsz - ph[i].p_filesz;
+                size_t rem_size = memsz - ph[i].p_filesz;
 
                 memzero(dst, rem_size);
             }
 
             _cache_flush_range(
                 align_down_pt(kva, 64),
-                align_down_pt((void*)((uintptr_t)kva + ph[i].p_memsz), 64));
+                align_down_pt((void*)((uintptr_t)kva + memsz), 64));
         }
 
         if (out_entry)

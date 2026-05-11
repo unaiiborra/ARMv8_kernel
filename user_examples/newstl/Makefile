@@ -9,7 +9,7 @@ RS_TARGET := aarch64-unknown-none
 RS_LIB    := target/$(RS_TARGET)/release/libapp.a
 
 CFLAGS += -ffreestanding -Wall -Wextra -O2 \
-          -Istl_include \
+          -Istl/include \
           -I$(INCLUDE) \
           -g$(G)
 

@@ -83,8 +83,8 @@ int64_t syscall64_exit(
 
 int64_t syscall64_spawn(
     sysarg_t                  fn,
-    [[maybe_unused]] sysarg_t stack_sz,
-    sysarg_t                  arg1, // passed as x1 to the spawned thread
+    sysarg_t                  arg1, // passed to the spawned thread as x1
+    [[maybe_unused]] sysarg_t a1,
     [[maybe_unused]] sysarg_t a3,
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5);

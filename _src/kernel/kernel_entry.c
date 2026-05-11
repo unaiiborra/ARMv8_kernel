@@ -3,11 +3,11 @@
 #include <arm/smccc/smc.h>
 #include <arm/sysregs/sysregs.h>
 #include <drivers/gicv3.h>
+#include <kernel/embedded_binary.h>
 #include <kernel/init.h>
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
-#include <kernel/userspace_embedded_examples.h>
 #include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
@@ -18,14 +18,6 @@
 #include "kernel/io/stdio.h"
 #include "kernel/mm/elf.h"
 #include "kernel/smp.h"
-#include "kernel/time.h"
-
-
-typedef struct {
-    clock_t* clock;
-    uint64_t nanosec;
-} timer_test_t;
-
 
 
 
@@ -43,48 +35,66 @@ noreturn void kernel_entry()
 
     elf_load_result elf_res;
     uintptr_t       hello_world_entry, print_a_entry, print_b_entry,
-        multithreading_entry, mmap_entry;
+        multithreading_entry, mmap_entry, newstl_entry, test_entry;
 
     task_t* hello_world    = task_new("hello_world", 4 * MEM_KiB);
     task_t* print_a        = task_new("print_A", 4 * MEM_KiB);
     task_t* print_b        = task_new("print_B", 4 * MEM_KiB);
     task_t* multithreading = task_new("multithreading", 4 * MEM_KiB);
     task_t* mmap           = task_new("mmap", 4 * MEM_KiB);
+    task_t* newstl         = task_new("newstl", 4 * MEM_KiB);
+    task_t* test           = task_new("test", 4 * MEM_KiB);
 
 
 
     elf_res = elf_load(
         hello_world,
-        (void*)HELLO_WORLD_ELF,
-        HELLO_WORLD_ELF_SZ,
+        EMBEDDED_BINARY(hello_world_elf),
+        EMBEDDED_BINARY_SIZE(hello_world_elf),
         &hello_world_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
     elf_res = elf_load(
         print_a,
-        (void*)PRINT_A_ELF,
-        PRINT_A_ELF_SZ,
+        EMBEDDED_BINARY(print_a_elf),
+        EMBEDDED_BINARY_SIZE(print_a_elf),
         &print_a_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
-
     elf_res = elf_load(
         print_b,
-        (void*)PRINT_B_ELF,
-        PRINT_B_ELF_SZ,
+        EMBEDDED_BINARY(print_b_elf),
+        EMBEDDED_BINARY_SIZE(print_b_elf),
         &print_b_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
     elf_res = elf_load(
         multithreading,
-        (void*)MULTITHREADING_ELF,
-        MULTITHREADING_ELF_SZ,
+        EMBEDDED_BINARY(multithreading_elf),
+        EMBEDDED_BINARY_SIZE(multithreading_elf),
         &multithreading_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
-    elf_res = elf_load(mmap, (void*)MMAP_ELF, MMAP_ELF_SZ, &mmap_entry);
+    elf_res = elf_load(
+        mmap,
+        EMBEDDED_BINARY(mmap_elf),
+        EMBEDDED_BINARY_SIZE(mmap_elf),
+        &mmap_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
+    elf_res = elf_load(
+        newstl,
+        EMBEDDED_BINARY(newstl_elf),
+        EMBEDDED_BINARY_SIZE(newstl_elf),
+        &newstl_entry);
+    ASSERT(elf_res == ELF_LOAD_OK);
+
+    elf_res = elf_load(
+        test,
+        EMBEDDED_BINARY(test_elf),
+        EMBEDDED_BINARY_SIZE(test_elf),
+        &test_entry);
+    ASSERT(elf_res == ELF_LOAD_OK);
 
     schedule_ready_thread(hello_world, hello_world_entry);
     schedule_ready_thread(print_a, print_a_entry);
@@ -101,9 +111,11 @@ noreturn void kernel_entry()
 
 
 
-    schedule_ready_thread(mmap, mmap_entry);
+    schedule_ready_thread(newstl, newstl_entry);
     scheduler_loop_cpu_enter();
 
+    schedule_ready_thread(test, test_entry);
+    scheduler_loop_cpu_enter();
 
     loop asm volatile("wfi");
 }

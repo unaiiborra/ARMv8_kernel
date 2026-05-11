@@ -6,10 +6,6 @@ compile_commands.json
 .env
 kernel.map
 /documentation
-
-
-# Added by cargo
-#
-# already existing elements were commented out
-
-/target
+target/
+_obj/
+out.elf.txt

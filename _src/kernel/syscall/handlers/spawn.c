@@ -1,13 +1,15 @@
 #include <kernel/mm/uregion.h>
 #include <kernel/scheduler.h>
 #include <kernel/task.h>
+#include <stdint.h>
 
 #include "../sysc_handlers.h"
 
 
 
 typedef enum {
-    SYSC_SPAWN_RES_OK = 0,
+    // spawned thid >= 0,
+
     // requested fn address is not mapped
     SYSC_SPAWN_RES_UNMAPPED = -1,
     // requested fn address region is marked as not executable
@@ -16,11 +18,9 @@ typedef enum {
 
 
 int64_t syscall64_spawn(
-    sysarg_t fn,
-    // TODO: decide if the stack size is kernel managed or
-    // user manually allocated and managed
-    [[maybe_unused]] sysarg_t stack_sz,
-    sysarg_t                  arg1, // passed as x1
+    sysarg_t                  fn,
+    sysarg_t                  arg1,
+    [[maybe_unused]] sysarg_t a1,
     [[maybe_unused]] sysarg_t a3,
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
@@ -45,11 +45,13 @@ int64_t syscall64_spawn(
 
     thread* new_th = schedule_new_thread(owner, fn);
 
-    new_th->ctx.x[0] = new_th->th_uid;
+    uint64_t thid = new_th->th_uid;
+
+    new_th->ctx.x[0] = thid;
     new_th->ctx.x[1] = arg1;
 
     thread_promote_to_ready(new_th);
 
 
-    return SYSC_SPAWN_RES_OK;
+    return thid;
 }
