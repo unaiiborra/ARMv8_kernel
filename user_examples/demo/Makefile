@@ -1,4 +1,5 @@
-PROFILE   ?= release    # release | debug
+#            release | debug
+PROFILE   ?= debug
 
 TARGET    ?= out.elf
 CROSS     ?= aarch64-none-elf

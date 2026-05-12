@@ -13,8 +13,7 @@ typedef enum {
     IO_STDPANIC,
 } io_out;
 
-
-void io_flush(io_out io);
+void io_flush(io_out);
 
 void fkprintf(io_out io, const char* s, ...);
 void fkprint(io_out io, const char* s);

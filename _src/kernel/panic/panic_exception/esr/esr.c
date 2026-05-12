@@ -108,19 +108,17 @@ void print_esr(exception_reason_sysregs* r, panic_exception_type type)
     const uint64_t esr = r->esr;
 
     fkprintf(
-        IO_STDPANIC,
+        IO_STDOUT,
         "[ESR_EL%d "
         "(https://developer.arm.com/documentation/111107/2025-12/"
         "AArch64-Registers/"
         "ESR-EL1--Exception-Syndrome-Register--EL1-)]\n",
         (int)sysreg_read(currentel));
 
-    fkprintf(IO_STDPANIC, "\traw: %p\n\t(%b)\n", esr, esr);
+    fkprintf(IO_STDOUT, "\traw: %p\n\t(%b)\n", esr, esr);
 
     if (type == PANIC_EXCEPTION_TYPE_IRQ || type == PANIC_EXCEPTION_TYPE_FIQ) {
-        fkprint(
-            IO_STDPANIC,
-            "\tnote: asynchronous interrupt, esr not relevant\n");
+        fkprint(IO_STDOUT, "\tnote: asynchronous interrupt, esr not relevant\n");
         return;
     }
 
@@ -133,10 +131,10 @@ void print_esr(exception_reason_sysregs* r, panic_exception_type type)
 
     if (type == PANIC_EXCEPTION_TYPE_SYNC) {
         fkprintf(
-            IO_STDPANIC,
+            IO_STDOUT,
             "\tIL (instruction lenght): %s\n",
             il ? "32 bit" : "16 bit");
-        fkprintf(IO_STDPANIC, "\tEC (exception class): %s\n", ec_msg(ec));
+        fkprintf(IO_STDOUT, "\tEC (exception class): %s\n", ec_msg(ec));
 
         switch (ec) {
             case ESR_EC_UNKNOWN:

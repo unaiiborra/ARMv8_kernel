@@ -7,6 +7,7 @@
 #include <lib/stdmacros.h>
 #include <lib/string.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "kernel/smp.h"
 #include "panic_exception/panic_exception_handlers.h"
@@ -126,12 +127,12 @@ static void handle_manual_abort_panic(panic_info* info)
 
 static void handle_panic(panic_info* info, panic_recovery recovery)
 {
-    arm_exceptions_set_status((arm_exception_status) {
-        false,
-        false,
-        false,
-        false,
-    });
+    io_flush(IO_STDOUT);
+
+    arm_exceptions_disable_all();
+
+    fkprint(IO_STDPANIC, "\n\r");
+
 
     if (!info)
         goto hang;

@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
+#include "lib/branch.h"
+#include "lib/lock.h"
 
 
 
@@ -25,25 +27,28 @@ int64_t syscall64_spawn(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5)
 {
-    task_t*    owner  = get_current_thread()->owner;
+    task_t*    task   = get_current_thread()->owner;
     uregion_t* region = NULL;
 
-    bool mapped = uregion_is_reserved(owner, fn, 4, &region);
+    spinlocked(&task->lock)
+    {
+        bool mapped = uregion_is_reserved(task, fn, 4, &region);
 
-    if (!mapped) {
-        dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_UNMAPPED %p", fn);
+        if (unlikely(!mapped)) {
+            dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_UNMAPPED %p", fn);
 
-        return SYSC_SPAWN_RES_UNMAPPED;
+            return SYSC_SPAWN_RES_UNMAPPED;
+        }
+
+
+        if (unlikely((uregion_get_flags(region) & UREGION_F_EXEC) == 0)) {
+            dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_NOEXEC");
+
+            return SYSC_SPAWN_RES_NOEXEC;
+        }
     }
 
-    if (uregion_get_flag(region, UREGION_F_EXEC) == false) {
-        dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_NOEXEC");
-
-        return SYSC_SPAWN_RES_NOEXEC;
-    }
-
-
-    thread* new_th = schedule_new_thread(owner, fn);
+    thread* new_th = schedule_new_thread(task, fn);
 
     uint64_t thid = new_th->th_uid;
 

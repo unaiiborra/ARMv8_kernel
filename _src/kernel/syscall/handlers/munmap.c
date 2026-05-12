@@ -2,12 +2,19 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
+#include "arm/mmu.h"
+#include "kernel/io/stdio.h"
 #include "kernel/mm.h"
+#include "kernel/mm/mmu.h"
+#include "kernel/mm/page_malloc.h"
 #include "kernel/mm/uregion.h"
+#include "kernel/mm/vmalloc.h"
+#include "kernel/panic.h"
 #include "kernel/task.h"
 #include "lib/align.h"
 #include "lib/branch.h"
 #include "lib/lock.h"
+#include "lib/mem.h"
 
 
 typedef enum {
@@ -43,10 +50,13 @@ int64_t syscall64_unmap(
     size_t  pages = lenght / PAGE_SIZE;
     bool    freed;
 
-    spinlocked_irqsave(&owner->lock)
+
+    irqflags_t irqflags = spinlock_acquire_irqsave(&owner->lock);
     {
         freed = uregion_free(owner, addr, pages);
     }
+    spinlock_release_irqrestore(&owner->lock, irqflags);
+
 
     if (unlikely(!freed)) {
         dbg_sysc_print(

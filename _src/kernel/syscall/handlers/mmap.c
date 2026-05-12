@@ -74,17 +74,18 @@ int64_t syscall64_mmap(
 
     size_t pages = div_ceil(lenght, PAGE_SIZE);
 
-    uintptr_t address;
-    if (addr == (sysarg_t)NULL)
-        address = uregion_find_free(owner, pages);
-    else if (addr % PAGE_ALIGN == 0)
-        address = addr;
-    else
-        address = align_down(addr, PAGE_ALIGN);
 
-
-    spinlocked_irqsave(&owner->lock)
+    spinlocked(&owner->lock)
     {
+        uintptr_t address;
+
+        if (addr == (sysarg_t)NULL)
+            address = uregion_find_free(owner, pages);
+        else if (addr % PAGE_ALIGN == 0)
+            address = addr;
+        else
+            address = align_down(addr, PAGE_ALIGN);
+
         uregion_result_e ures = uregion_reserve(
             owner,
             address,
@@ -135,7 +136,7 @@ int64_t syscall64_mmap(
                     address,
                     pages);
 
-                return address;
+                return SYSC_MMAP_CFG_NOT_SUPPORTED;
 
             case UREGION_ERROR:
                 dbg_sysc_print(

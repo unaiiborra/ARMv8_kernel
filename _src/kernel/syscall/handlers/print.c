@@ -9,6 +9,7 @@
 #include "kernel/mm/uregion.h"
 #include "kernel/panic.h"
 #include "kernel/task.h"
+#include "lib/lock.h"
 #include "lib/stdattribute.h"
 
 
@@ -29,35 +30,33 @@ int64_t syscall64_print(
     [[maybe_unused]] sysarg_t a5)
 {
     uregion_t* region;
-    if (!uregion_is_committed(
-            get_current_thread()->owner,
-            buf_pt,
-            buf_sz,
-            &region)) {
-        dbg_sysc_print(SYSC_PRINT, "SYSC_PRINT_INVALID_BUF");
+    task_t*    task = get_current_thread()->owner;
+    char*      cpy;
 
-        return SYSC_PRINT_INVALID_BUF;
+    spinlocked(&task->lock)
+    {
+        if (!uregion_is_committed(task, buf_pt, buf_sz, &region)) {
+            dbg_sysc_print(SYSC_PRINT, "SYSC_PRINT_INVALID_BUF");
+
+            return SYSC_PRINT_INVALID_BUF;
+        }
+
+        uintptr_t kva;
+        dbgT(bool) valid = uregion_get_knl_access(region, buf_pt, &kva);
+        DEBUG_ASSERT(valid);
+
+
+        cpy = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
+        cpy[buf_sz] = '\0';
+
+        memcpy(cpy, (void*)kva, buf_sz);
     }
-
-    uintptr_t kva;
-    dbgT(bool) valid = uregion_get_knl_access(region, buf_pt, &kva);
-    DEBUG_ASSERT(valid);
-
-
-    char* cpy   = kmalloc(buf_sz + 1); // copy to avoid reading out of BUF_SIZE
-    cpy[buf_sz] = '\0';
-
-    memcpy(cpy, (void*)kva, buf_sz);
 
 #if DEBUG < DEBUG_TRACE
     fkprint(IO_STDOUT, cpy);
 #else
-    dbg_sysc_print(
-        SYSC_PRINT,
-        "\"" ANSI_RESET "%s" DEBUG_ANSI_FG_COLOR "\"",
-        cpy);
+    dbg_sysc_print(SYSC_PRINT, "\"" ANSI_RESET "%s\"", cpy);
 #endif
-
 
     kfree(cpy);
 

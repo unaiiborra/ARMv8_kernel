@@ -1,5 +1,7 @@
 #include <kernel/mm.h>
 #include <kernel/mm/uregion.h>
+#include <lib/lock.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -13,24 +15,26 @@
 #include "kernel/task.h"
 #include "lib/align.h"
 #include "lib/branch.h"
-#include "lib/flags.h"
 #include "lib/math.h"
 #include "lib/mem.h"
 #include "lib/stdbitfield.h"
 #include "raw_kmalloc/raw_kmalloc.h"
 
-
+#define ASSERT_OWNER_IS_LOCKED(owner)     \
+    DEBUG_ASSERT(                         \
+        spinlock_is_locked(&owner->lock), \
+        "the task should be locked before calling!")
 
 
 /// flags of the entire region. It is uregion_flags_e + internal flags
 typedef enum {
-    F_READ  = UREGION_F_READ,
-    F_WRITE = UREGION_F_WRITE,
-    F_EXEC  = UREGION_F_EXEC,
-    F_STATIC_LIFETIME,
-    F_FULL_MAPPED,
-    F_PARTIALLY_MAPPED,
-    F_HAS_KNL,
+    F_READ             = UREGION_F_READ,
+    F_WRITE            = UREGION_F_WRITE,
+    F_EXEC             = UREGION_F_EXEC,
+    F_STATIC_LIFETIME  = 1 << 3,
+    F_FULL_MAPPED      = 1 << 4,
+    F_PARTIALLY_MAPPED = 1 << 5,
+    F_HAS_KNL          = 1 << 6,
 } uregion_flags_internal_e;
 
 
@@ -68,8 +72,10 @@ typedef struct uregion_node {
                              offsetof(uregion_node_t, region));
 }
 
-static void commited_try_init(uregion_t* region)
+static void committed_init(uregion_t* region)
 {
+    DEBUG_ASSERT((region->flags & F_HAS_KNL) == 0);
+
     size_t pages = region->pages;
 
     bool initialized = pages <= 64 || region->committed.bg != NULL;
@@ -103,6 +109,44 @@ static inline void committed_set(
 
         bitfield_set_high(bf[bf_n], bf_i);
     }
+}
+
+
+typedef enum {
+    COMMITED_NONE,
+    COMMITED_PARTIALLY,
+    COMMITED_FULLY,
+} commited_state_e;
+
+static commited_state_e get_commited_state(uregion_t* region)
+{
+    constexpr size_t N = BITFIELD_CAPACITY(bitfield64);
+
+    size_t words = div_ceil(region->pages, N);
+
+    bitfield64* bf = region->pages > N ? region->committed.bg
+                                       : &region->committed.sm;
+
+    size_t total_set = 0;
+
+    for (size_t w = 0; w < words; w++) {
+        size_t bits_in_word = (w == words - 1 && region->pages % N != 0)
+                                  ? region->pages % N
+                                  : N;
+
+        uint64_t mask = bits_in_word == 64 ? UINT64_MAX
+                                           : (UINT64_C(1) << bits_in_word) - 1;
+
+        total_set += __builtin_popcountll(bf[w] & mask);
+    }
+
+    if (total_set == 0)
+        return COMMITED_NONE;
+
+    if (total_set == region->pages)
+        return COMMITED_FULLY;
+
+    return COMMITED_PARTIALLY;
 }
 
 
@@ -143,13 +187,13 @@ static mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
 
 
     switch (flags & 0b111U) {
-        case FLAG_BIT(F_READ) | FLAG_BIT(F_WRITE):
+        case F_READ | F_WRITE:
             return RW;
 
-        case FLAG_BIT(F_READ):
+        case F_READ:
             return R;
 
-        case FLAG_BIT(F_READ) | FLAG_BIT(F_EXEC):
+        case F_READ | F_EXEC:
             return RX;
 
         default:
@@ -248,13 +292,18 @@ static uregion_node_t* node_malloc(
     uregion_node_t* node = kmalloc(sizeof(uregion_node_t));
 
     uint32_t flags = 0;
-    SET_FLAG(flags, F_READ, read);
-    SET_FLAG(flags, F_WRITE, write);
-    SET_FLAG(flags, F_EXEC, exec);
-    SET_FLAG(flags, F_STATIC_LIFETIME, static_lifetime);
-    SET_FLAG(flags, F_PARTIALLY_MAPPED, false);
-    SET_FLAG(flags, F_FULL_MAPPED, false);
-    SET_FLAG(flags, F_HAS_KNL, false);
+
+    if (read)
+        flags |= F_READ;
+
+    if (write)
+        flags |= F_WRITE;
+
+    if (exec)
+        flags |= F_EXEC;
+
+    if (static_lifetime)
+        flags |= F_STATIC_LIFETIME;
 
     node->next   = NULL;
     node->region = (uregion_t) {
@@ -278,6 +327,8 @@ uregion_result_e uregion_reserve(
     bool      write,
     bool      exec)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     uregion_node_t* node = node_malloc(usr_va, pages, read, write, exec, false);
 
     bool overlaps = !region_insert(t, node);
@@ -301,6 +352,8 @@ uregion_reserve_static_result_t uregion_reserve_static(
     bool      write,
     bool      exec)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     uregion_node_t* node = node_malloc(usr_va, pages, read, write, exec, true);
 
     bool overlaps = !region_insert(t, node);
@@ -348,11 +401,15 @@ uregion_reserve_static_result_t uregion_reserve_static(
     }
     raw_kmalloc_unlock();
 
-    SET_FLAG(node->region.flags, F_HAS_KNL, true);
-    SET_FLAG(node->region.flags, F_FULL_MAPPED, true);
 
-    commited_try_init(&node->region);
+    committed_init(&node->region);
     committed_set(&node->region, 0, node->region.pages);
+
+    node->region.flags |= F_HAS_KNL;
+    node->region.flags |= F_FULL_MAPPED;
+
+
+
 
     return (uregion_reserve_static_result_t) {
         .result = UREGION_OK,
@@ -363,7 +420,7 @@ uregion_reserve_static_result_t uregion_reserve_static(
 
 void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
 {
-    // TODO: consider if a page is already commited
+    ASSERT_OWNER_IS_LOCKED(t);
 
     const char* tag = "non static lifetime uregion kernel access";
 
@@ -396,7 +453,7 @@ void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
 
     raw_kmalloc_lock();
 
-    if (unlikely(GET_FLAG(region->flags, F_HAS_KNL) == 0)) {
+    if (unlikely((region->flags & F_HAS_KNL) == 0)) {
         // the kernel access vmalloc hasn't been done yet, so reserve the
         // full virtual address region
         region->knl_start = vmalloc(
@@ -414,9 +471,9 @@ void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
             },
             &region->knl_vtoken);
 
-        commited_try_init(region);
+        committed_init(region);
 
-        SET_FLAG(region->flags, F_HAS_KNL, true);
+        region->flags |= F_HAS_KNL;
     }
 
     size_t remaining = pages;
@@ -469,6 +526,23 @@ void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
 
     raw_kmalloc_unlock();
 
+    switch (get_commited_state(region)) {
+        case COMMITED_PARTIALLY: {
+            region->flags |= F_PARTIALLY_MAPPED;
+            region->flags &= ~F_FULL_MAPPED;
+        } break;
+
+        case COMMITED_FULLY: {
+            region->flags |= F_FULL_MAPPED;
+            region->flags &= ~F_PARTIALLY_MAPPED;
+        } break;
+
+        case COMMITED_NONE: {
+            PANIC("committed none after uregion_commit");
+        } break;
+    }
+
+
     return (void*)(region->knl_start + abs_region_offset);
 }
 
@@ -483,9 +557,8 @@ static void region_destroy(task_t* t, uregion_node_t* node)
     mmu_unmap_result mmu_res;
     uregion_t*       region = &node->region;
 
-    if (GET_FLAG(node->region.flags, F_FULL_MAPPED) ||
-        GET_FLAG(node->region.flags, F_PARTIALLY_MAPPED)) {
-        DEBUG_ASSERT(GET_FLAG(region->flags, F_HAS_KNL));
+    if ((node->region.flags & (F_FULL_MAPPED | F_PARTIALLY_MAPPED)) != 0) {
+        DEBUG_ASSERT((node->region.flags & F_HAS_KNL) != 0);
 
         mmu_res = mmu_unmap(
             &t->mapping,
@@ -528,6 +601,8 @@ static void region_destroy(task_t* t, uregion_node_t* node)
 
 bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     uregion_node_t* node = region_find_usrva(t, usrva);
     if (unlikely(!node))
         return false;
@@ -562,6 +637,8 @@ bool uregion_is_reserved(
     size_t      size,
     uregion_t** out_region)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     if (size == 0)
         return false;
 
@@ -590,6 +667,8 @@ bool uregion_is_committed(
     size_t      size,
     uregion_t** out_region)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     uregion_t* region;
 
     if (!uregion_is_reserved(t, start, size, &region))
@@ -599,10 +678,10 @@ bool uregion_is_committed(
         *out_region = region;
 
     // fast path fully mapped static region
-    if (GET_FLAG(region->flags, F_FULL_MAPPED))
+    if ((region->flags & F_FULL_MAPPED) != 0)
         return true;
 
-    if (!GET_FLAG(region->flags, F_HAS_KNL))
+    if ((region->flags & F_HAS_KNL) == 0)
         return false;
 
     // check bitfield for each page in [start, start+size)
@@ -632,6 +711,8 @@ static const uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
 
 uintptr_t uregion_find_free(task_t* t, uint32_t pages)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+
     size_t size = pages * PAGE_SIZE;
 
     uintptr_t       prev_start = USR_ADDRSPACE_END;
@@ -668,7 +749,7 @@ bool uregion_get_knl_access(
             usr_va >= region->usr_start + region->pages * PAGE_SIZE))
         return false;
 
-    if (!GET_FLAG(region->flags, F_HAS_KNL))
+    if ((region->flags & F_HAS_KNL) == 0)
         return false;
 
     size_t offset = usr_va - region->usr_start;
@@ -679,10 +760,10 @@ bool uregion_get_knl_access(
     return true;
 }
 
-bool uregion_get_flag(uregion_t* region, uregion_flags_e flag)
+uint32_t uregion_get_flags(uregion_t* region)
 {
     if (!region)
         return false;
 
-    return GET_FLAG(region->flags, flag);
+    return region->flags & (F_READ | F_WRITE | F_EXEC);
 }

@@ -103,12 +103,9 @@ bool term_printf(term_handle* h, const char* s, va_list ap)
 }
 
 
-bool term_notify_ready(term_handle* h)
+static bool term_notify_ready_unlocked(term_handle* h)
 {
-    irqflags_t f = spinlock_acquire_irqsave(&h->lock_);
-
     if (unlikely(h->buf_.size == 0)) {
-        spinlock_release_irqrestore(&h->lock_, f);
         return true;
     }
 
@@ -136,7 +133,30 @@ bool term_notify_ready(term_handle* h)
         }
     }
 
-    spinlock_release_irqrestore(&h->lock_, f);
+    return finished_output;
+}
+
+
+bool term_notify_ready(term_handle* h)
+{
+    irqflags_t irqflags = spinlock_acquire_irqsave(&h->lock_);
+
+    bool finished_output = term_notify_ready_unlocked(h);
+
+    spinlock_release_irqrestore(&h->lock_, irqflags);
 
     return finished_output;
+}
+
+
+
+void term_flush(term_handle* h)
+{
+    irqflags_t irqflags = spinlock_acquire_irqsave(&h->lock_);
+
+    while (!term_notify_ready_unlocked(h)) {
+        asm volatile("nop");
+    }
+
+    spinlock_release_irqrestore(&h->lock_, irqflags);
 }

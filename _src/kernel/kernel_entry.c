@@ -36,21 +36,21 @@ noreturn void kernel_entry()
     kprint("Hello!\n\r");
 
     elf_load_result elf_res;
-    uintptr_t       newstl_entry;
+    uintptr_t       demo_entry;
 
 
-    task_t* newstl = task_new("newstl", 4 * MEM_KiB);
+    task_t* demo = task_new("demo", 2 * MEM_MiB);
 
 
     elf_res = elf_load(
-        newstl,
-        EMBEDDED_BINARY(newstl_elf),
-        EMBEDDED_BINARY_SIZE(newstl_elf),
-        &newstl_entry);
+        demo,
+        EMBEDDED_BINARY(demo_elf),
+        EMBEDDED_BINARY_SIZE(demo_elf),
+        &demo_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
 
-    schedule_ready_thread(newstl, newstl_entry);
+    schedule_ready_thread(demo, demo_entry);
     scheduler_loop_cpu_enter();
 
 

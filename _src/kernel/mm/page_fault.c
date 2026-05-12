@@ -14,8 +14,8 @@
 #include "kernel/task.h"
 #include "lib/align.h"
 #include "lib/branch.h"
+#include "lib/lock.h"
 #include "lib/mem.h"
-#include "lib/stdattribute.h"
 
 #define case_print(v)                        \
     dbg_printf(                              \
@@ -134,22 +134,23 @@ static void translation_fault(
     uintptr_t  fault_address  = get_fault_address();
     size_t     dabt_word_size = get_dabt_word_size(iss);
 
-
-    bool reserved_uregion = uregion_is_reserved(
-        task,
-        fault_address,
-        dabt_word_size == 0 ? 1 : dabt_word_size,
-        &uregion);
-
-    if (likely(reserved_uregion)) {
-        void* kva = uregion_commit(
+    spinlocked(&task->lock)
+    {
+        bool reserved_uregion = uregion_is_reserved(
             task,
-            align_down(fault_address, PAGE_ALIGN),
-            1);
+            fault_address,
+            dabt_word_size == 0 ? 1 : dabt_word_size,
+            &uregion);
 
-        memzero64(kva, PAGE_SIZE);
+        if (likely(reserved_uregion)) {
+            void* kva = uregion_commit(
+                task,
+                align_down(fault_address, PAGE_ALIGN),
+                1);
 
-        return;
+            memzero64(kva, PAGE_SIZE);
+            return;
+        }
     }
 
     // unreserved region access TODO: SIGNAL

@@ -1,5 +1,7 @@
 use core::ffi::c_void;
 
+use crate::stdio::print;
+
 unsafe extern "C" {
     pub fn syscall(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, a5: u64, code: SyscallCode) -> i64;
 }
@@ -234,7 +236,7 @@ mod c {
         fd: u64,
         offset: usize,
     ) -> i64 {
-        unsafe {
+        let result = unsafe {
             syscall(
                 addr as u64,
                 length as u64,
@@ -244,7 +246,23 @@ mod c {
                 offset as u64,
                 super::SyscallCode::Mmap,
             )
+        };
+
+        #[cfg(debug_assertions)]
+        if result >= 0 {
+            let page = result as *const u8;
+            for i in 0..length {
+                let byte = unsafe { *page.add(i) };
+                if byte != 0 {
+                    panic!(
+                        "syscall_mmap: page not zeroed at offset {} value=0x{:02x}",
+                        i, byte
+                    );
+                }
+            }
         }
+
+        result
     }
 
     #[unsafe(no_mangle)]

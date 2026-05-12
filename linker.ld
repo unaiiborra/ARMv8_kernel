@@ -13,7 +13,8 @@ SECTIONS {
     .text KERNEL_VA_BASE : ALIGN(4096) {
         __text_start = .;
         KEEP(*(.text.boot))
-        *(.text*)
+        *(.text)
+        *(.text.*)
 
         __vectors_start = .;
         KEEP(*(.vectors))
@@ -28,7 +29,7 @@ SECTIONS {
 
     .rodata : ALIGN(4096) {
         __rodata_start = .;
-        *(.rodata*)
+        *(.rodata)
         *(.rodata.*)
         *(.platform_info)
 
@@ -48,8 +49,8 @@ SECTIONS {
 
     .data : ALIGN(4096) {
         __data_start = .;
-        *(.data*)
-        
+        *(.data)
+        *(.data.*)        
 
         . = ALIGN(4096);
         __data_end = .;

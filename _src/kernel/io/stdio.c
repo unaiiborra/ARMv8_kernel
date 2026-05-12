@@ -67,10 +67,10 @@ void io_init()
 }
 
 
-// void io_flush(io_out io)
-// {
-//     term_flush(STDIO_OUTPUTS[io]);
-// }
+void io_flush(io_out io)
+{
+    term_flush(&STDIO_OUTPUTS[io]->term);
+}
 
 static void handle_tx_ready_notification(void* ctx)
 {

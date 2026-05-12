@@ -17,6 +17,8 @@
 
 // NOTE: the following documentation has been made by an LLM
 
+// WARNING: ALWAYS LOCK THE OWNER TASK BEFORE CALLING ANY OF THESE FUNCTIONS
+
 typedef struct uregion uregion_t; // used in task
 
 typedef enum {
@@ -27,9 +29,9 @@ typedef enum {
 
 
 typedef enum {
-    UREGION_F_READ  = 0,
-    UREGION_F_WRITE = 1,
-    UREGION_F_EXEC  = 2,
+    UREGION_F_READ  = 1 << 0,
+    UREGION_F_WRITE = 1 << 1,
+    UREGION_F_EXEC  = 1 << 2,
 } uregion_flags_e;
 
 
@@ -170,8 +172,8 @@ bool uregion_get_knl_access(
     uintptr_t  usr_va,
     uintptr_t* knl_va);
 
-/// Returns the value of a public flag for the given region.
+/// Returns the flags of the region, the user must check against uregion_flags_e
 ///
 /// @param region target region
-/// @param flag   flag to query (uregion_flags_e)
-bool uregion_get_flag(uregion_t* region, uregion_flags_e flag);
+/// @returns flags
+uint32_t uregion_get_flags(uregion_t* region);

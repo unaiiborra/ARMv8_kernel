@@ -36,7 +36,7 @@ fn main() {
         Path::new("stl_include").to_path_buf(),
     ];
 
-    let mut ccflags: Vec<&str> = Vec::from([
+    let mut cxflags: Vec<&str> = Vec::from([
         "-Wall",
         "-Wextra",
         "-Werror",
@@ -46,7 +46,7 @@ fn main() {
         "-nostdinc",
     ]);
     if export_debug_symbols {
-        ccflags.push("-g");
+        cxflags.append(&mut Vec::from(["-g3", "-DDEBUG=1", "-DTESTING"]));
     }
 
     let cflags = ["-std=gnu23"];
@@ -65,7 +65,7 @@ fn main() {
         cc::Build::new()
             .compiler("aarch64-none-elf-gcc")
             .includes(includes.clone())
-            .flags(ccflags.clone())
+            .flags(cxflags.clone())
             .flags(cflags)
             .opt_level(opt)
             .files(&cpp_files)
@@ -77,7 +77,7 @@ fn main() {
             .compiler("aarch64-none-elf-g++")
             .cpp(true)
             .includes(includes.clone())
-            .flags(ccflags.clone())
+            .flags(cxflags.clone())
             .flags(cppflags)
             .opt_level(opt)
             .files(&cpp_files)

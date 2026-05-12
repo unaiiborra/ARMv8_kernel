@@ -318,6 +318,9 @@ mmu_unmap_result mmu_unmap(
     DEBUG_ASSERT(size == 0 && va == expected_virt_end);
 #endif
 
+
+    MMU_APPLY_CHANGES();
+
     return MMU_UNMAP_OK;
 }
 
@@ -355,11 +358,12 @@ void mmu_walk_page(const mmu_mapping* m, vuintptr_t va, mmu_walk_result* result)
         }
 
         switch (dc_get_type(dc, g, l)) {
-            case MMU_DESCRIPTOR_TABLE:
+            case MMU_DESCRIPTOR_TABLE: {
                 tbl = tbl_from_td(m, dc, l);
                 continue;
+            }
 
-            case MMU_DESCRIPTOR_BLOCK:
+            case MMU_DESCRIPTOR_BLOCK: {
                 result->walk_result = MMU_WALK_PAGE_MAPPED;
                 result->cfg         = cfg_from_dc(dc);
 
@@ -370,9 +374,24 @@ void mmu_walk_page(const mmu_mapping* m, vuintptr_t va, mmu_walk_result* result)
                 result->pa = dc_get_output_address(dc, g) + block_offset;
 
                 return;
+            }
 
-            default:
+            case MMU_DESCRIPTOR_PAGE: {
+                result->walk_result = MMU_WALK_PAGE_MAPPED;
+                result->cfg         = cfg_from_dc(dc);
+
+                // dc_get_output_address gives the block base pa
+                // add the offset of va within the block to get the exact pa.
+                size_t block_size   = dc_cover_bytes(g, l);
+                size_t block_offset = va & (block_size - 1); // va % block_size
+                result->pa = dc_get_output_address(dc, g) + block_offset;
+
+                return;
+            }
+
+            default: {
                 PANIC("mmu_walk: unexpected descriptor type");
+            }
         }
     }
 

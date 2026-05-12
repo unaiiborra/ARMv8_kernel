@@ -45,8 +45,4 @@ bool term_printf(term_handle* h, const char* s, va_list ap);
  *  ready are still needed
  */
 bool term_notify_ready(term_handle* h);
-
-
-
-
-// void term_flush(term_handle* h);
+void term_flush(term_handle* h);

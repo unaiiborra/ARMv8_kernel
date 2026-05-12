@@ -5,16 +5,12 @@ edition = "2024"
 
 [dependencies]
 
-
 [lib]
 name = "stl"
 crate-type = ["staticlib", "rlib"]
 test = false
 doctest = false
 bench = false
-
-[profile.release]
-panic = "abort"
 
 [build-dependencies]
 glob = "0.3.3"
