@@ -12,7 +12,7 @@
 #include <stddef.h>
 
 #include "../init/mem_regions/early_kalloc.h"
-#include "../malloc/internal/reserve_malloc.h"
+#include "../malloc/reserve_malloc/reserve_malloc.h"
 
 
 static void*       mm_mmu_default_allocator(size_t bytes);

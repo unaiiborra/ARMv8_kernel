@@ -6,6 +6,52 @@ extern "C" {
 
 #pragma GCC visibility push(internal)
 
+
+
+
+class Lock {
+    int flag;
+
+  public:
+
+    Lock() : flag(0) {}
+
+    __attribute__((always_inline)) inline void lock_acquire()
+    {
+        __asm__ volatile("1:                             \n"
+
+                         "2:                             \n"
+                         "    ldar    w1, %[flag]        \n"
+                         "    cbnz    w1, 3f             \n"
+                         "    b       4f                 \n"
+
+                         "3:                             \n"
+                         "    bl      syscall_yield      \n"
+                         "    b       2b                 \n"
+
+                         "4:                             \n"
+                         "    ldaxr   w1, %[flag]        \n"
+                         "    cbnz    w1, 2b             \n"
+
+                         "    mov     w2, #1             \n"
+                         "    stlxr   w3, w2, %[flag]   \n"
+                         "    cbnz    w3, 1b             \n"
+                         :
+                         : [flag] "Q"(this->flag)
+                         : "w1", "w2", "w3", "lr", "memory");
+    }
+
+    __attribute__((always_inline)) inline void lock_release()
+    {
+        __asm__ volatile("    mov     w1, #0             \n"
+                         "    stlr    w1, %[flag]        \n"
+                         :
+                         : [flag] "Q"(this->flag)
+                         : "w1", "memory");
+    }
+};
+
+
 enum MmallocType {
     MALLOC_CACHE,
     MALLOC_MMAP,
@@ -200,6 +246,7 @@ class CacheArena {
     static constexpr size_t sizeof_cache() { return sizeof(CacheArena<Cfg>); }
 
 
+    inline static Lock             lock     = Lock();
     inline static CacheArena<Cfg>* tail     = nullptr;
     inline static CacheArena<Cfg>* best_fit = nullptr;
     inline static CacheArena<Cfg>* head     = nullptr;

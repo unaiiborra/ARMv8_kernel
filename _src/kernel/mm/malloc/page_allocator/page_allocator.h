@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../init/mem_regions/early_kalloc.h"
+#include "../../init/mem_regions/early_kalloc.h"
 
 typedef uint64_t page_mdt_bf;
 

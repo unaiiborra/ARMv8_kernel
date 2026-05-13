@@ -2,7 +2,7 @@
 
 #include <kernel/mm/vmalloc.h>
 
-#include "../init/mem_regions/early_kalloc.h"
+#include "../../init/mem_regions/early_kalloc.h"
 
 
 void vmalloc_init();

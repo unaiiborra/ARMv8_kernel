@@ -14,7 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../internal/reserve_malloc.h"
+#include "../reserve_malloc/reserve_malloc.h"
 #include "kernel/hardware.h"
 #include "kernel/smp.h"
 

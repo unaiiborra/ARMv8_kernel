@@ -7,8 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../../init/mem_regions/early_kalloc.h"
-#include "../../malloc/internal/reserve_malloc.h"
+#include "../../../init/mem_regions/early_kalloc.h"
+#include "../../reserve_malloc/reserve_malloc.h"
 
 
 static vmalloc_container* first_fva_container;
@@ -21,8 +21,9 @@ typedef enum {
 } vmalloc_container_enum;
 
 
-static inline vmalloc_container*
-vmalloc_container_new(vmalloc_container* last, vmalloc_container_enum e)
+static inline vmalloc_container* vmalloc_container_new(
+    vmalloc_container*     last,
+    vmalloc_container_enum e)
 {
     DEBUG_ASSERT(last);
 
@@ -47,8 +48,9 @@ vmalloc_container_new(vmalloc_container* last, vmalloc_container_enum e)
 }
 
 
-static inline void*
-vmaloc_node_new(vmalloc_container* first, const vmalloc_container_enum e)
+static inline void* vmaloc_node_new(
+    vmalloc_container*           first,
+    const vmalloc_container_enum e)
 {
 #ifdef DEBUG
     DEBUG_ASSERT(first);
@@ -102,8 +104,9 @@ find:
 }
 
 
-static inline void
-container_free(vmalloc_container* first, vmalloc_container* to_free)
+static inline void container_free(
+    vmalloc_container* first,
+    vmalloc_container* to_free)
 {
     DEBUG_ASSERT(first && to_free);
 
@@ -170,8 +173,8 @@ rva_node* get_new_rva_node()
 void free_fva_node(fva_node* node)
 {
     // get container by aligning down to 4096
-    vmalloc_container* container =
-        (vmalloc_container*)((vuintptr_t)node & ~(PAGE_SIZE - 1ULL));
+    vmalloc_container* container = (vmalloc_container*)((vuintptr_t)node &
+                                                        ~(PAGE_SIZE - 1ULL));
 
     fva_container_data* d = (fva_container_data*)&container->fva.data;
 
@@ -206,8 +209,8 @@ void free_fva_node(fva_node* node)
 void free_rva_node(rva_node* node)
 {
     // get container by aligning down to 4096
-    vmalloc_container* container =
-        (vmalloc_container*)((vuintptr_t)node & ~(PAGE_SIZE - 1ULL));
+    vmalloc_container* container = (vmalloc_container*)((vuintptr_t)node &
+                                                        ~(PAGE_SIZE - 1ULL));
 
     rva_container_data* c = (rva_container_data*)&container->rva.data;
 

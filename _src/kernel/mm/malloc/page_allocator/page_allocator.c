@@ -13,8 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../malloc/raw_kmalloc/raw_kmalloc.h"
-#include "../mm_info.h"
+#include "../../mm_info.h"
+#include "../raw_kmalloc/raw_kmalloc.h"
 
 
 typedef uint32_t node_data;

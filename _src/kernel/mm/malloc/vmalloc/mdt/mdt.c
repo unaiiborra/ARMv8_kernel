@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../../malloc/internal/reserve_malloc.h"
+#include "../../reserve_malloc/reserve_malloc.h"
 
 
 #define BF_BITS BITFIELD_CAPACITY(mdt_bf)

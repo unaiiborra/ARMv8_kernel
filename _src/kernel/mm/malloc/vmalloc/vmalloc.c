@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../mm_info.h"
+#include "../../mm_info.h"
 #include "containers/containers.h"
 #include "mdt/mdt.h"
 

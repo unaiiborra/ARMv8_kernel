@@ -6,13 +6,13 @@
 
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/cache_malloc/cache_malloc.h"
-#include "../malloc/internal/reserve_malloc.h"
+#include "../malloc/page_allocator/page_allocator.h"
 #include "../malloc/raw_kmalloc/raw_kmalloc.h"
+#include "../malloc/reserve_malloc/reserve_malloc.h"
+#include "../malloc/vmalloc/vmalloc.h"
 #include "../mm_info.h"
 #include "../mm_mmu/mm_mmu.h"
-#include "../phys/page_allocator.h"
 #include "../reloc/reloc.h"
-#include "../virt/vmalloc.h"
 #include "identity_mapping.h"
 
 
