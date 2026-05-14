@@ -21,7 +21,6 @@
 
 
 
-
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
 noreturn void kernel_entry()
 {

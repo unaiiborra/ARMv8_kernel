@@ -2,14 +2,12 @@
 # Estilo moderno y legible C / C++
 # ===============================
 
-Language: Cpp
+Language: C
 BasedOnStyle: LLVM
 
-# ---- Longitud de línea ----
 ColumnLimit: 80
 PenaltyExcessCharacter: 100
 
-# ---- Parámetros / argumentos ----
 BinPackParameters: false
 BinPackArguments: false
 AlignAfterOpenBracket: AlwaysBreak
@@ -20,7 +18,6 @@ AlwaysBreakAfterDefinitionReturnType: false
 PenaltyReturnTypeOnItsOwnLine: 1000000
 PenaltyBreakAssignment: 1000
 
-# ---- Indentación ----
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
@@ -30,9 +27,6 @@ IndentCaseBlocks: false
 IndentGotoLabels: false
 IndentExternBlock: AfterExternBlock
 
-
-
-# ---- Llaves ----
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true
@@ -49,7 +43,6 @@ BraceWrapping:
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
 
-# ---- Espacios ----
 SpaceBeforeParens: ControlStatements
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: true
@@ -59,7 +52,6 @@ SpacesInAngles: false
 SpaceAfterCStyleCast: false
 SpacesInConditionalStatement: false
 
-# ---- Alineación ----
 AlignOperands: Align
 AlignTrailingComments: true
 AlignEscapedNewlines: Left
@@ -67,7 +59,6 @@ AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
 
-# ---- Saltos de línea ----
 AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
@@ -76,7 +67,6 @@ AlwaysBreakTemplateDeclarations: Yes
 BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterColon
 
-# ---- Includes ----
 SortIncludes: true
 IncludeBlocks: Regroup
 IncludeCategories:
@@ -85,23 +75,18 @@ IncludeCategories:
   - Regex: '^".*"'
     Priority: 2
 
-# ---- Comentarios ----
 ReflowComments: true
 CommentPragmas: '^ IWYU pragma:'
 
-# ---- Punteros ----
 PointerAlignment: Left
 DerivePointerAlignment: false
 
-# ---- C++ ----
 Standard: Latest
 Cpp11BracedListStyle: true
 FixNamespaceComments: true
 
-# ---- Preprocesador ----
 IndentPPDirectives: AfterHash
 
-# ---- Misceláneo ----
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 4
 EmptyLineAfterAccessModifier: Always
