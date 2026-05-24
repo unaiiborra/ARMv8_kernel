@@ -1,5 +1,3 @@
-// https://github.com/antmicro/u-boot/blob/master/arch/arm/cpu/armv8/cache_v8.c#L133
-
 .section .text
 .align 4
 
@@ -10,17 +8,14 @@ _switch_to_el1:
     mov x8, x0 // save ret addr in x8
     mov x9, x1 // save ctx in x9
 
+#ifdef DEBUG
     mrs x0, CurrentEL
     lsr x0, x0, #2
     cmp x0, #2
     b.ne hang
+#endif
 
-
-    /* EL1 AArch64 */
-    /*
-    https://arm.jonpalmisc.com/latest_sysreg/AArch64-hcr_el2#fieldset_0-31_31-1 
-    */
-
+    // aarch64 mode
     mov x0, #(1 << 31)
     msr HCR_EL2, x0
 

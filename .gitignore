@@ -10,3 +10,4 @@ target/
 _obj/
 out.elf.txt
 .vscode/
+bin/

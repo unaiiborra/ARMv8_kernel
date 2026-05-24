@@ -12,14 +12,14 @@ _cache_flush_range:
     cmp x1, x0
     b.le 2f
 
-    ic ivau, x0
     dc cvau, x0
 
     add x0, x0, #64
     b 1b
 
 2:
-    ic iallu
+    dsb ish
+    ic  iallu
     dsb ish
     isb
     
