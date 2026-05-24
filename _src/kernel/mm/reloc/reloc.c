@@ -7,9 +7,11 @@
 #include <lib/stdmacros.h>
 #include <lib/unit/mem.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "../init/mem_regions/early_kalloc.h"
+#include "lib/math.h"
 
 extern noreturn void _jmp_to_with_offset(
     puintptr_t to,
@@ -17,6 +19,7 @@ extern noreturn void _jmp_to_with_offset(
     uint64_t   ctx);
 extern noreturn void _reloc_cfg_end(void);
 
+extern void _mov_sp_blr(void* stack_bottom, void* return_address);
 
 safe_early void mm_reloc(void* va_ret_addr)
 {
@@ -90,5 +93,25 @@ void early_reloc_cfg_end()
 
     extern noreturn void kernel_entry();
 
-    reset_stack_and_return(kernel_entry);
+
+
+    raw_kmalloc_cfg stack_cfg = {
+        .fill_reserve = true,
+        .assign_pa    = true,
+        .kmap         = true,
+        .device_mem   = false,
+        .permanent    = true,
+        .init_zeroed  = true,
+    };
+
+    const size_t STACK_SIZE = 4 * MEM_MiB;
+
+    void* stack_top = raw_kmalloc(
+        div_ceil(STACK_SIZE, PAGE_SIZE),
+        "kernel stack region",
+        &stack_cfg);
+
+    void* stack_bottom = (char*)stack_top + STACK_SIZE;
+
+    _mov_sp_blr(stack_bottom, kernel_entry);
 }

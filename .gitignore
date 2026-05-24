@@ -9,3 +9,4 @@ kernel.map
 target/
 _obj/
 out.elf.txt
+.vscode/

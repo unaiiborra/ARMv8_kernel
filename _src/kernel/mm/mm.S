@@ -16,3 +16,9 @@ _mm_kpa_to_kva:
     mov x1, #KERNEL_BASE
     add x0, x0, x1
     ret
+
+.global _mov_sp_blr
+_mov_sp_blr:
+    mov sp, x0
+    blr x1
+    ret

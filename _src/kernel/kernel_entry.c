@@ -43,8 +43,8 @@ noreturn void kernel_entry()
 
     elf_res = elf_load(
         demo,
-        EMBEDDED_BINARY(demo_elf),
-        EMBEDDED_BINARY_SIZE(demo_elf),
+        EMBEDDED_BINARY(malloc_demo_elf),
+        EMBEDDED_BINARY_SIZE(malloc_demo_elf),
         &demo_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
