@@ -1,8 +1,6 @@
 .section .text
 .align 4
 
-
-
 .global _jmp_to_with_offset
 // void _jmp_to_with_offset(puintptr_t to, size_t offset, uint64_t ctx)
 _jmp_to_with_offset:
@@ -29,18 +27,3 @@ _reloc_cfg_end:
     mov lr, x15
     isb
     ret
-
-
-// noreturn void _relocated_return(
-//      x0:   vuintptr_t ret_addr
-// );
-.global _reset_stack_and_return
-_reset_stack_and_return:
-    mov x10, x0
-    bl  _reset_stack_el1
-
-    blr x10
-
-1:  wfi
-    b   1b
-

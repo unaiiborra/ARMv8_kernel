@@ -17,8 +17,15 @@ _mm_kpa_to_kva:
     add x0, x0, x1
     ret
 
-.global _mov_sp_blr
-_mov_sp_blr:
+.global _reset_stack_and_branch
+_reset_stack_and_branch:
     mov sp, x0
+    mov x29, #0
+#ifdef DEBUG
     blr x1
-    ret
+0:
+    wfi
+    b 0b
+#else
+    br x1
+# endif

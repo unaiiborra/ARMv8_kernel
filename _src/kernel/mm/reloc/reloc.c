@@ -19,7 +19,7 @@ extern noreturn void _jmp_to_with_offset(
     uint64_t   ctx);
 extern noreturn void _reloc_cfg_end(void);
 
-extern void _mov_sp_blr(void* stack_bottom, void* return_address);
+extern void _reset_stack_and_branch(void* stack_bottom, void* return_address);
 
 safe_early void mm_reloc(void* va_ret_addr)
 {
@@ -113,5 +113,5 @@ void early_reloc_cfg_end()
 
     void* stack_bottom = (char*)stack_top + STACK_SIZE;
 
-    _mov_sp_blr(stack_bottom, kernel_entry);
+    _reset_stack_and_branch(stack_bottom, kernel_entry);
 }
