@@ -36,7 +36,6 @@ _smp_wakeup_entry:
 
     str x0, [sp, #-16]! // save context_id in the stack
     
-    bl _setup_stack_el1
     bl _el2_init_vector 
 
     adr x0, smp_cpu_cfg

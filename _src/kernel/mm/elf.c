@@ -2,7 +2,6 @@
 #include <kernel/mm/uregion.h>
 #include <stdint.h>
 
-#include "arm/cpu.h"
 #include "kernel/panic.h"
 #include "lib/align.h"
 

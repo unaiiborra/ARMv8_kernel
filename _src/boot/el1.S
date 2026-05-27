@@ -1,7 +1,7 @@
 .section .text
 .align 4
 
-// x0: entry address for el1
+// x0: entry address for EL1
 // x1: ctx
 .global _switch_to_el1
 _switch_to_el1:
@@ -15,58 +15,40 @@ _switch_to_el1:
     b.ne hang
 #endif
 
-    // aarch64 mode
-    mov x0, #(1 << 31)
-    msr HCR_EL2, x0
-
-    adr x0, _el1_vector_table
-    msr VBAR_EL1, x0
-
-    mov x0, #0x3c5
-    msr SPSR_EL2, x0
+// EL1 sysreg configurations
+    mov x0, #(1 << 11)      
+    msr SCTLR_EL1, x0
 
     // Enable simd instructions for EL1 and floating point
     mov x0, #(3 << 20)    // FPEN = 0b11
     msr CPACR_EL1, x0
 
+    adr x0, _el1_vector_table
+    msr VBAR_EL1, x0
+
+    bl _setup_stack_el1
+
+// EL2 sysreg configurations
+
+    // aarch64 mode
+    mov x0, #(1 << 31)
+    msr HCR_EL2, x0
+
+    mov x0, #0x3c5
+    msr SPSR_EL2, x0
+
     // Disable virtual timer for EL1
     mov x0, #0
     msr CNTVOFF_EL2, x0
 
-    adr x0, _el1_entry
-    msr ELR_EL2, x0
+    msr ELR_EL2, x8
 
-    dsb sy
-    dsb ish
+    mov x0, x9
     isb
-
     eret
 
-
-// x8: entry address for el1
-// x9: ctx
-_el1_entry:
-    nop
-    mov x0, #1
-    msr spsel, x0
-
-    mov x0, #0x00            
-    msr MAIR_EL1, x0
-
-    mov x0, #(16)            
-    msr TCR_EL1, x0
-
-    mov x0, #(1 << 11)      
-    msr SCTLR_EL1, x0
-
-    mov x0, #0x5
-    msr SPSR_EL1, x0
-
-    isb
-
-    mov x0, x9 // set ctx as arg0
-    br x8   
-
+#ifdef DEBUG
 hang:
     wfi
     b hang
+#endif
