@@ -2,15 +2,17 @@
 
 #include <lib/mem.h>
 #include <stddef.h>
-#include <stdint.h>
 /*
  *  As I dont have time to develop a dtb parser, i hardcode the info in this
- * file. It is the memory map of the SoC
+ *  file. It is the memory map of the SoC
  */
 
 typedef enum {
+    // Reserved, not usable by the kernel, it can overlap with other regions.
     MEM_REGION_RESERVED = -1,
+    // Usable by the kernel as DDR memory, it can not overlap with other regions.
     MEM_REGION_DDR,
+    // Usable by the kernel as MMIO memory, it can not overlap with other regions.
     MEM_REGION_MMIO,
 } mem_regions_type;
 
@@ -28,6 +30,4 @@ typedef struct mem_regions {
     const mem_region* const REGIONS;
 } mem_regions;
 
-
 extern const mem_regions MEM_REGIONS;
-extern const mem_regions MEM_REGIONS_RESERVED;

@@ -100,13 +100,16 @@ safe_early void early_identity_mapping()
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
         const mem_region r = as_kpa(MEM_REGIONS.REGIONS)[i];
 
-        const mmu_pg_cfg* CFG;
+        if (r.type == MEM_REGION_RESERVED)
+            continue;
+
+        const mmu_pg_cfg* cfg;
         switch (r.type) {
             case MEM_REGION_DDR:
-                CFG = &MEM_CFG;
+                cfg = &MEM_CFG;
                 break;
             case MEM_REGION_MMIO:
-                CFG = &DEVICE_CFG;
+                cfg = &DEVICE_CFG;
                 break;
             default:
                 PANIC();
@@ -119,7 +122,7 @@ safe_early void early_identity_mapping()
             as_kpa(r.start),
             as_kpa(r.start),
             r.size,
-            *CFG,
+            *cfg,
             NULL);
         ASSERT(mres == MMU_MAP_OK);
 
@@ -128,7 +131,7 @@ safe_early void early_identity_mapping()
             as_kva(r.start),
             as_kpa(r.start),
             r.size,
-            *CFG,
+            *cfg,
             NULL);
         ASSERT(mres == MMU_MAP_OK);
     }

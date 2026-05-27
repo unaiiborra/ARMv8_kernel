@@ -80,9 +80,14 @@ safe_early void mm_info_init()
 {
     extern void _start();
 
-    bool ddr_declared = false;
-    mm_addr_space_    = 0x0;
+    mm_addr_space_   = 0x0;
+    mm_ddr_size_     = 0;
+    mm_ddr_start_    = 0x0;
+    mm_ddr_end_      = 0x0;
+    mm_kernel_start_ = 0x0;
+    mm_page_count_   = 0;
 
+    bool ddr_declared = false;
 
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
         mem_region r = ((const mem_region* const)as_kpa(
@@ -90,14 +95,15 @@ safe_early void mm_info_init()
 
         switch (r.type) {
             case MEM_REGION_RESERVED:
-                PANIC("Reserved regions must be declared at MEM_REGIONS_RESERVED");
-                break;
+                continue;
             case MEM_REGION_DDR:
-                ASSERT(!ddr_declared, "only one DDR region must be declared");
+                if (!ddr_declared)
+                    mm_ddr_start_ = r.start;
+                else
+                    mm_ddr_start_ = min(mm_ddr_start_, r.start);
 
-                mm_ddr_start_ = r.start;
-                mm_ddr_end_   = r.start + r.size;
-                mm_ddr_size_  = r.size;
+                mm_ddr_end_ = max(mm_ddr_end_, r.start + r.size);
+                mm_ddr_size_ += r.size;
 
                 ddr_declared = true;
                 break;

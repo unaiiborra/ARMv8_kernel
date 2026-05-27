@@ -160,9 +160,14 @@ safe_early void early_kalloc_init()
     first_node           = alloc_node();
     first_node->next     = NULL;
 
-    ek_node* p = NULL;
+    ek_node* prev = NULL;
+
+    // first pass, register ddr and mmio regions
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
         mem_region r = ((mem_region*)as_kpa(MEM_REGIONS.REGIONS))[i];
+
+        if (r.type == MEM_REGION_RESERVED)
+            continue;
 
         ek_node* n = i == 0 ? first_node : alloc_node();
 
@@ -181,15 +186,18 @@ safe_early void early_kalloc_init()
                 },
         };
 
-        if (p)
-            p->next = n;
+        if (prev)
+            prev->next = n;
 
-        p = n;
+        prev = n;
     }
 
+    // second pass, register reserved regions
+    for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
+        mem_region r = as_kpa(MEM_REGIONS.REGIONS)[i];
 
-    for (size_t i = 0; i < MEM_REGIONS_RESERVED.REG_COUNT; i++) {
-        mem_region r = as_kpa(MEM_REGIONS_RESERVED.REGIONS)[i];
+        if (r.type != MEM_REGION_RESERVED)
+            continue;
 
         reserve_memreg(
             (early_memreg) {
@@ -223,6 +231,7 @@ safe_early void early_kalloc_init()
             false);                                                        \
     }
 
+    // third, register kernel sections
     RESERVE_SECTION(text);
     RESERVE_SECTION(rodata);
     RESERVE_SECTION(data);

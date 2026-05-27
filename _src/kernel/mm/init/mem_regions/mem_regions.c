@@ -17,20 +17,10 @@ static const mem_region REGIONS_[] = {
         {
             .tag   = "DDR",
             .start = 0x40000000,
-            .size  = 0xc0000000,
+            .size  = 0x100000000, // 4 GiB
             .type  = MEM_REGION_DDR,
         },
-};
-
-static const mem_region RESERVED_[] = {
-    [0] =
-        {
-            .tag   = "nullptr",
-            .start = 0x0,
-            .size  = PAGE_SIZE,
-            .type  = MEM_REGION_RESERVED,
-        },
-    [1] =
+    [2] =
         {
             .tag   = "OP-TEE",
             .start = 0x56000000,
@@ -39,13 +29,7 @@ static const mem_region RESERVED_[] = {
         },
 };
 
-
 const mem_regions MEM_REGIONS = {
     .REG_COUNT = sizeof(REGIONS_) / sizeof(mem_region),
     .REGIONS   = REGIONS_,
-};
-
-const mem_regions MEM_REGIONS_RESERVED = {
-    .REG_COUNT = sizeof(RESERVED_) / sizeof(mem_region),
-    .REGIONS   = RESERVED_,
 };
