@@ -160,14 +160,15 @@ mmu_map_result mmu_map(
             }
 
             switch (dc_get_type(descriptor, g, l)) {
-                case MMU_DESCRIPTOR_BLOCK:
+                case MMU_DESCRIPTOR_BLOCK: // TODO: check if the block already
+                                           // maps the range to the same target
                     tbl = split_block(m, tbl, i, l, info);
                     continue;
                 case MMU_DESCRIPTOR_TABLE:
                     tbl = tbl_from_td(m, descriptor, l);
                     continue;
                 default:
-                    PANIC("mmu_map: err"); // should not be a block (l <
+                    PANIC("mmu_map: err"); // should not be a page (l <
                                            // target_lvl)
             }
         }

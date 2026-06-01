@@ -109,7 +109,7 @@ alloc_tbl(const mmu_mapping* m, bool init_null, mmu_op_info* info)
 }
 
 
-/// divides a block into a next level table and udcates the parent. Returns the
+/// divides a block into a next level table and updates the parent. Returns the
 /// created table (of a lower level)
 static inline mmu_tbl split_block(
     const mmu_mapping* m,
