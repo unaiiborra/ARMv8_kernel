@@ -46,10 +46,6 @@ safe_early void mm_early_init()
     page_allocator_update_memregs(mregs, n);
     vmalloc_update_memregs(mregs, n);
 
-
-    // early_reloc_cfg_end() returns to the kernel_entry() with the kernel
-    // relocated and the sp resetted
-
     mm_reloc(as_kva((void*)early_reloc_cfg_end));
 }
 

@@ -1,7 +1,5 @@
 #include "mem_regions.h"
 
-#include "kernel/mm.h"
-
 // https://github.com/nxp-imx/linux-imx/blob/lf-6.12.y/arch/arm64/boot/dts/freescale/imx8mp.dtsi
 // https://github.com/nxp-imx/linux-imx/blob/lf-6.12.y/arch/arm64/boot/dts/freescale/imx8mp-frdm.dts
 

@@ -80,28 +80,25 @@ safe_early void early_identity_mapping()
         1,
         MMU_AP_EL0_NONE_EL1_RW,
         MMU_SH_NON_SHAREABLE,
-        false,
-        1,
-        0,
-        1,
+        true,
+        true,
+        true,
+        true,
         0);
 
     const mmu_pg_cfg MEM_CFG = mmu_pg_cfg_new(
         0,
         MMU_AP_EL0_NONE_EL1_RW,
         MMU_SH_INNER_SHAREABLE,
+        true,
+        true,
         false,
-        1,
-        0,
-        1,
+        true,
         0);
 
-
+    // first pass, map the valid regions
     for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
         const mem_region r = as_kpa(MEM_REGIONS.REGIONS)[i];
-
-        if (r.type == MEM_REGION_RESERVED)
-            continue;
 
         const mmu_pg_cfg* cfg;
         switch (r.type) {
@@ -111,6 +108,8 @@ safe_early void early_identity_mapping()
             case MEM_REGION_MMIO:
                 cfg = &DEVICE_CFG;
                 break;
+            case MEM_REGION_RESERVED:
+                continue;
             default:
                 PANIC();
                 break;
@@ -136,6 +135,25 @@ safe_early void early_identity_mapping()
         ASSERT(mres == MMU_MAP_OK);
     }
 
+    // second pass, unnmap the reserved regions (they can overlap the valid
+    // regions)
+    for (size_t i = 0; i < MEM_REGIONS.REG_COUNT; i++) {
+        const mem_region r = as_kpa(MEM_REGIONS.REGIONS)[i];
+
+        if (r.type != MEM_REGION_RESERVED)
+            continue;
+
+        mmu_unmap_result ures;
+        ures = mmu_unmap(&identity_lo_mapping, as_kpa(r.start), r.size, NULL);
+        ASSERT(ures == MMU_UNMAP_OK);
+
+        ures = mmu_unmap(
+            as_kpa(MM_MMU_KERNEL_MAPPING),
+            as_kva(r.start),
+            r.size,
+            NULL);
+        ASSERT(ures == MMU_UNMAP_OK);
+    }
 
     bool result = mmu_core_handle_new(
         core0_handle,
@@ -147,7 +165,6 @@ safe_early void early_identity_mapping()
         true,
         false);
     ASSERT(result);
-
 
     mmu_activate_result cres = mmu_core_activate(core0_handle);
     ASSERT(cres == MMU_ACTIVATE_OK);
