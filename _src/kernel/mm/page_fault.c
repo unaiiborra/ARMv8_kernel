@@ -154,7 +154,7 @@ static void translation_fault(
     }
 
     // unreserved region access TODO: SIGNAL
-    terminate_task(2);
+    terminate_task(get_current_thread()->owner, 2);
 }
 
 
@@ -179,23 +179,23 @@ void page_fault_handler()
         /* ── Address size faults ─────────────────────────────────────────── */
         case DFSC_ADDR_SIZE_L0: {
             case_print(DFSC_ADDR_SIZE_L0);
-            terminate_task(1);
+            terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L1: {
             case_print(DFSC_ADDR_SIZE_L1);
-            terminate_task(1);
+            terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L2: {
             case_print(DFSC_ADDR_SIZE_L2);
-            terminate_task(1);
+            terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L3: {
             case_print(DFSC_ADDR_SIZE_L3);
-            terminate_task(1);
+            terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_Lm1: {
             case_print(DFSC_ADDR_SIZE_Lm1);
-            terminate_task(1);
+            terminate_task(get_current_thread()->owner, 1);
         } break;
 
         /* ── Translation faults ──────────────────────────────────────────── */
@@ -241,19 +241,19 @@ void page_fault_handler()
         /* ── Permission faults ───────────────────────────────────────────── */
         case DFSC_PERMISSION_L0: {
             case_print(DFSC_PERMISSION_L0);
-            terminate_task(3);
+            terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L1: {
             case_print(DFSC_PERMISSION_L1);
-            terminate_task(3);
+            terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L2: {
             case_print(DFSC_PERMISSION_L2);
-            terminate_task(3);
+            terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L3: {
             case_print(DFSC_PERMISSION_L3);
-            terminate_task(3);
+            terminate_task(get_current_thread()->owner, 3);
         } break;
 
             /* ── Synchronous external aborts

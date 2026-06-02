@@ -134,16 +134,14 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
 }
 
 
-void terminate_task(uint32_t exit_code)
+void terminate_task(task_t* task, uint32_t exit_code)
 {
-    task_t* usr_task = get_current_thread()->owner;
+    atomic_store(&task->state, TASK_DYING);
 
-    atomic_store(&usr_task->state, TASK_DYING);
-
-    spinlocked(&usr_task->lock)
+    spinlocked(&task->lock)
     {
-        size_t   n       = kvec_len(&usr_task->threads);
-        thread** threads = kvec_data(&usr_task->threads);
+        size_t   n       = kvec_len(&task->threads);
+        thread** threads = kvec_data(&task->threads);
 
         for (size_t i = 0; i < n; i++) {
             unschedule_thread(threads[i]);
@@ -154,6 +152,6 @@ void terminate_task(uint32_t exit_code)
     dbg_printf(
         DEBUG_TRACE,
         "[terminate_task] terminated task %s with code %d",
-        usr_task->name,
+        task->name,
         exit_code);
 }

@@ -133,12 +133,14 @@ void exception_handler_sync(arm_ctx* ectx)
             dbg_print(
                 DEBUG_TRACE,
                 "[exception_handler_sync] ESR_EC_IABT_LOWER_EL");
+            terminate_task(get_current_thread()->owner, 1);
             break;
 
         case ESR_EC_IABT_SAME_EL:
             dbg_print(
                 DEBUG_TRACE,
                 "[exception_handler_sync] ESR_EC_IABT_SAME_EL");
+            PANIC("[exception_handler_sync] ESR_EC_IABT_SAME_EL");
             break;
 
         case ESR_EC_PC_ALIGNMENT:

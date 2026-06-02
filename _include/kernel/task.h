@@ -80,4 +80,4 @@ typedef struct {
 
 
 task_t* task_new(const char* name, size_t stack_size);
-void    terminate_task(uint32_t exit_code);
+void    terminate_task(task_t* task, uint32_t exit_code);
