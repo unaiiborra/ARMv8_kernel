@@ -35,21 +35,21 @@ noreturn void kernel_entry()
     kprint("Hello!\n\r");
 
     elf_load_result elf_res;
-    uintptr_t       demo_entry;
+    uintptr_t       test_entry;
 
 
-    task_t* demo = task_new("demo", 2 * MEM_MiB);
+    task_t* demo = task_new("test", 2 * MEM_MiB);
 
 
     elf_res = elf_load(
         demo,
-        EMBEDDED_BINARY(malloc_demo_elf),
-        EMBEDDED_BINARY_SIZE(malloc_demo_elf),
-        &demo_entry);
+        EMBEDDED_BINARY(test_elf),
+        EMBEDDED_BINARY_SIZE(test_elf),
+        &test_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
 
-    schedule_ready_thread(demo, demo_entry);
+    schedule_ready_thread(demo, test_entry);
     scheduler_loop_cpu_enter();
 
 

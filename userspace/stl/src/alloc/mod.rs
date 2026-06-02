@@ -5,6 +5,7 @@ pub use alloc::*;
 
 use core::{alloc::GlobalAlloc, ffi::c_void};
 
+#[cfg(debug_assertions)]
 use crate::{printf, stdio::print};
 
 #[global_allocator]
@@ -58,7 +59,7 @@ unsafe impl GlobalAlloc for StlAlloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-        let freed = unsafe { __stl_free(ptr as *mut c_void, layout.size(), layout.align()) };
+        let _freed = unsafe { __stl_free(ptr as *mut c_void, layout.size(), layout.align()) };
 
         #[cfg(debug_assertions)]
         {
@@ -67,10 +68,10 @@ unsafe impl GlobalAlloc for StlAlloc {
                 ptr,
                 layout.size(),
                 layout.align(),
-                freed
+                _freed
             );
 
-            if !freed {
+            if !_freed {
                 print("[stl] __stl_free failed!\n\r");
             }
         }

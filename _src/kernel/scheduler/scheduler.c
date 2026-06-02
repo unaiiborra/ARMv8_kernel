@@ -19,7 +19,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdnoreturn.h>
 
+#include "lib/mem.h"
 #include "task.h"
 #include "thread.h"
 
@@ -32,7 +34,7 @@
 static thread* runqueue_schedule();
 
 extern void _scheduler_loop_cpu_enter(arm_ctx* el0_ctx, arm_ctx* el1_ctx);
-extern void _scheduler_loop_cpu_exit(arm_ctx* el1_ctx);
+extern noreturn void _scheduler_loop_cpu_exit(arm_ctx* el1_ctx);
 
 
 typedef struct thread_node {
@@ -211,21 +213,22 @@ void scheduler_loop_cpu_enter()
 
     set_current_thread(th);
 
-    arm_exceptions_disable_all();
-
     runqueue[cpuid].preemptive_event = timer_create_event_delta(
         HRTIMER,
         event_preemptive_scheduling,
         NULL,
         atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000);
 
+    memzero(&pre_sched_mode_ctx[cpuid], sizeof(arm_ctx));
+
     _scheduler_loop_cpu_enter(&th->ctx, &pre_sched_mode_ctx[cpuid]);
 }
 
 
-void scheduler_loop_cpu_exit()
+noreturn void scheduler_loop_cpu_exit()
 {
     _scheduler_loop_cpu_exit(&pre_sched_mode_ctx[get_cpuid()]);
+    PANIC();
 }
 
 

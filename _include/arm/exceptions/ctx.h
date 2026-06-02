@@ -102,16 +102,15 @@ typedef enum {
 } arm_exception_level;
 
 
-static inline arm_stack ectx_stack(const arm_ctx* ectx)
+static inline arm_stack ectx_get_stack(const arm_ctx* ectx)
 {
     return (arm_stack)(ectx->spsr & 1);
 }
 
-static inline arm_exception_level ectx_el(const arm_ctx* ectx)
+static inline arm_exception_level ectx_get_el(const arm_ctx* ectx)
 {
     return (arm_exception_level)((ectx->spsr & (1ul << 2)) ? EL1 : EL0);
 }
-
 
 static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx* ectx)
 {
@@ -136,6 +135,42 @@ static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx* ectx)
     }
 }
 
+static inline void ectx_set_stack(arm_ctx* ectx, arm_stack stack)
+{
+    ectx->spsr = (ectx->spsr & ~1ul) | ((uint64_t)stack & 1);
+}
+
+static inline void ectx_set_el(arm_ctx* ectx, arm_exception_level el)
+{
+    uint64_t bit = (el == EL1) ? (1ul << 2) : 0ul;
+    ectx->spsr   = (ectx->spsr & ~(1ul << 2)) | bit;
+}
+
+static inline void ectx_set_aarch64_selected_el(
+    arm_ctx*        ectx,
+    arm_spsr_m_mode mode)
+{
+    switch (mode) {
+        case SPSR_EL0:
+        case SPSR_EL1t:
+        case SPSR_EL1h:
+            ectx->spsr = (ectx->spsr & ~0b1111ul) | (uint64_t)mode;
+            break;
+        default:
+            PANIC("ectx_set_aarch64_selected_el: unsupported mode");
+    }
+}
+
+static inline void ectx_set_eret_cfg(
+    arm_ctx*            ectx,
+    arm_stack           stack,
+    arm_exception_level el,
+    arm_spsr_m_mode     mode)
+{
+    ectx_set_stack(ectx, stack);
+    ectx_set_el(ectx, el);
+    ectx_set_aarch64_selected_el(ectx, mode);
+}
 
 #else // __ASSEMBLER__
 
