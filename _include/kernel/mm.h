@@ -195,6 +195,7 @@ void raw_kfree(void* ptr);
 
 
 void* kmalloc(size_t bytes);
+void* kzalloc(size_t bytes);
 void  kfree(void* ptr);
 
 #endif

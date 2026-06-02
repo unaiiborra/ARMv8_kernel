@@ -25,14 +25,15 @@ void* kmalloc(size_t bytes)
     }
 
 
-    if (min_cache_fit != 0)
+    if (min_cache_fit != 0) {
         return cache_malloc(min_cache_fit);
-
-
-    // cannot allocate with the cache allocator, alloc raw pages
-    raw_kmalloc_cfg cfg = *RAW_KMALLOC_DYNAMIC_CFG;
-    cfg.init_zeroed     = true;
-    return raw_kmalloc(div_ceil(bytes, PAGE_SIZE), "kmalloc page", &cfg);
+    }
+    else {
+        return raw_kmalloc( // cannot allocate with the cache allocator, alloc raw pages
+            div_ceil(bytes, PAGE_SIZE),
+            "kmalloc page",
+            RAW_KMALLOC_DYNAMIC_CFG);
+    }
 }
 
 
@@ -54,4 +55,13 @@ void kfree(void* ptr)
         // kmalloc with sizes bigger than MAX_CACHE are allocated as dynamic
         raw_kfree(ptr);
     }
+}
+
+
+void* kzalloc(size_t bytes)
+{
+    void* ptr = kmalloc(bytes);
+    memzero(ptr, bytes);
+
+    return ptr;
 }
