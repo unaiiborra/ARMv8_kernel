@@ -22,10 +22,10 @@ void thread_assign_stack(thread* th)
 
     spinlocked(&t->lock)
     {
-        size_t stack_size = t->stack_pages * PAGE_SIZE;
-
-        uintptr_t stack_bottom = uregion_find_free(t, stack_size);
+        size_t    stack_size   = t->stack_pages * PAGE_SIZE;
+        uintptr_t stack_bottom = uregion_find_free(t, t->stack_pages);
         uintptr_t stack_top    = stack_bottom + stack_size;
+
         ASSERT(
             stack_bottom != UINTPTR_MAX && stack_top % 16 == 0 &&
             stack_top <= KERNEL_BASE);
