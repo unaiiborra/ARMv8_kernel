@@ -78,10 +78,14 @@ static inline void set_current_thread(thread* th)
 
     runqueue[get_cpuid()].current_thread = th;
     sysreg_write(sp_el0, th);
+}
 
-    [[maybe_unused]] bool res = mmu_core_set_mapping(
+static inline void set_thread_mapping(thread* th)
+{
+    dbgT(bool) res = mmu_core_set_mapping(
         mm_mmu_core_handler_get_self(),
         th ? &th->owner->mapping : MM_MMU_UNMAPPED_LO);
+
     DEBUG_ASSERT(res);
 }
 
@@ -211,7 +215,10 @@ void scheduler_loop_cpu_enter()
 
     thread* th = &cur->th;
 
+    arm_exceptions_disable_all();
+
     set_current_thread(th);
+    set_thread_mapping(th);
 
     runqueue[cpuid].preemptive_event = timer_create_event_delta(
         HRTIMER,
@@ -276,6 +283,7 @@ void scheduler_ectx_load(arm_ctx* ectx)
         return scheduler_loop_cpu_exit();
 
     *ectx = curr->ctx;
+    set_thread_mapping(curr);
 
     cpulock_release(&runqueue[cpuid].lock);
 }
@@ -285,6 +293,7 @@ void scheduler_ectx_load(arm_ctx* ectx)
 thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 {
     cpuid_t cpuid = get_cpuid();
+
 
     thread_node* node = kmalloc(sizeof(thread_node));
     node->th          = (thread) {
@@ -443,9 +452,7 @@ static thread* runqueue_schedule()
         }
 
         if (runqueue[cpuid].list == NULL)
-            return NULL; // No threads remaining in the runqueue
-
-
+            goto null_return; // No threads remaining in the runqueue
 
 
         /* --- select a new valid thread as scheduled --- */
@@ -469,21 +476,18 @@ static thread* runqueue_schedule()
                 kvec_push(&to_free, &selected_node);
 
                 if (runqueue[cpuid].list == NULL)
-                    return NULL;
+                    goto null_return;
 
                 continue;
             }
-
 
             bool scheduled_as_ready = atomic_compare_exchange_strong(
                 &selected_node->th.state,
                 &expected,
                 THREAD_RUNNING);
 
-
             if (likely(scheduled_as_ready))
                 break; // exit the loop
-
 
             // The thread was not READY, check the state it was in
             switch (expected) {
@@ -499,8 +503,8 @@ static thread* runqueue_schedule()
                     kvec_push(&to_free, &selected_node);
 
                     if (runqueue[cpuid].list == NULL)
-                        return NULL; // No threads remaining in the
-                                     // runqueue, set by unqueue_thread()
+                        goto null_return; // No threads remaining in the
+                                          // runqueue, set by unqueue_thread()
                 } break;
 
                 case THREAD_RUNNING: {
@@ -519,16 +523,20 @@ static thread* runqueue_schedule()
             }
         }
 
-
-        thread* selected_thread = &selected_node->th;
-        set_current_thread(selected_thread);
-
         runqueue[cpuid].preemptive_event = timer_create_event_delta(
             HRTIMER,
             event_preemptive_scheduling,
             NULL,
             atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000);
+
+        set_current_thread(&selected_node->th);
+        return &selected_node->th;
     }
 
-    return curr;
+    PANIC("unreachable");
+
+null_return: {
+    set_current_thread(NULL);
+    return NULL;
+}
 }

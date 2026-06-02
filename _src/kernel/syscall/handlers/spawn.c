@@ -1,11 +1,12 @@
 #include <kernel/mm/uregion.h>
 #include <kernel/scheduler.h>
 #include <kernel/task.h>
+#include <lib/branch.h>
+#include <lib/lock.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
-#include "lib/branch.h"
-#include "lib/lock.h"
 
 
 

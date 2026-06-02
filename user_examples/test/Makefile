@@ -18,6 +18,7 @@ CXXFLAGS += -ffreestanding -Wall -Wextra \
 
 CFLAGS   += -ffreestanding -Wall -Wextra \
             -Istl_include \
+            -std=gnu23 \
             -I$(INCLUDE)
 
 LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib

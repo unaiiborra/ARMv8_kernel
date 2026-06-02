@@ -5,8 +5,6 @@ use stl::printf;
 extern crate stl;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rsmain() -> i32 {
-    printf!("Hello from Rust!");
-
-    0
+pub extern "C" fn print_thid(thid: u64) {
+    printf!("Hello from thread {thid}\n\r");
 }

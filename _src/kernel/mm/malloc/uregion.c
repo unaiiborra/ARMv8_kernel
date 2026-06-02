@@ -1,24 +1,23 @@
+#include <arm/mmu.h>
+#include <kernel/io/stdio.h>
 #include <kernel/mm.h>
+#include <kernel/mm/mmu.h>
+#include <kernel/mm/page_malloc.h>
 #include <kernel/mm/uregion.h>
+#include <kernel/mm/vmalloc.h>
+#include <kernel/panic.h>
+#include <kernel/task.h>
+#include <lib/align.h>
+#include <lib/branch.h>
 #include <lib/lock.h>
-#include <stdatomic.h>
+#include <lib/math.h>
+#include <lib/mem.h>
+#include <lib/stdbitfield.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "arm/mmu.h"
-#include "kernel/lib/kvec.h"
-#include "kernel/mm/cache_malloc.h"
-#include "kernel/mm/mmu.h"
-#include "kernel/mm/page_malloc.h"
-#include "kernel/mm/vmalloc.h"
-#include "kernel/panic.h"
-#include "kernel/task.h"
-#include "lib/align.h"
-#include "lib/branch.h"
-#include "lib/math.h"
-#include "lib/mem.h"
-#include "lib/stdbitfield.h"
 #include "raw_kmalloc/raw_kmalloc.h"
+#include "reserve_malloc/reserve_malloc.h"
 
 #define ASSERT_OWNER_IS_LOCKED(owner)     \
     DEBUG_ASSERT(                         \
@@ -83,8 +82,9 @@ static void committed_init(uregion_t* region)
     if (likely(initialized))
         return;
 
-    region->committed.bg = kmalloc(
-        div_ceil(pages, BITFIELD_CAPACITY(bitfield64)) * sizeof(bitfield64));
+    size_t bg_bytes      = div_ceil(pages, BITFIELD_CAPACITY(bitfield64)) *
+                           sizeof(bitfield64);
+    region->committed.bg = kzalloc(bg_bytes);
 }
 
 
@@ -443,6 +443,10 @@ void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
     if (unlikely(node == NULL))
         return NULL;
 
+    DEBUG_ASSERT(
+        (node->region.flags & F_FULL_MAPPED) == 0,
+        "uregion_commit called on already fully committed region");
+
     uregion_t* region            = &node->region;
     size_t     abs_region_offset = usrva - region->usr_start;
     size_t     abs_region_end = region->usr_start + region->pages * PAGE_SIZE;
@@ -523,6 +527,8 @@ void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
 
         remaining -= pgs;
     }
+
+    reserve_malloc_fill();
 
     raw_kmalloc_unlock();
 
@@ -706,8 +712,8 @@ bool uregion_is_committed(
 }
 
 
-static const uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
-                                           ~(0xFFFF000000000000ULL);
+static constexpr uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
+                                               ~(0xFFFF000000000000ULL);
 
 uintptr_t uregion_find_free(task_t* t, uint32_t pages)
 {
@@ -725,7 +731,9 @@ uintptr_t uregion_find_free(task_t* t, uint32_t pages)
         uintptr_t gap = prev_start - curr_end;
 
         if (gap >= size)
-            return prev_start - size; // top of the gap, aligned down
+            return align_down(
+                prev_start - size,
+                PAGE_SIZE); // top of the gap, aligned down
 
         prev_start = curr->region.usr_start;
         curr       = curr->next;
