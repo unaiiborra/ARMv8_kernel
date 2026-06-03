@@ -154,8 +154,9 @@ bool uregion_is_committed(
 ///
 /// @param t     target task
 /// @param pages number of contiguous pages needed
-/// @returns page-aligned VA of the free gap, or UINTPTR_MAX if none found
-uintptr_t uregion_find_free(task_t* t, uint32_t pages);
+/// @param out   set to the page-aligned VA of the free gap on success
+/// @returns     true if a suitable gap was found, false otherwise
+bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out);
 
 /// Translates a userspace VA to its corresponding kernel VA within the same
 /// region. The kernel window mirrors the userspace region and provides

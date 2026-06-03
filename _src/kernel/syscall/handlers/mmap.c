@@ -72,6 +72,11 @@ int64_t syscall64_mmap(
         return SYSC_MMAP_CFG_NOT_SUPPORTED;
     }
 
+    if (unlikely(lenght == 0)) {
+        dbg_sysc_print(SYSC_MMAP, "SYSC_MMAP_ERR (lenght == 0)");
+        return SYSC_MMAP_ERR;
+    }
+
     size_t pages = div_ceil(lenght, PAGE_SIZE);
 
 
@@ -79,8 +84,12 @@ int64_t syscall64_mmap(
     {
         uintptr_t address;
 
-        if (addr == (sysarg_t)NULL)
-            address = uregion_find_free(owner, pages);
+        if (addr == (sysarg_t)NULL) {
+            bool found = uregion_find_free(owner, pages, &address);
+
+            if (unlikely(!found))
+                goto out_of_memory;
+        }
         else if (addr % PAGE_ALIGN == 0)
             address = addr;
         else
@@ -116,7 +125,11 @@ int64_t syscall64_mmap(
                     return SYSC_MMAP_ERR;
                 }
 
-                address = uregion_find_free(owner, pages);
+                bool found = uregion_find_free(owner, pages, &address);
+
+                if (unlikely(!found))
+                    goto out_of_memory;
+
 
                 ures = uregion_reserve(
                     owner,
@@ -149,6 +162,11 @@ int64_t syscall64_mmap(
                 PANIC();
         }
     }
+
+out_of_memory: {
+    dbg_sysc_print(SYSC_MMAP, "SYSC_MMAP_ERR (out of memory)");
+    return SYSC_MMAP_ERR;
+}
 
     unreachable();
 }

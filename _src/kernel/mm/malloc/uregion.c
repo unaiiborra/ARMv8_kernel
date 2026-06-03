@@ -715,9 +715,12 @@ bool uregion_is_committed(
 static constexpr uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
                                                ~(0xFFFF000000000000ULL);
 
-uintptr_t uregion_find_free(task_t* t, uint32_t pages)
+bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out)
 {
     ASSERT_OWNER_IS_LOCKED(t);
+
+    if (!pages)
+        return false;
 
     size_t size = pages * PAGE_SIZE;
 
@@ -730,20 +733,26 @@ uintptr_t uregion_find_free(task_t* t, uint32_t pages)
 
         uintptr_t gap = prev_start - curr_end;
 
-        if (gap >= size)
-            return align_down(
-                prev_start - size,
-                PAGE_SIZE); // top of the gap, aligned down
+        if (gap >= size) {
+            if (out)
+                *out = align_down(
+                    prev_start - size,
+                    PAGE_SIZE); // top of the gap, aligned down
+            return true;
+        }
 
         prev_start = curr->region.usr_start;
         curr       = curr->next;
     }
 
     // check gap between address 0 and the lowest region
-    if (prev_start >= size)
-        return align_down(prev_start - size, PAGE_SIZE);
+    if (prev_start >= size) {
+        if (out)
+            *out = align_down(prev_start - size, PAGE_SIZE);
+        return true;
+    }
 
-    return UINTPTR_MAX; // no free gap found
+    return false; // no free gap found
 }
 
 
