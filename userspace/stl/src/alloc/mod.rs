@@ -78,6 +78,23 @@ unsafe impl GlobalAlloc for StlAlloc {
     }
 }
 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alloc(bytes: usize) -> *mut c_void {
+    unsafe { __stl_malloc(bytes, bytes.next_power_of_two(), false) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn zalloc(bytes: usize) -> *mut c_void {
+    unsafe { __stl_malloc(bytes, bytes.next_power_of_two(), false) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free(ptr: *mut c_void) {
+    if !unsafe { __stl_free(ptr, 0, 0) } {
+        panic!("invalid ptr provided, probably due to a double free");
+    };
+}
+
 // --- TESTING ---
 
 #[repr(C)]

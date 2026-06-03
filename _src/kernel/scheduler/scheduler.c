@@ -23,7 +23,6 @@
 
 #include "lib/mem.h"
 #include "task.h"
-#include "thread.h"
 
 
 #ifndef DEFAULT_PREEMPTIVE_MICROSEC
@@ -315,7 +314,6 @@ thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
     atomic_init(&node->th.state, THREAD_NEW);
 
     task_add_thread_ref(node->th.owner, &node->th); // sets the local_th_uid
-    thread_assign_stack(&node->th);
 
     cpulocked(&runqueue[cpuid].lock)
     {

@@ -4,6 +4,7 @@ use std::path::Path;
 
 struct DotEnv {
     pub cross_compile_path: String,
+    pub stack_size: String,
 }
 impl DotEnv {
     pub fn read() -> Self {
@@ -12,7 +13,12 @@ impl DotEnv {
         let cross_compile_path =
             std::env::var("CROSS_COMPILE_PATH").expect("CROSS_COMPILE_PATH not defined");
 
-        Self { cross_compile_path }
+        let stack_size = std::env::var("STACK_SIZE").expect("STACK_SIZE not defined");
+
+        Self {
+            cross_compile_path,
+            stack_size: format!("({})", stack_size),
+        }
     }
 }
 
@@ -57,6 +63,7 @@ fn main() {
             .compiler("aarch64-none-elf-gcc")
             .flag("-x")
             .flag("assembler-with-cpp")
+            .define("STACK_SIZE", env.stack_size.as_str())
             .files(asm_files)
             .compile("asm");
     }
@@ -67,6 +74,7 @@ fn main() {
             .includes(includes.clone())
             .flags(cxflags.clone())
             .flags(cflags)
+            .define("STACK_SIZE", env.stack_size.as_str())
             .opt_level(opt)
             .files(&cpp_files)
             .compile("cpp_sources");
@@ -79,6 +87,7 @@ fn main() {
             .includes(includes.clone())
             .flags(cxflags.clone())
             .flags(cppflags)
+            .define("STACK_SIZE", env.stack_size.as_str())
             .opt_level(opt)
             .files(&cpp_files)
             .compile("cpp_sources");

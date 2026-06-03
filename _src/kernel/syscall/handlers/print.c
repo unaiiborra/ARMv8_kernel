@@ -31,7 +31,7 @@ int64_t syscall64_print(
 {
     uregion_t* region;
     task_t*    task = get_current_thread()->owner;
-    char*      cpy;
+    char*      cpy  = NULL;
 
     spinlocked(&task->lock)
     {
