@@ -1,9 +1,9 @@
-.section .text
 
 #if !defined(STACK_SIZE) || STACK_SIZE % 4096 != 0
 #   error "STACK_SIZE must be a multiple of PAGE_SIZE"
 #endif
 
+.section .text.boot
 .global _start
 _start:
     mov x9, x0
@@ -16,6 +16,7 @@ _start:
     mov x8, #0
     svc #0
 
+.section .text.stl
 .global __stl_error_exit
 __stl_error_exit:
     mov x8, #0
@@ -24,11 +25,10 @@ __stl_error_exit:
 
 .global __stl_setup_stack
 __stl_setup_stack:
-    mov x1, #(STACK_SIZE)
+    ldr x1, =STACK_SIZE
     cbz x1, 1f
-    
-    mov x9, x0
-    mov x1, #0
+
+    mov x0, #0
     mov x2, #0x3 // RW
     mov x3, #1   // ANONYMOUS
     mov x4, #0
@@ -37,10 +37,11 @@ __stl_setup_stack:
     svc #0
 
     cmp x0, #0
-    b.gt 0f
+    b.ge 0f
     b __stl_error_exit
-0:  add x0, x0, #(STACK_SIZE)
-    mov sp, x0
-1:  isb
-    ret
 
+0:  ldr x1, =STACK_SIZE
+    add x0, x0, x1
+    mov sp, x0
+1:
+    ret

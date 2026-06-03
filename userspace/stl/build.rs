@@ -10,14 +10,14 @@ impl DotEnv {
     pub fn read() -> Self {
         dotenv().ok();
 
-        let cross_compile_path =
-            std::env::var("CROSS_COMPILE_PATH").expect("CROSS_COMPILE_PATH not defined");
-
-        let stack_size = std::env::var("STACK_SIZE").expect("STACK_SIZE not defined");
-
         Self {
-            cross_compile_path,
-            stack_size: format!("({})", stack_size),
+            cross_compile_path: std::env::var("CROSS_COMPILE_PATH")
+                .expect("CROSS_COMPILE_PATH not defined"),
+
+            stack_size: format!(
+                "({})",
+                std::env::var("STACK_SIZE").unwrap_or_else(|_| "4096*4096".to_string())
+            ),
         }
     }
 }

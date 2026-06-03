@@ -17,4 +17,4 @@ __stl_thread_start:
 
     mov x0, x10
     mov x1, x11
-    b __stl_setup_thread_entry
+    b   __stl_setup_thread_entry

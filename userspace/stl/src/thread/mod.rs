@@ -39,7 +39,10 @@ pub fn thread_create(entry: StartFn, arg: u64) -> Result<Thid, ThreadCreateError
         arguments as usize as u64
     };
 
-    syscall_spawn(__stl_thread_start, arg)
+    syscall_spawn(__stl_thread_start, arg).map_err(|e| {
+        unsafe { free(arg as *mut c_void) };
+        e
+    })
 }
 
 #[inline]
@@ -47,6 +50,7 @@ pub fn thread_kill(thid: Thid) -> Result<(), ThreadKillError> {
     syscall_kill(thid)
 }
 
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __stl_setup_thread_entry(thid: u64, arguments_ptr: *mut ThreadArgs) -> ! {
     unsafe {
         let (arg, start_fn) = (*arguments_ptr).unpack();
