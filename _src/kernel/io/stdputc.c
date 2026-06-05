@@ -11,8 +11,9 @@
 
 
 
-static int32_t std_putc(const char c)
+static int32_t std_putc(const char c, void* ctx)
 {
+    (void)ctx;
     const device_t*     io_device  = device_get_primary(DEVICE_CLASS_SERIAL);
     const serial_ops_t* serial_ops = io_device->driver_ops;
     driver_handle_t     handle     = device_get_driver_handle(io_device);
@@ -21,8 +22,9 @@ static int32_t std_putc(const char c)
 }
 
 
-static int32_t panic_putc(const char c)
+static int32_t panic_putc(const char c, void* ctx)
 {
+    (void)ctx;
     const device_t*     io_device  = device_get_primary(DEVICE_CLASS_SERIAL);
     const serial_ops_t* serial_ops = io_device->driver_ops;
     driver_handle_t     handle     = device_get_driver_handle(io_device);

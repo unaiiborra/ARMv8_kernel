@@ -7,8 +7,9 @@
 
 
 typedef uint64_t term_id;
-typedef int32_t (*term_out)(const char c); // < 0: not taken, else taken
 
+// < 0: not taken, else taken
+typedef int32_t (*term_out)(const char c, void* ctx);
 
 typedef struct {
     size_t              size;
@@ -21,11 +22,12 @@ typedef struct {
     term_id            id_;
     spinlock_t         lock_;
     term_out           out_;
+    void*              ctx;
     term_buffer_handle buf_;
 } term_handle;
 
 
-void term_new(term_handle* out, term_out output);
+void term_new(term_handle* out, term_out output, void* ctx);
 void term_delete(term_handle* h);
 
 /*

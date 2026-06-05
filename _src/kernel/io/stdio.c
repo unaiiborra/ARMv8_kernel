@@ -47,7 +47,7 @@ static void io_term_new(io_term* new, const char* device_name, term_out output)
     new->device_name    = device_name;
     new->notify_enabled = false;
     new->lock           = SPINLOCK_INIT;
-    term_new(&new->term, output);
+    term_new(&new->term, output, NULL);
 }
 
 
