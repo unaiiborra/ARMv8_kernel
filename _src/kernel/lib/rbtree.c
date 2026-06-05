@@ -1,7 +1,10 @@
 #include <kernel/lib/rbtree.h>
 #include <kernel/panic.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdnoreturn.h>
+
+#include "lib/branch.h"
 
 #define always_inline __attribute((always_inline)) static inline
 
@@ -124,7 +127,15 @@ void* rbt_find(rbtree_t* tree, rbt_condition_t cond, void* node_a)
     return node_b;
 }
 
-always_inline bool bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
+typedef enum : int32_t {
+    COND_OK,
+    COND_REBALANCE,
+    COND_EQUALS = RBT_EQUALS,
+    // any other code is custom defined by the caller at rbt_condition_t
+} bst_insert_res_e;
+
+always_inline bst_insert_res_e
+bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
 {
     rbtnode_t* parent = NULL;
     rbtnode_t* cur    = tree->root;
@@ -133,7 +144,7 @@ always_inline bool bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
         parent = cur;
 
         if (node->key_unsigned == cur->key_unsigned)
-            PANIC("key already inserted");
+            return COND_EQUALS;
 
         if (node->key_unsigned < cur->key_unsigned)
             cur = cur->left;
@@ -149,7 +160,7 @@ always_inline bool bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
         tree->root = node;
         set_color(node, BLACK);
 
-        return false;
+        return COND_OK;
     }
 
     if (node->key_unsigned < parent->key_unsigned)
@@ -157,10 +168,10 @@ always_inline bool bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
     else
         parent->right = node;
 
-    return true;
+    return COND_REBALANCE;
 }
 
-always_inline bool bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
+always_inline bst_insert_res_e bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
 {
     rbtnode_t* parent = NULL;
     rbtnode_t* cur    = tree->root;
@@ -169,7 +180,7 @@ always_inline bool bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
         parent = cur;
 
         if (node->key_signed == cur->key_signed)
-            PANIC("key already inserted");
+            return COND_EQUALS;
 
         if (node->key_signed < cur->key_signed)
             cur = cur->left;
@@ -185,7 +196,7 @@ always_inline bool bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
         tree->root = node;
         set_color(node, BLACK);
 
-        return false;
+        return COND_OK;
     }
 
     if (node->key_signed < parent->key_signed)
@@ -193,13 +204,11 @@ always_inline bool bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
     else
         parent->right = node;
 
-    return true;
+    return COND_REBALANCE;
 }
 
-always_inline bool bst_insert_conditional(
-    rbtree_t*       tree,
-    rbtnode_t*      node,
-    rbt_condition_t cond)
+always_inline bst_insert_res_e
+bst_insert_conditional(rbtree_t* tree, rbtnode_t* node, rbt_condition_t cond)
 {
     rbtnode_t* parent = NULL;
     rbtnode_t* cur    = tree->root;
@@ -207,10 +216,10 @@ always_inline bool bst_insert_conditional(
     while (cur) {
         parent = cur;
 
-        rbt_condition_e cmp = cond(node, cur);
+        int32_t cmp = cond(node, cur);
 
         if (cmp == RBT_EQUALS)
-            PANIC("key already inserted");
+            return COND_EQUALS;
 
         if (cmp == RBT_LESS_THAN)
             cur = cur->left;
@@ -226,7 +235,7 @@ always_inline bool bst_insert_conditional(
         tree->root = node;
         set_color(node, BLACK);
 
-        return false;
+        return COND_OK;
     }
 
     if (cond(node, parent) == RBT_LESS_THAN)
@@ -234,7 +243,7 @@ always_inline bool bst_insert_conditional(
     else
         parent->right = node;
 
-    return true;
+    return COND_REBALANCE;
 }
 
 static void insert_rebalance(rbtree_t* tree, rbtnode_t* node)
@@ -434,34 +443,67 @@ static void erase_color(rbtree_t* tree, rbtnode_t* parent)
     }
 }
 
-void rbt_insert_i64(rbtree_t* tree, void* node)
+rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node)
 {
     ASSERT(tree && node, "invalid params!");
 
-    bool rebalance = bst_insert_signed(tree, node);
+    bst_insert_res_e insert_result = bst_insert_signed(tree, node);
 
-    if (rebalance)
-        insert_rebalance(tree, node);
+    switch (expect(insert_result, COND_OK)) {
+        case COND_OK:
+            return RBT_FIND_OK;
+
+        case COND_REBALANCE:
+            insert_rebalance(tree, node);
+            return RBT_FIND_OK;
+
+        case COND_EQUALS:
+            return RBT_FIND_EXISTS;
+    }
+
+    PANIC("rbt_insert_i64 does not support custom result codes");
 }
 
-void rbt_insert_u64(rbtree_t* tree, void* node)
+rbt_insert_result_e rbt_insert_u64(rbtree_t* tree, void* node)
 {
     ASSERT(tree && node, "invalid params!");
 
-    bool rebalance = bst_insert_unsigned(tree, node);
+    bst_insert_res_e insert_result = bst_insert_unsigned(tree, node);
 
-    if (rebalance)
-        insert_rebalance(tree, node);
+    switch (expect(insert_result, COND_OK)) {
+        case COND_OK:
+            return RBT_FIND_OK;
+
+        case COND_REBALANCE:
+            insert_rebalance(tree, node);
+            return RBT_FIND_OK;
+
+        case COND_EQUALS:
+            return RBT_FIND_EXISTS;
+    }
+
+    PANIC("rbt_insert_i64 does not support custom result codes");
 }
 
-void rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond)
+rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond)
 {
     ASSERT(tree && node && cond, "invalid params!");
 
-    bool rebalance = bst_insert_conditional(tree, node, cond);
+    int32_t insert_result = bst_insert_conditional(tree, node, cond);
 
-    if (rebalance)
-        insert_rebalance(tree, node);
+    switch (expect(insert_result, COND_OK)) {
+        case COND_OK:
+            return RBT_FIND_OK;
+
+        case COND_REBALANCE:
+            insert_rebalance(tree, node);
+            return RBT_FIND_OK;
+
+        case COND_EQUALS:
+            return RBT_FIND_EXISTS;
+    }
+    
+    return insert_result; // custom code result
 }
 
 void* rbt_remove(rbtree_t* tree, void* n)
