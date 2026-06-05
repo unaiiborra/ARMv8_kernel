@@ -253,12 +253,12 @@ void vmalloc_containers_debug_fva()
     while (c) {
         fva_container_data d = c->fva.data;
 
-        kprintf("\n\r[container %d]\n\r", i++);
+        printf("\n\r[container %d]\n\r", i++);
         size_t j = 0;
 
         while (j < BITFIELD_COUNT_FOR(FVA_NODE_COUNT, bf)) {
             uint64_t bitfield = d.reserved_nodes[j++];
-            kprintf("%b, ", bitfield);
+            printf("%b, ", bitfield);
         }
 
         c = c->fva.hdr.next;
@@ -273,13 +273,13 @@ void vmalloc_containers_debug_rva()
     while (c) {
         rva_container_data d = c->rva.data;
 
-        kprintf("\n\r[container %d]\n\r", i++);
+        printf("\n\r[container %d]\n\r", i++);
 
         size_t j = 0;
 
         while (j < BITFIELD_COUNT_FOR(RVA_NODE_COUNT, bf)) {
             uint64_t bitfield = d.reserved_nodes[j++];
-            kprintf("%b, ", bitfield);
+            printf("%b, ", bitfield);
         }
 
         c = c->rva.hdr.next;

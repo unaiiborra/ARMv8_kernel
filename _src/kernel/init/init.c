@@ -57,7 +57,7 @@ void kernel_init(void)
     irq_ops->init(handle);
     irq_ops->init_cpu(handle, arm_get_cpu_affinity().aff0);
 
-    io_init(); // init kprint, kprintf...
+    io_init(); // init print, printf...
 
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");

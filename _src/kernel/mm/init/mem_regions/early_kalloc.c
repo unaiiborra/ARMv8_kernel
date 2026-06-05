@@ -331,10 +331,10 @@ void early_kalloc_debug()
 
     ek_node* c = first_node;
 
-    kprint("\n\r[early_kalloc] dump begin");
+    print("\n\r[early_kalloc] dump begin");
 
     while (c) {
-        kprintf(
+        printf(
             "\n\r\tnode=%p addr=%p size=%p, tag=%s, free=%s",
             (void*)c,
             (void*)c->memreg.addr,
@@ -344,5 +344,5 @@ void early_kalloc_debug()
         c = c->next;
     }
 
-    kprint("\n\r[early_kalloc] dump end");
+    print("\n\r[early_kalloc] dump end");
 }

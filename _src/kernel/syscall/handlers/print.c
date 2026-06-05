@@ -53,7 +53,7 @@ int64_t syscall64_print(
     }
 
 #if DEBUG < DEBUG_TRACE
-    fkprint(IO_STDOUT, cpy);
+    print( cpy);
 #else
     dbg_sysc_print(SYSC_PRINT, "\"" ANSI_RESET "%s\"", cpy);
 #endif

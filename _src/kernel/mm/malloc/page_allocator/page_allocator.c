@@ -538,7 +538,7 @@ void page_allocator_debug()
 
 
         if (get_free(n)) {
-            kprintf(
+            printf(
                 "\t[F%d-%p] %dp, %p bytes\n\r",
                 get_order(n),
                 addr,
@@ -548,7 +548,7 @@ void page_allocator_debug()
         else {
             mm_page_data d = n->page_data;
 
-            kprintf(
+            printf(
                 "\t[R%d|%s|%p][%s%s] %dp, %p bytes \n\r",
                 get_order(n),
                 d.tag,

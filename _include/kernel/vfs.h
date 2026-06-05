@@ -31,6 +31,7 @@ typedef struct {
     rbtree_t files;
 } fd_table_t;
 
+static constexpr fd_table_t FD_TABLE_INIT = {.files = (void*)0};
 
 /// used by the kernel to select an specific file descriptor number and assign
 /// it to a table.

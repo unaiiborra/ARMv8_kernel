@@ -15,11 +15,12 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
+#include "kernel/devices/device.h"
 #include "kernel/io/stdio.h"
+#include "kernel/io/vfs_serial.h"
 #include "kernel/mm/elf.h"
 #include "kernel/smp.h"
-
-
+#include "kernel/vfs.h"
 
 // Main function of the kernel, called by the bootloader (/boot/boot.S)
 noreturn void kernel_entry()
@@ -31,23 +32,13 @@ noreturn void kernel_entry()
             kernel_init();
     }
 
-    kprint("Hello!\n\r");
+    fd_table_t table = FD_TABLE_INIT;
 
-    elf_load_result elf_res;
-    uintptr_t       test_entry;
 
-    task_t* test = task_new("test", 2 * MEM_MiB);
+    const char* hello = "Hello from stdout!\n\r";
+    vfs_write(&table, 1, (const uint8_t*)hello, strlen(hello));
 
-    elf_res = elf_load(
-        test,
-        EMBEDDED_BINARY(test_elf),
-        EMBEDDED_BINARY_SIZE(test_elf),
-        &test_entry);
-    ASSERT(elf_res == ELF_LOAD_OK);
-
-    schedule_ready_thread(test, test_entry);
-
-    scheduler_loop_cpu_enter();
+    printf("Hello from the %s!\n\r", "kernel");
 
     loop asm volatile("wfi");
 }

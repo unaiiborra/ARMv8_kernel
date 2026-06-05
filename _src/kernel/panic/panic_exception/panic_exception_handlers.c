@@ -38,14 +38,14 @@ static void print_exception_src(panic_exception_src src)
             break;
     }
 
-    fkprintf(IO_STDPANIC, "exception source: %s\n", msg);
+    printf("exception source: %s\n", msg);
 }
 
 
 static void print_raw_sysregs(exception_reason_sysregs* sysregs)
 {
-    fkprintf(
-        IO_STDPANIC,
+    printf(
+
         "sysregs:\n"
         "\tesr:    %p\n"
         "\telr:    %p\n"

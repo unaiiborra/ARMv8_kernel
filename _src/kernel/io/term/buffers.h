@@ -2,6 +2,7 @@
 
 #include <kernel/io/term.h>
 #include <lib/stdmacros.h>
+#include <stddef.h>
 
 
 typedef struct term_buffer {
@@ -27,6 +28,14 @@ static inline term_buffer_handle term_buffer_handle_new()
 size_t term_buffer_push(term_buffer_handle* h, char c);
 
 size_t term_buffer_peek(term_buffer_handle* h, char* out);
+/// Pops a char from the head of the buffer, returning true if successful and
+/// false if the buffer is empty.
+bool term_buffer_pop(term_buffer_handle* h, char* out);
+
+/// Pops n chars from the head of the buffer, returning the number of chars
+/// popped.
+size_t term_buffer_pop_n(term_buffer_handle* h, size_t n, char* out);
+
 /// like pop but does not return the char. Used to make a peek work as it if was
 /// a pop if needed. Returns the size after the last remove
 size_t term_buffer_remove_from_head(term_buffer_handle* h);

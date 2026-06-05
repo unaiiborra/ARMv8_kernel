@@ -47,7 +47,7 @@ static void im_free(void* addr)
         200,
         STDINT_BASE_REPR_HEX);
 
-    kprintf("%s\n\r", buf);
+    printf("%s\n\r", buf);
 
 #ifndef DEBUG
     PANIC("The early identity mapping allocations should not free any tables");

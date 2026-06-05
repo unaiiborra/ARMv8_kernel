@@ -37,9 +37,11 @@ void term_delete(term_handle* h);
  *   data, in which case the term will fill the term_out function until a not
  *   taken (< 0) is received
  */
-bool term_printc(term_handle* h, const char c);
-bool term_prints(term_handle* h, const char* s);
-bool term_printf(term_handle* h, const char* s, va_list ap);
+bool    term_printc(term_handle* h, const char c);
+bool    term_prints(term_handle* h, const char* s);
+bool    term_print_slice(term_handle* h, const char* s, size_t len);
+bool    term_printf(term_handle* h, const char* s, va_list ap);
+size_t term_remove_head(term_handle* h, char* buf, size_t count);
 
 /*
  *  notifies that the provided term_out is ready to receive more data.

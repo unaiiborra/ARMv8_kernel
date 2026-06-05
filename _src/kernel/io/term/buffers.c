@@ -86,24 +86,26 @@ size_t term_buffer_peek(term_buffer_handle* h, char* out)
 
     term_buffer* head_buf = h->head_buf;
 
-    DEBUG_ASSERT(head_buf->head < head_buf->buf_size);
+    DEBUG_ASSERT(head_buf->head < head_buf->tail);
 
     *out = head_buf->buf[head_buf->head];
 
     return h->size;
 }
 
-
-size_t term_buffer_remove_from_head(term_buffer_handle* h)
+bool term_buffer_pop(term_buffer_handle* h, char* out)
 {
     DEBUG_ASSERT(h);
 
     if (unlikely(h->size == 0)) {
         DEBUG_ASSERT(!h->head_buf && !h->tail_buf);
-        return 0;
+        return false;
     }
 
     term_buffer* head_buf = h->head_buf;
+
+    if (likely(out))
+        *out = head_buf->buf[head_buf->head];
 
     h->size--;
     head_buf->head++;
@@ -111,5 +113,40 @@ size_t term_buffer_remove_from_head(term_buffer_handle* h)
     if (head_buf->head == head_buf->tail)
         free_head(h, head_buf);
 
+    return true;
+}
+
+
+size_t term_buffer_pop_n(term_buffer_handle* h, size_t n, char* out)
+{
+    DEBUG_ASSERT(h);
+    size_t       popped = 0;
+    term_buffer* head_buf;
+
+    while (popped < n && h->size > 0) {
+        head_buf = h->head_buf; // must be updated each iteration because it
+                                // changes when free_head is called
+
+        // bytes remaining in the buffer
+        size_t available = head_buf->tail - head_buf->head;
+        size_t take      = min(available, n - popped);
+
+        if (out)
+            memcpy(out + popped, head_buf->buf + head_buf->head, take);
+
+        head_buf->head += take;
+        h->size -= take;
+        popped += take;
+
+        if (head_buf->head == head_buf->tail)
+            free_head(h, head_buf);
+    }
+
+    return popped;
+}
+
+size_t term_buffer_remove_from_head(term_buffer_handle* h)
+{
+    term_buffer_pop(h, NULL);
     return h->size;
 }

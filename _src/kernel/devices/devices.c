@@ -115,6 +115,28 @@ const device_t* device_get_by_name(device_class_t class_id, const char* name)
     return device;
 }
 
+const device_t* device_get_by_uid(device_class_t class_id, uint64_t uid)
+{
+    DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
+
+    const device_t* device = NULL;
+
+    spinlocked_irqsave(&locks[class_id])
+    {
+        device_node_t* cur = device_lists[class_id];
+
+        while (cur != NULL) {
+            if (cur->device.uid == uid) {
+                device = &cur->device;
+                break;
+            }
+
+            cur = cur->next;
+        }
+    }
+
+    return device;
+}
 
 const device_t* device_get_primary(device_class_t class_id)
 {

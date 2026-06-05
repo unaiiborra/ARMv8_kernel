@@ -1,6 +1,6 @@
 #include <kernel/lib/rbtree.h>
 #include <kernel/mm.h>
-#include <kernel/vfs/vfs.h>
+#include <kernel/vfs.h>
 #include <lib/branch.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -67,7 +67,6 @@ static vfs_result_t validate_descriptor_op(
     return VFS_OK;
 }
 
-
 vfs_result_t vfs_bind(
     fd_table_t*              table,
     file_descriptor_t        fd,
@@ -90,7 +89,7 @@ vfs_result_t vfs_bind(
     }
 }
 
-vfs_result_t vfs_open(fd_table_t* table, const char* path)
+file_descriptor_t vfs_open(fd_table_t* table, const char* path)
 {
     (void)table, (void)path;
     PANIC("TODO: implement file system");

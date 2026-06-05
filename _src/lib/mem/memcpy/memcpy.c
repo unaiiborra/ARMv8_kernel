@@ -70,7 +70,7 @@ void test_memcpy(size_t size_start)
         for (size_t j = 0; j < i; j++) {
             if (dst[(sizeof(dst) - 1 - i) + j] !=
                 src[(sizeof(src) - 1 - i) + j]) {
-                kprint("Something went wrong");
+                print("Something went wrong");
 
                 loop
                 {
@@ -79,17 +79,17 @@ void test_memcpy(size_t size_start)
         }
 
         if (i % 10000 == 0) {
-            kprint("i: ");
-            kprint(stdint_to_ascii(
+            print("i: ");
+            print(stdint_to_ascii(
                 (STDINT_UNION) {.int64 = i},
                 STDINT_UINT64,
                 buf,
                 100,
                 STDINT_BASE_REPR_DEC));
-            kprint(" ok\n\r");
+            print(" ok\n\r");
         }
     }
 
-    kprint("FINISHED without hang");
+    print("FINISHED without hang");
 }
 #endif

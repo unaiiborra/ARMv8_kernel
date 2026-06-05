@@ -85,6 +85,44 @@ bool term_prints(term_handle* h, const char* s)
     return finished_output;
 }
 
+bool term_print_slice(term_handle* h, const char* s, size_t len)
+{
+    size_t i = 0;
+
+    irqflags_t f = spinlock_acquire_irqsave(&h->lock_);
+
+    if (h->buf_.size == 0)
+        for (; i < len; i++) {
+            char c = s[i];
+
+            if (h->out_(c, h->ctx) < 0)
+                break;
+        }
+
+    bool finished = !(i < len);
+
+    for (; i < len; i++) {
+        char c = s[i];
+        term_buffer_push(&h->buf_, c);
+    }
+
+    spinlock_release_irqrestore(&h->lock_, f);
+
+    return finished;
+}
+
+size_t term_remove_head(term_handle* h, char* buf, size_t count)
+{
+    size_t popped = 0;
+
+    irqflags_t f = spinlock_acquire_irqsave(&h->lock_);
+
+    popped = term_buffer_pop_n(&h->buf_, count, buf);
+
+    spinlock_release_irqrestore(&h->lock_, f);
+
+    return popped;
+}
 
 static void putfmt(char c, void* args)
 {

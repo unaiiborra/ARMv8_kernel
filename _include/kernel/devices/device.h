@@ -50,6 +50,7 @@ void device_register(
     puintptr_t     base,
     const void*    driver_ops);
 const device_t* device_get_by_name(device_class_t class_id, const char* name);
+const device_t* device_get_by_uid(device_class_t class_id, uint64_t uid);
 const device_t* device_get_primary(device_class_t class_id);
 
 

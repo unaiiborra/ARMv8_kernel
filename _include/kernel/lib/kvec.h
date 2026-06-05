@@ -20,7 +20,8 @@ typedef struct {
     void*  container_;
 } kvec;
 
-#define kvec(T) kvec
+#define kvec(T)        kvec
+#define scoped_kvec(T) deferT(kvec(T), kvec_delete)
 
 static inline kvec __kvec_new(kvec _)
 {

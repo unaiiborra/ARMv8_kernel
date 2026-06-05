@@ -247,7 +247,7 @@ void irq_dispatch()
         return;
 
     if (unlikely(irq > MAX_IRQS)) {
-        fkprintf(IO_STDOUT, "received irq %d, out of expected MAX_IRQS", irq);
+        printf("received irq %d, out of expected MAX_IRQS", irq);
         PANIC();
     }
 
