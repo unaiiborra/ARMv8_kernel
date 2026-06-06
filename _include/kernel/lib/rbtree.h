@@ -4,6 +4,9 @@
 
 // Red black tree, based on the Linux implementation
 
+#define RBT_INIT (rbtree_t) {.root = (void*)0}
+
+#define rbtreeT(T) rbtree_t
 
 typedef struct {
     struct rbtnode* root;
@@ -29,23 +32,39 @@ typedef enum : int32_t {
     // EQUALS does not replace the existing node, returns RBT_FIND_EXISTS.
 } rbt_condition_e;
 
-typedef enum rbt_find_result_e : int32_t {
-    RBT_FIND_OK       = 0,
-    RBT_FIND_RESERVED = 1, // this result is reserved for internal use, it will
-                           // never be returned by rbt_insert
-    RBT_FIND_EXISTS = RBT_EQUALS,
+typedef enum : int32_t {
+    RBT_INSERT_OK       = 0,
+    RBT_INSERT_RESERVED = 1, // this result is reserved for internal use, it
+                             // will never be returned by rbt_insert
+    RBT_INSERT_EXISTS = RBT_EQUALS,
     // other codes can be defined by the caller and match with the return value
     // of rbt_condition_t
 } rbt_insert_result_e;
 
-typedef rbt_condition_e (*rbt_condition_t)(void* node_a, void* node_b);
+typedef enum : int32_t {
+    RBT_FIND_OK        = 0, // if condition RBT_EQUALS is met
+    RBT_FIND_NOT_FOUND = 1,
+    RBT_FIND_RESERVED  = 2, // will never be returned by rbt_find
+    // other codes can be defined by the caller and match with the return value
+    // of rbt_condition_t
+} rbt_find_result_e;
 
-void* rbt_find_i64(rbtree_t* tree, int64_t key);
-void* rbt_find_u64(rbtree_t* tree, uint64_t key);
-void* rbt_find(rbtree_t* tree, rbt_condition_t cond, void* node);
+
+typedef rbt_condition_e (*rbt_condition_t)(void* node_a, void* node_b);
+typedef void (*rbt_free_t)(void* node, void* ctx);
+
+void*             rbt_find_i64(rbtree_t* tree, int64_t key);
+void*             rbt_find_u64(rbtree_t* tree, uint64_t key);
+rbt_find_result_e rbt_find(
+    rbtree_t*       tree,
+    rbt_condition_t cond,
+    void*           cmp_ctx, // passed as node_a to cond
+    void**          node_out);
 
 rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node);
 rbt_insert_result_e rbt_insert_u64(rbtree_t* tree, void* node);
 rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond);
 
 void* rbt_remove(rbtree_t* tree, void* node);
+
+void rbt_destroy(rbtree_t* tree, rbt_free_t free_fn, void* ctx);

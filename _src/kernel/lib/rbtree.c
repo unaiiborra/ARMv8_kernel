@@ -111,20 +111,39 @@ void* rbt_find_u64(rbtree_t* tree, uint64_t key)
     return node;
 }
 
-void* rbt_find(rbtree_t* tree, rbt_condition_t cond, void* node_a)
+rbt_find_result_e rbt_find(
+    rbtree_t*       tree,
+    rbt_condition_t cond,
+    void*           cmp_ctx,
+    void**          node_out)
 {
     rbtnode_t* node_b = tree->root;
 
     while (node_b) {
-        rbt_condition_e cmp = cond(node_a, node_b);
+        int32_t cmp = cond(cmp_ctx, node_b);
 
-        if (cmp == RBT_EQUALS)
-            return node_b;
+        if (cmp == RBT_EQUALS) {
+            if (node_out)
+                *node_out = node_b;
 
-        node_b = (cmp == RBT_LESS_THAN) ? node_b->left : node_b->right;
+            return RBT_FIND_OK;
+        }
+
+        if (cmp == RBT_LESS_THAN)
+            node_b = node_b->left;
+
+        else if (cmp == RBT_GREATER_THAN)
+            node_b = node_b->right;
+
+        else {
+            if (node_out)
+                *node_out = node_b;
+
+            return cmp;
+        }
     }
 
-    return node_b;
+    return RBT_FIND_NOT_FOUND;
 }
 
 typedef enum : int32_t {
@@ -451,14 +470,14 @@ rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node)
 
     switch (expect(insert_result, COND_OK)) {
         case COND_OK:
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_REBALANCE:
             insert_rebalance(tree, node);
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_EQUALS:
-            return RBT_FIND_EXISTS;
+            return RBT_INSERT_EXISTS;
     }
 
     PANIC("rbt_insert_i64 does not support custom result codes");
@@ -472,14 +491,14 @@ rbt_insert_result_e rbt_insert_u64(rbtree_t* tree, void* node)
 
     switch (expect(insert_result, COND_OK)) {
         case COND_OK:
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_REBALANCE:
             insert_rebalance(tree, node);
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_EQUALS:
-            return RBT_FIND_EXISTS;
+            return RBT_INSERT_EXISTS;
     }
 
     PANIC("rbt_insert_i64 does not support custom result codes");
@@ -491,18 +510,18 @@ rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond)
 
     int32_t insert_result = bst_insert_conditional(tree, node, cond);
 
-    switch (expect(insert_result, COND_OK)) {
+    switch (insert_result) {
         case COND_OK:
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_REBALANCE:
             insert_rebalance(tree, node);
-            return RBT_FIND_OK;
+            return RBT_INSERT_OK;
 
         case COND_EQUALS:
-            return RBT_FIND_EXISTS;
+            return RBT_INSERT_EXISTS;
     }
-    
+
     return insert_result; // custom code result
 }
 
@@ -603,4 +622,36 @@ void* rbt_remove(rbtree_t* tree, void* n)
         erase_color(tree, rebalance);
 
     return node;
+}
+
+void rbt_destroy(rbtree_t* tree, rbt_free_t free_fn, void* ctx)
+{
+    if (!tree || !free_fn || !tree->root)
+        return;
+
+    rbtnode_t* node = tree->root;
+    while (node) {
+        if (node->left) {
+            node = node->left;
+            continue;
+        }
+
+        if (node->right) {
+            node = node->right;
+            continue;
+        }
+
+        rbtnode_t* parent = get_parent(node);
+        if (likely(parent)) {
+            if (parent->left == node)
+                parent->left = NULL;
+            else
+                parent->right = NULL;
+        }
+
+        free_fn(node, ctx);
+        node = parent;
+    }
+
+    tree->root = NULL;
 }
