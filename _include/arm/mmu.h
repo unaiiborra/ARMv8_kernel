@@ -453,7 +453,7 @@ mmu_unmap_result mmu_unmap(
 
 
 typedef struct {
-    enum {
+    enum walk_result_e {
         MMU_WALK_NULL_MAPPING,
         MMU_WALK_PAGE_UNMAPPED,
         MMU_WALK_PAGE_MAPPED,

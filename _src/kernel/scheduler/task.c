@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/devices/device.h"
+#include "kernel/io/vfs_serial.h"
 #include "kernel/task.h"
 #include "lib/math.h"
 #include "lib/stdattribute.h"
@@ -36,8 +38,13 @@ task_t* task_new(const char* name, size_t stack_size)
         .stack_pages = div_ceil(stack_size, PAGE_SIZE),
         .mapping     = mm_mmu_mapping_new(MMU_LO),
         .regions     = NULL,
+        .files       = {0},
         .threads     = kvec_new(thread*),
     };
+
+    vfs_serial_bind_stdio(
+        &t->files,
+        device_get_primary(DEVICE_CLASS_SERIAL)->uid);
 
     return t;
 }
@@ -136,6 +143,8 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
 
 void terminate_task(task_t* task, uint32_t exit_code)
 {
+    
+    
     atomic_store(&task->state, TASK_DYING);
 
     spinlocked(&task->lock)

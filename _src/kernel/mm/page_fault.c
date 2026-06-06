@@ -16,6 +16,7 @@
 #include "lib/branch.h"
 #include "lib/lock.h"
 #include "lib/mem.h"
+#include "lib/stdattribute.h"
 
 #define case_print(v)                        \
     dbg_printf(                              \
@@ -129,36 +130,41 @@ static void translation_fault(
     [[maybe_unused]] int32_t level,
     data_abort_iss*          iss)
 {
-    uregion_t* uregion;
-    task_t*    task           = get_current_thread()->owner;
-    uintptr_t  fault_address  = get_fault_address();
-    size_t     dabt_word_size = get_dabt_word_size(iss);
+    task_t*   task           = get_current_thread()->owner;
+    uintptr_t fault_address  = get_fault_address();
+    size_t    dabt_word_size = get_dabt_word_size(iss);
 
     spinlocked(&task->lock)
     {
-        bool reserved_uregion = uregion_is_reserved(
+        uregion_access_e uaccess = uregions_check_access(
             task,
             fault_address,
             dabt_word_size == 0 ? 1 : dabt_word_size,
-            &uregion);
+            UREGION_REQUIRED_FLAGS_IGNORE,
+            UREGION_FORBIDDEN_FLAGS_IGNORE,
+            true);
 
-        if (likely(reserved_uregion)) {
-            void* kva = uregion_commit(
-                task,
-                align_down(fault_address, PAGE_ALIGN),
-                1);
+        switch (uaccess) {
+            case UREGION_ACCESS_OK:
+                return;
 
-            memzero64(kva, PAGE_SIZE);
-            return;
+            case UREGION_ACCESS_NOT_RESERVED:
+                break; // terminate task
+
+            case UREGION_ACCESS_NOT_COMMITTED:
+                PANIC("uregions_check_access should have commited the page");
+            case UREGION_ACCESS_NO_PERMISSION:
+                PANIC(
+                    "uregions_check_access has been configured with no flag "
+                    "checks");
+            default:
+                PANIC();
         }
     }
 
     // unreserved region access TODO: SIGNAL
     terminate_task(get_current_thread()->owner, 2);
 }
-
-
-
 
 void page_fault_handler()
 {

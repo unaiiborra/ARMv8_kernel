@@ -1,5 +1,6 @@
 #pragma once
 
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <stddef.h>
 #include <stdint.h>

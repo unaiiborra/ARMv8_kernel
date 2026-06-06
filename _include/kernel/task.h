@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/vfs.h"
+
 struct thread;
 
 typedef struct uregion uregion_t;
@@ -75,6 +77,7 @@ typedef struct {
     uint32_t           stack_pages;
     mmu_mapping        mapping;
     uregion_t*         regions;
+    fd_table_t         files;
     kvec(thread*) threads;
 } task_t;
 

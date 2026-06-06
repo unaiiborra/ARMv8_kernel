@@ -16,8 +16,8 @@ typedef enum : file_descriptor_t {
 typedef struct {
     vfs_result_t (*read)(void* ctx, uint8_t* buf, uint32_t len);
     vfs_result_t (*write)(void* ctx, const uint8_t* buf, uint32_t len);
-    vfs_result_t (*open)(void* ctx);
-    vfs_result_t (*close)(void* ctx);
+    vfs_result_t (*open)(void* ctx, const char* path);
+    vfs_result_t (*close)(void* ctx, file_descriptor_t fd);
     vfs_result_t (*mmap)(
         void*    ctx,
         void*    addr,

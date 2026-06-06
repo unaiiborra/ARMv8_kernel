@@ -78,10 +78,10 @@ vfs_result_t vfs_bind(
 
     switch (
         rbt_insert_u64(&table->files, descriptor_new(fd, ops, device_data))) {
-        case RBT_FIND_OK:
+        case RBT_INSERT_OK:
             return VFS_OK;
 
-        case RBT_FIND_EXISTS:
+        case RBT_INSERT_EXISTS:
             return VFS_ERR_BADF;
 
         default:
@@ -111,7 +111,7 @@ vfs_result_t vfs_close(fd_table_t* table, file_descriptor_t fd)
             return result;
     }
     else {
-        result = descriptor->ops->close(descriptor->device_data);
+        result = descriptor->ops->close(descriptor->device_data, fd);
         if (result != VFS_OK)
             return result;
     }

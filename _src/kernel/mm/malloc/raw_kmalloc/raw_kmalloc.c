@@ -212,8 +212,7 @@ void raw_kmalloc_init()
     lock = CPULOCK_INIT;
 }
 
-
-void* __raw_kmalloc(
+void* raw_kmalloc(
     size_t                 pages,
     const char*            tag,
     const raw_kmalloc_cfg* cfg,

@@ -110,7 +110,8 @@ void reserve_malloc_fill()
                 vuintptr_t va = (vuintptr_t)raw_kmalloc(
                     1,
                     RESERVE_MALLOC_TAG,
-                    &cfg); // it can actually get a new idx from the reserve,
+                    &cfg,
+                    NULL); // it can actually get a new idx from the reserve,
                            // thats why the for loop is inside a while
                 puintptr_t pa = kva_to_kpa(va);
                 pv_ptr     pv = pv_ptr_new(pa, va);

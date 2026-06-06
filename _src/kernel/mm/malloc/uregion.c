@@ -16,8 +16,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "raw_kmalloc/raw_kmalloc.h"
-#include "reserve_malloc/reserve_malloc.h"
+#include "kernel/lib/kvec.h"
+#include "kernel/lib/rbtree.h"
+
 
 #define ASSERT_OWNER_IS_LOCKED(owner)     \
     DEBUG_ASSERT(                         \
@@ -33,20 +34,25 @@ typedef enum {
     F_STATIC_LIFETIME  = 1 << 3,
     F_FULL_MAPPED      = 1 << 4,
     F_PARTIALLY_MAPPED = 1 << 5,
-    F_HAS_KNL          = 1 << 6,
+    F_HAS_PHYS         = 1 << 6,
 } uregion_flags_internal_e;
 
+typedef struct {
+    puintptr_t physical_address;
+    vuintptr_t user_address;
+    size_t     page_count;
+} physdata_t;
+
+typedef struct {
+    rb_header_t __rbheader;
+    physdata_t  physdata;
+} physdata_node_t;
 
 typedef struct uregion {
-    uintptr_t usr_start; // userspace va start
-    uint32_t  pages;     // page count
-    uint32_t  flags;     // uregion_flags_internal_e
-
-    // kernel access
-    uintptr_t     knl_start;  // kernel space va start. 0 if not assigned.
-    vmalloc_token knl_vtoken; // vmalloc token for knl allocation. Invalid if
-                              // knl_start == 0
-
+    uintptr_t usr_start;                    // userspace va start
+    uint32_t  pages;                        // page count
+    uint32_t  flags;                        // uregion_flags_internal_e
+    rbtreeT(physdata_node_t) physical_data; // physical mapped pages information
     // bitfield of pages with a physical address assigned
     // if pages <= 64: sm
     // si pages >  64: bg (allocated array)
@@ -73,7 +79,7 @@ typedef struct uregion_node {
 
 static void committed_init(uregion_t* region)
 {
-    DEBUG_ASSERT((region->flags & F_HAS_KNL) == 0);
+    DEBUG_ASSERT((region->flags & F_HAS_PHYS) == 0);
 
     size_t pages = region->pages;
 
@@ -87,18 +93,17 @@ static void committed_init(uregion_t* region)
     region->committed.bg = kzalloc(bg_bytes);
 }
 
-
 static inline void committed_set(
     uregion_t* region,
     size_t     page_idx, // relative to the region
-    size_t     count)
+    size_t     pages)
 {
     constexpr size_t N = BITFIELD_CAPACITY(typeof(region->committed.sm));
 
     bitfield64* bf = region->pages > N ? region->committed.bg
                                        : &region->committed.sm;
 
-    for (size_t i = 0; i < count; i++) {
+    for (size_t i = 0; i < pages; i++) {
         size_t idx  = page_idx + i;
         size_t bf_n = idx / N;
         size_t bf_i = idx % N;
@@ -110,7 +115,6 @@ static inline void committed_set(
         bitfield_set_high(bf[bf_n], bf_i);
     }
 }
-
 
 typedef enum {
     COMMITED_NONE,
@@ -149,8 +153,7 @@ static commited_state_e get_commited_state(uregion_t* region)
     return COMMITED_PARTIALLY;
 }
 
-
-static mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
+static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
 {
     constexpr mmu_pg_cfg RW = (mmu_pg_cfg) {
         0,
@@ -200,7 +203,6 @@ static mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
             PANIC("mmu_cfg_from_flags: invalid flags");
     }
 }
-
 
 // finds the node whose region contains the usr va
 static uregion_node_t* region_find_usrva(task_t* t, uintptr_t usrva)
@@ -307,19 +309,212 @@ static uregion_node_t* node_malloc(
 
     node->next   = NULL;
     node->region = (uregion_t) {
-        .usr_start  = usr_va,
-        .pages      = pages,
-        .flags      = flags,
-        .knl_start  = 0,
-        .knl_vtoken = {0},
-        .committed  = {0},
+        .usr_start     = usr_va,
+        .pages         = pages,
+        .flags         = flags,
+        .physical_data = RBT_INIT,
+        .committed     = {0},
     };
 
     return node;
 }
 
+typedef enum : int32_t {
+    PDATA_CONDITION_LEFT          = RBT_LESS_THAN,
+    PDATA_CONDITION_RIGHT         = RBT_GREATER_THAN,
+    PDATA_CONDITION_START_MATCHES = RBT_EQUALS,
+    // custom results
+    PDATA_CONDITION_OVERLAPS,
+} pdata_tree_res_e;
 
-uregion_result_e uregion_reserve(
+typedef enum : int32_t {
+    PDATA_INSERT_OK = RBT_INSERT_OK,
+    // __PDATA_INSERT_RESERVED = RBT_INSERT_RESERVED,
+    PDATA_INSERT_EXISTS = RBT_INSERT_EXISTS,
+    // custom results
+    PDATA_INSERT_OVERLAPS = PDATA_CONDITION_OVERLAPS,
+} pdata_insert_res_e;
+
+static rbt_condition_e pdata_insert_condition(void* node_a, void* node_b)
+{
+    physdata_t *a = &((physdata_node_t*)node_a)->physdata,
+               *b = &((physdata_node_t*)node_b)->physdata;
+
+    if (a->user_address < b->user_address) {
+        vuintptr_t a_end = a->user_address + a->page_count * PAGE_SIZE;
+
+        if (unlikely(a_end > b->user_address))
+            return (rbt_condition_e)PDATA_CONDITION_OVERLAPS;
+
+        return (rbt_condition_e)PDATA_CONDITION_LEFT;
+    }
+
+    if (a->user_address > b->user_address) {
+        vuintptr_t b_end = b->user_address + b->page_count * PAGE_SIZE;
+
+        if (unlikely(b_end > a->user_address))
+            return (rbt_condition_e)PDATA_CONDITION_OVERLAPS;
+
+        return (rbt_condition_e)PDATA_CONDITION_RIGHT;
+    }
+
+    return (rbt_condition_e)PDATA_CONDITION_START_MATCHES;
+}
+
+static rbt_condition_e pdata_find_condition(void* cmp_ctx, void* tree_node)
+{
+    uintptr_t   target = (uintptr_t)cmp_ctx;
+    physdata_t* phys   = &((physdata_node_t*)tree_node)->physdata;
+
+    uintptr_t start = phys->user_address;
+    uintptr_t end   = start + phys->page_count * PAGE_SIZE;
+
+    if (target < start)
+        return RBT_LESS_THAN;
+
+    if (target >= end)
+        return RBT_GREATER_THAN;
+
+    return RBT_EQUALS;
+}
+
+static pdata_insert_res_e region_insert_user_physdata(
+    uregion_t* uregion,
+    vuintptr_t usr_va,
+    puintptr_t physical_address,
+    size_t     page_count)
+{
+    DEBUG_ASSERT(
+        uregion->usr_start <= usr_va &&
+        uregion->usr_start + uregion->pages * PAGE_SIZE >=
+            usr_va + page_count * PAGE_SIZE);
+
+    physdata_node_t* node = kmalloc(sizeof(physdata_node_t));
+
+    node->physdata = (physdata_t) {
+        .physical_address = physical_address,
+        .user_address     = usr_va,
+        .page_count       = page_count,
+    };
+
+    int32_t ires = rbt_insert(
+        &uregion->physical_data,
+        node,
+        pdata_insert_condition);
+
+    DEBUG_ASSERT(
+        ires == PDATA_INSERT_OK || ires == PDATA_CONDITION_OVERLAPS ||
+        ires == PDATA_INSERT_EXISTS);
+
+    return ires;
+}
+
+static void map_user_region(
+    mmu_mapping* mapping,
+    uregion_t*   uregion,
+    uintptr_t    usr_va,
+    size_t       pages,
+    uint32_t     flags,
+    const char*  tag,
+    bool         zeroed)
+{
+    size_t rem = pages;
+
+    while (rem > 0) {
+        size_t order      = log2_floor(rem);
+        size_t page_count = power_of2(order);
+
+        // map kernel access as kmap
+        raw_kmalloc_info rkm_info;
+        raw_kmalloc(
+            page_count,
+            tag,
+            &(raw_kmalloc_cfg) {
+                .assign_pa    = true,
+                .fill_reserve = true,
+                .device_mem   = false,
+                .permanent    = false,
+                .kmap         = true,
+                .init_zeroed  = zeroed,
+            },
+            &rkm_info);
+
+        puintptr_t physical_address = rkm_info.info.kmap.pv.pa;
+        uintptr_t  user_address     = usr_va + ((pages - rem) * PAGE_SIZE);
+
+        pdata_insert_res_e ires = region_insert_user_physdata(
+            uregion,
+            user_address,
+            physical_address,
+            page_count);
+
+        ASSERT(ires == PDATA_INSERT_OK);
+
+        // map contiguous user access
+        mmu_map_result mmu_res = mmu_map(
+            mapping,
+            user_address,
+            physical_address,
+            page_count * PAGE_SIZE,
+            usr_mmu_cfg_from_flags(flags),
+            NULL);
+
+        ASSERT(mmu_res == MMU_MAP_OK);
+
+        rem -= page_count;
+    }
+}
+
+static void commit(
+    uregion_t*   uregion,
+    mmu_mapping* mapping,
+    uintptr_t    usrva,
+    uint32_t     pages,
+    bool         zeroed)
+{
+    DEBUG_ASSERT(
+        (uregion->flags & F_FULL_MAPPED) == 0,
+        "uregion_commit called on already fully committed region");
+
+    size_t abs_region_end = uregion->usr_start + uregion->pages * PAGE_SIZE;
+
+    if (unlikely(usrva + pages * PAGE_SIZE > abs_region_end))
+        PANIC("the commit gets out of range of the region");
+
+    if (unlikely((uregion->flags & F_HAS_PHYS) == 0)) {
+        committed_init(uregion); // init commited field in uregion
+        uregion->flags |= F_HAS_PHYS;
+    }
+
+    map_user_region(
+        mapping,
+        uregion,
+        usrva,
+        pages,
+        uregion->flags,
+        "commited user page",
+        zeroed);
+
+    committed_set(uregion, (usrva - uregion->usr_start) / PAGE_SIZE, pages);
+
+    switch (get_commited_state(uregion)) {
+        case COMMITED_PARTIALLY: {
+            uregion->flags |= F_PARTIALLY_MAPPED;
+            uregion->flags &= ~F_FULL_MAPPED;
+        } break;
+
+        case COMMITED_FULLY: {
+            uregion->flags |= F_FULL_MAPPED;
+            uregion->flags &= ~F_PARTIALLY_MAPPED;
+        } break;
+
+        case COMMITED_NONE: {
+            PANIC("committed none after uregion_commit");
+        } break;
+    }
+}
+
+uregion_reserve_e uregion_reserve(
     task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
@@ -342,15 +537,14 @@ uregion_result_e uregion_reserve(
     return UREGION_OK;
 }
 
-
-
-uregion_reserve_static_result_t uregion_reserve_static(
+uregion_reserve_e uregion_reserve_static(
     task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
     bool      write,
-    bool      exec)
+    bool      exec,
+    bool      zeroed)
 {
     ASSERT_OWNER_IS_LOCKED(t);
 
@@ -361,240 +555,77 @@ uregion_reserve_static_result_t uregion_reserve_static(
     if (unlikely(overlaps)) {
         kfree(node);
 
-        return (uregion_reserve_static_result_t) {
-            .result = UREGION_OVERLAPS,
-            .knl_va = NULL,
-        };
+        return UREGION_OVERLAPS;
     }
 
-    raw_kmalloc_lock();
-    {
-        raw_kmalloc_info rkm_info;
-
-        node->region.knl_start = (uintptr_t)raw_kmalloc(
-            pages,
-            "static lifetime uregion kernel access",
-            RAW_KMALLOC_DYNAMIC_CFG,
-            &rkm_info);
-
-        node->region.knl_vtoken = rkm_info.info.dynamic.vtoken;
-
-        size_t pa_info_count = vmalloc_get_pa_count(node->region.knl_vtoken);
-        vmalloc_pa_info pa_info[pa_info_count];
-
-        vmalloc_get_pa_info(node->region.knl_vtoken, pa_info, pa_info_count);
-
-        for (size_t i = 0; i < pa_info_count; i++) {
-            size_t offset = pa_info[i].va -
-                            pa_info[0].va; // pa_info comes ordered
-
-            mmu_map_result mmu_res = mmu_map(
-                &t->mapping,
-                usr_va + offset,
-                pa_info[i].pa,
-                power_of2(pa_info[i].order) * PAGE_SIZE,
-                usr_mmu_cfg_from_flags(node->region.flags),
-                NULL);
-
-            ASSERT(mmu_res == MMU_MAP_OK);
-        }
-    }
-    raw_kmalloc_unlock();
-
+    map_user_region(
+        &t->mapping,
+        &node->region,
+        usr_va,
+        pages,
+        node->region.flags,
+        "static uregion kernel access",
+        zeroed);
 
     committed_init(&node->region);
     committed_set(&node->region, 0, node->region.pages);
 
-    node->region.flags |= F_HAS_KNL;
-    node->region.flags |= F_FULL_MAPPED;
+    node->region.flags |= F_HAS_PHYS | F_FULL_MAPPED;
 
-
-
-
-    return (uregion_reserve_static_result_t) {
-        .result = UREGION_OK,
-        .knl_va = (void*)node->region.knl_start,
-    };
+    return UREGION_OK;
 }
 
-
-void* uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages)
+void uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages, bool zeroed)
 {
     ASSERT_OWNER_IS_LOCKED(t);
-
-    const char* tag = "non static lifetime uregion kernel access";
-
-    constexpr mmu_pg_cfg KNL_ACCESS_MMU_CFG = (mmu_pg_cfg) {
-        .attr_index   = 0,
-        .ap           = MMU_AP_EL0_NONE_EL1_RW,
-        .shareability = MMU_SH_INNER_SHAREABLE,
-        .non_secure   = false,
-        .access_flag  = 1,
-        .pxn          = true,
-        .uxn          = true,
-        .sw           = 0,
-    };
-
-
-    DEBUG_ASSERT(usrva % PAGE_ALIGN == 0 && pages > 0);
 
     uregion_node_t* node = region_find_usrva(t, usrva);
 
     if (unlikely(node == NULL))
-        return NULL;
+        PANIC("attempted to commit into a unreserved uregion");
 
+    DEBUG_ASSERT(usrva % PAGE_ALIGN == 0 && pages > 0);
     DEBUG_ASSERT(
         (node->region.flags & F_FULL_MAPPED) == 0,
         "uregion_commit called on already fully committed region");
 
-    uregion_t* region            = &node->region;
-    size_t     abs_region_offset = usrva - region->usr_start;
-    size_t     abs_region_end = region->usr_start + region->pages * PAGE_SIZE;
+    uregion_t* uregion        = &node->region;
+    size_t     abs_region_end = uregion->usr_start + uregion->pages * PAGE_SIZE;
 
     if (usrva + pages * PAGE_SIZE > abs_region_end)
-        return NULL; // the commit gets out of range of the region
+        PANIC("the commit gets out of range of the region");
 
-
-    raw_kmalloc_lock();
-
-    if (unlikely((region->flags & F_HAS_KNL) == 0)) {
-        // the kernel access vmalloc hasn't been done yet, so reserve the
-        // full virtual address region
-        region->knl_start = vmalloc(
-            region->pages,
-            tag,
-            (vmalloc_cfg) {
-                .kmap =
-                    {
-                        .use_kmap = false,
-                        .kmap_pa  = 0,
-                    },
-                .assign_pa  = false,
-                .device_mem = false,
-                .permanent  = false,
-            },
-            &region->knl_vtoken);
-
-        committed_init(region);
-
-        region->flags |= F_HAS_KNL;
-    }
-
-    size_t remaining = pages;
-    while (remaining) {
-        size_t order = log2_floor(remaining);
-        size_t pgs   = power_of2(order);
-        size_t bytes = pgs * PAGE_SIZE;
-
-        // offset from provided usrva
-        uintptr_t fraction_offset = (pages - remaining) * PAGE_SIZE;
-        uintptr_t region_offset   = abs_region_offset + fraction_offset;
-
-
-        puintptr_t pa = page_malloc(order, mm_page_data_new(tag, false, false));
-        vuintptr_t knl_va = region->knl_start + region_offset;
-        vuintptr_t usr_va = region->usr_start + region_offset;
-
-
-        // setup kernerspace access
-        vmalloc_push_pa(region->knl_vtoken, order, pa, knl_va);
-
-        mmu_map_result mmu_res = mmu_map(
-            MM_MMU_KERNEL_MAPPING,
-            knl_va,
-            pa,
-            bytes,
-            KNL_ACCESS_MMU_CFG,
-            NULL);
-
-        ASSERT(mmu_res == MMU_MAP_OK);
-
-
-        // setup userspace access
-        mmu_res = mmu_map(
-            &t->mapping,
-            usr_va,
-            pa,
-            bytes,
-            usr_mmu_cfg_from_flags(region->flags),
-            NULL);
-
-        ASSERT(mmu_res == MMU_MAP_OK);
-
-
-        // mark the commited bitfield pages
-        committed_set(region, region_offset / PAGE_SIZE, pgs);
-
-        remaining -= pgs;
-    }
-
-    reserve_malloc_fill();
-
-    raw_kmalloc_unlock();
-
-    switch (get_commited_state(region)) {
-        case COMMITED_PARTIALLY: {
-            region->flags |= F_PARTIALLY_MAPPED;
-            region->flags &= ~F_FULL_MAPPED;
-        } break;
-
-        case COMMITED_FULLY: {
-            region->flags |= F_FULL_MAPPED;
-            region->flags &= ~F_PARTIALLY_MAPPED;
-        } break;
-
-        case COMMITED_NONE: {
-            PANIC("committed none after uregion_commit");
-        } break;
-    }
-
-
-    return (void*)(region->knl_start + abs_region_offset);
+    commit(uregion, &t->mapping, usrva, pages, zeroed);
 }
 
+static void physdata_destroy(void* physdata_node, void* ctx)
+{
+    mmu_mapping* mapping  = ctx;
+    physdata_t   physdata = ((physdata_node_t*)physdata_node)->physdata;
 
+    // unmaps kernel direct access and frees the physical pages
+    raw_kfree(/* get the direct access address */
+              kpa_to_kva_pt(physdata.physical_address));
 
+    // unmap user access
+    mmu_unmap_result ures = mmu_unmap(
+        mapping,
+        physdata.user_address,
+        physdata.page_count * PAGE_SIZE,
+        NULL);
 
-// uregion_free
+    ASSERT(ures == MMU_UNMAP_OK);
 
+    // free the node
+    kfree(physdata_node);
+}
 
 static void region_destroy(task_t* t, uregion_node_t* node)
 {
-    mmu_unmap_result mmu_res;
-    uregion_t*       region = &node->region;
+    uregion_t* region = &node->region;
 
-    if ((node->region.flags & (F_FULL_MAPPED | F_PARTIALLY_MAPPED)) != 0) {
-        DEBUG_ASSERT((node->region.flags & F_HAS_KNL) != 0);
-
-        mmu_res = mmu_unmap(
-            &t->mapping,
-            region->usr_start,
-            region->pages * PAGE_SIZE,
-            NULL);
-
-        ASSERT(mmu_res == MMU_UNMAP_OK);
-
-        mmu_res = mmu_unmap(
-            MM_MMU_KERNEL_MAPPING,
-            region->knl_start,
-            region->pages * PAGE_SIZE,
-            NULL);
-
-        ASSERT(mmu_res == MMU_UNMAP_OK);
-
-
-        size_t          n = vmalloc_get_pa_count(region->knl_vtoken);
-        vmalloc_pa_info pa_info[n];
-
-        vmalloc_get_pa_info(region->knl_vtoken, pa_info, n);
-
-        for (size_t i = 0; i < n; i++) {
-            page_free(pa_info[i].pa);
-        }
-
-        vfree(region->knl_vtoken, NULL);
-    }
-
+    // iters over all the nodes and calls physdata_destroy
+    rbt_destroy(&region->physical_data, physdata_destroy, &t->mapping);
 
     if (region->pages > 64) {
         kfree(region->committed.bg);
@@ -603,7 +634,6 @@ static void region_destroy(task_t* t, uregion_node_t* node)
     region_remove(t, node);
     kfree(node);
 }
-
 
 bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
 {
@@ -635,8 +665,6 @@ bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
     PANIC("TODO: implement partial frees");
 }
 
-
-
 bool uregion_is_reserved(
     task_t*     t,
     uintptr_t   start,
@@ -666,7 +694,6 @@ bool uregion_is_reserved(
     return true;
 }
 
-
 bool uregion_is_committed(
     task_t*     t,
     uintptr_t   start,
@@ -687,7 +714,7 @@ bool uregion_is_committed(
     if ((region->flags & F_FULL_MAPPED) != 0)
         return true;
 
-    if ((region->flags & F_HAS_KNL) == 0)
+    if ((region->flags & F_HAS_PHYS) == 0)
         return false;
 
     // check bitfield for each page in [start, start+size)
@@ -711,6 +738,77 @@ bool uregion_is_committed(
     return true;
 }
 
+uregion_access_e uregions_check_access(
+    task_t*         t,
+    uintptr_t       start,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand)
+{
+    typedef struct { // user memory area
+        uregion_t* uregion;
+        vuintptr_t user_address;
+        size_t     page_count;
+    } uma_t;
+
+    ASSERT_OWNER_IS_LOCKED(t);
+
+    scoped_kvec(uma_t) to_commit = kvec_new(uma_t);
+    uintptr_t end                = align_up(start + size, PAGE_ALIGN);
+    start                        = align_down(start, PAGE_ALIGN);
+    uintptr_t cursor             = start;
+
+    // first pass, check access and collect areas to commit
+    while (cursor < end) {
+        uregion_node_t* node = region_find_usrva(t, cursor);
+
+        if (!node)
+            return UREGION_ACCESS_NOT_RESERVED;
+
+        uregion_t* uregion = &node->region;
+
+        if ((uregion->flags & required_flags) != required_flags ||
+            (uregion->flags & forbidden_flags) != 0)
+            return UREGION_ACCESS_NO_PERMISSION;
+
+        uintptr_t region_end = uregion->usr_start + uregion->pages * PAGE_SIZE;
+        uintptr_t chunk_end  = min(end, region_end);
+        size_t    chunk_size = chunk_end - cursor;
+
+        DEBUG_ASSERT(chunk_end > cursor);
+        DEBUG_ASSERT(chunk_size % PAGE_SIZE == 0);
+
+        if (!uregion_is_committed(t, cursor, chunk_size, NULL)) {
+            if (!commit_on_demand)
+                return UREGION_ACCESS_NOT_COMMITTED;
+
+            // commit on demand
+            kvec_push(
+                &to_commit,
+                &(uma_t) {
+                    .uregion      = uregion,
+                    .user_address = cursor,
+                    .page_count   = chunk_size / PAGE_SIZE,
+                });
+        }
+
+        cursor = chunk_end;
+    }
+
+    // second pass, commit collected areas
+    uma_t* uma = kvec_dataT(uma_t, &to_commit);
+
+    for (size_t i = 0; i < kvec_len(&to_commit); i++)
+        commit(
+            uma[i].uregion,
+            &t->mapping,
+            uma[i].user_address,
+            uma[i].page_count,
+            true);
+
+    return UREGION_ACCESS_OK;
+}
 
 static constexpr uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
                                                ~(0xFFFF000000000000ULL);
@@ -755,32 +853,155 @@ bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out)
     return false; // no free gap found
 }
 
-
-bool uregion_get_knl_access(
-    uregion_t* region,
-    uintptr_t  usr_va,
-    uintptr_t* knl_va)
-{
-    if (unlikely(
-            usr_va < region->usr_start ||
-            usr_va >= region->usr_start + region->pages * PAGE_SIZE))
-        return false;
-
-    if ((region->flags & F_HAS_KNL) == 0)
-        return false;
-
-    size_t offset = usr_va - region->usr_start;
-
-    if (knl_va)
-        *knl_va = region->knl_start + offset;
-
-    return true;
-}
-
 uint32_t uregion_get_flags(uregion_t* region)
 {
     if (!region)
         return false;
 
     return region->flags & (F_READ | F_WRITE | F_EXEC);
+}
+
+uregion_access_e umemcpy(
+    task_t*         t,
+    void*           dst,
+    const void*     src,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand,
+    umemcpy_type_e  type)
+{
+    DEBUG_ASSERT(type == UMEMCPY_USR_TO_KNL || type == UMEMCPY_KNL_TO_USR);
+
+    physdata_node_t* pnode;
+    size_t           off       = 0;
+    uintptr_t        usr_start = (type == UMEMCPY_KNL_TO_USR) ? (uintptr_t)dst
+                                                              : (uintptr_t)src;
+
+    // first pass, check that the memcpy can be done
+    uregion_access_e access = uregions_check_access(
+        t,
+        usr_start,
+        size,
+        required_flags,
+        forbidden_flags,
+        commit_on_demand);
+
+    if (access != UREGION_ACCESS_OK)
+        return access;
+
+    while (off < size) {
+        uintptr_t       usr_ptr = usr_start + off;
+        uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
+
+        rbt_find_result_e fres = rbt_find(
+            &unode->region.physical_data,
+            pdata_find_condition,
+            (void*)usr_ptr,
+            (void**)&pnode);
+
+        DEBUG_ASSERT(fres == RBT_FIND_OK && pnode);
+
+        size_t node_offset  = usr_ptr - pnode->physdata.user_address;
+        size_t block_remain = pnode->physdata.page_count * PAGE_SIZE -
+                              node_offset;
+        size_t chunk        = min(block_remain, size - off);
+
+        void* knl_ptr = kpa_to_kva_pt(
+            pnode->physdata.physical_address + node_offset);
+
+        if (type == UMEMCPY_KNL_TO_USR)
+            memcpy(knl_ptr, (uint8_t*)src + off, chunk);
+        else
+            memcpy((uint8_t*)dst + off, knl_ptr, chunk);
+
+        off += chunk;
+    }
+
+    return UREGION_ACCESS_OK;
+}
+
+uregion_access_e umemzero(
+    task_t*         t,
+    void*           usr_dst,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand)
+{
+    physdata_node_t* pnode;
+    size_t           off       = 0;
+    uintptr_t        usr_start = (uintptr_t)usr_dst;
+
+    // first pass, check that the memzero can be done
+    uregion_access_e access = uregions_check_access(
+        t,
+        usr_start,
+        size,
+        required_flags,
+        forbidden_flags,
+        commit_on_demand);
+
+    if (access != UREGION_ACCESS_OK)
+        return access;
+
+    while (off < size) {
+        uintptr_t       usr_ptr = usr_start + off;
+        uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
+
+        rbt_find_result_e fres = rbt_find(
+            &unode->region.physical_data,
+            pdata_find_condition,
+            (void*)usr_ptr,
+            (void**)&pnode);
+
+        DEBUG_ASSERT(fres == RBT_FIND_OK && pnode);
+
+        size_t node_offset  = usr_ptr - pnode->physdata.user_address;
+        size_t block_remain = pnode->physdata.page_count * PAGE_SIZE -
+                              node_offset;
+        size_t chunk        = min(block_remain, size - off);
+
+        void* knl_ptr = kpa_to_kva_pt(
+            pnode->physdata.physical_address + node_offset);
+
+        memzero(knl_ptr, chunk);
+
+        off += chunk;
+    }
+
+    return UREGION_ACCESS_OK;
+}
+
+void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size)
+{
+    uintptr_t end    = align_up(usr_start + size, PAGE_ALIGN);
+    uintptr_t cursor = align_down(usr_start, PAGE_ALIGN);
+    size_t    off    = 0;
+
+    while (cursor < end) {
+        uregion_node_t* unode = region_find_usrva(t, cursor);
+        DEBUG_ASSERT(unode);
+
+        physdata_node_t* pnode = NULL;
+        rbt_find(
+            &unode->region.physical_data,
+            pdata_find_condition,
+            (void*)cursor,
+            (void**)&pnode);
+        DEBUG_ASSERT(pnode);
+
+        size_t node_offset  = cursor - pnode->physdata.user_address;
+        size_t block_remain = pnode->physdata.page_count * PAGE_SIZE -
+                              node_offset;
+        size_t chunk        = min(block_remain, size - off);
+
+        void* knl_ptr = kpa_to_kva_pt(
+            pnode->physdata.physical_address + node_offset);
+
+        cache_flush_range(knl_ptr, (void*)((uintptr_t)knl_ptr + chunk));
+
+        cursor += chunk;
+        off += chunk;
+    }
 }

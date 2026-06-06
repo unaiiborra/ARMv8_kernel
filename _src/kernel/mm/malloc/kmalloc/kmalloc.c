@@ -32,7 +32,8 @@ void* kmalloc(size_t bytes)
         return raw_kmalloc( // cannot allocate with the cache allocator, alloc raw pages
             div_ceil(bytes, PAGE_SIZE),
             "kmalloc page",
-            RAW_KMALLOC_DYNAMIC_CFG);
+            RAW_KMALLOC_DYNAMIC_CFG,
+            NULL);
     }
 }
 

@@ -25,7 +25,7 @@ typedef enum {
     UREGION_OK,
     UREGION_OVERLAPS,
     UREGION_ERROR,
-} uregion_result_e;
+} uregion_reserve_e;
 
 
 typedef enum {
@@ -33,6 +33,16 @@ typedef enum {
     UREGION_F_WRITE = 1 << 1,
     UREGION_F_EXEC  = 1 << 2,
 } uregion_flags_e;
+
+#define UREGION_REQUIRED_FLAGS_IGNORE  0
+#define UREGION_FORBIDDEN_FLAGS_IGNORE 0
+
+typedef enum {
+    UREGION_ACCESS_OK,
+    UREGION_ACCESS_NOT_RESERVED,  // some or none pages are reserved
+    UREGION_ACCESS_NOT_COMMITTED, // reserved but not commited fully
+    UREGION_ACCESS_NO_PERMISSION, // required flags not set
+} uregion_access_e;
 
 
 // ─── reserve ─────────────────────────────────────────────────────────────────
@@ -50,7 +60,7 @@ typedef enum {
 /// @param exec   userspace execute permission
 /// @returns UREGION_OK, UREGION_OVERLAPS if the range collides with an
 ///          existing region, or UREGION_ERROR on invalid input
-uregion_result_e uregion_reserve(
+uregion_reserve_e uregion_reserve(
     task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
@@ -58,12 +68,6 @@ uregion_result_e uregion_reserve(
     bool      write,
     bool      exec);
 
-
-/// Result type for uregion_reserve_static().
-typedef struct {
-    uregion_result_e result;
-    void* knl_va; ///< kernel VA for the allocated region, NULL on failure
-} uregion_reserve_static_result_t;
 
 /// Reserves a userspace VA range and immediately assigns physical pages.
 /// Both the userspace and kernel mappings are fully set up on return.
@@ -78,13 +82,14 @@ typedef struct {
 /// @param exec   userspace execute permission
 /// @returns result with UREGION_OK and a valid knl_va on success,
 ///          or UREGION_OVERLAPS / UREGION_ERROR on failure
-uregion_reserve_static_result_t uregion_reserve_static(
+uregion_reserve_e uregion_reserve_static(
     task_t*   t,
     uintptr_t usr_va,
     uint32_t  pages,
     bool      read,
     bool      write,
-    bool      exec);
+    bool      exec,
+    bool      zeroed);
 
 
 // ─── commit ──────────────────────────────────────────────────────────────────
@@ -99,7 +104,7 @@ uregion_reserve_static_result_t uregion_reserve_static(
 /// @param pages  number of pages to commit
 /// @returns kernel VA for the committed range, or NULL if the range is not
 ///          within a reserved region or is already fully mapped
-void* uregion_commit(task_t* t, uintptr_t usr_va, uint32_t pages);
+void uregion_commit(task_t* t, uintptr_t usr_va, uint32_t pages, bool zeroed);
 
 
 // ─── free ────────────────────────────────────────────────────────────────────
@@ -148,6 +153,21 @@ bool uregion_is_committed(
     size_t      size,
     uregion_t** out_region);
 
+
+
+/// Checks if [start, start+size) is fully reserved, commited and has the
+/// required flags. Checks multiple regions, not only one region. If any page is
+/// reserved but not commited, it will be commited and zeroed when
+/// commit_on_demand == true.
+uregion_access_e uregions_check_access(
+    task_t*         t,
+    uintptr_t       start,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand);
+
+
 /// Finds the highest available gap in the userspace address space large enough
 /// to hold `pages` pages. The search is top-down to keep low addresses
 /// (including the null page) naturally unoccupied.
@@ -158,23 +178,34 @@ bool uregion_is_committed(
 /// @returns     true if a suitable gap was found, false otherwise
 bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out);
 
-/// Translates a userspace VA to its corresponding kernel VA within the same
-/// region. The kernel window mirrors the userspace region and provides
-/// EL1 read/write access to the same physical pages.
-///
-/// @param region  the region containing usr_va
-/// @param usr_va  userspace VA to translate
-/// @param knl_va  if non-NULL and the translation succeeds, set to the
-///                corresponding kernel VA
-/// @returns true if usr_va is within the region and the kernel window exists,
-///          false otherwise
-bool uregion_get_knl_access(
-    uregion_t* region,
-    uintptr_t  usr_va,
-    uintptr_t* knl_va);
-
 /// Returns the flags of the region, the user must check against uregion_flags_e
 ///
 /// @param region target region
 /// @returns flags
 uint32_t uregion_get_flags(uregion_t* region);
+
+
+typedef enum {
+    UMEMCPY_KNL_TO_USR,
+    UMEMCPY_USR_TO_KNL,
+} umemcpy_type_e;
+
+uregion_access_e umemcpy(
+    task_t*         t,
+    void*           dst,
+    const void*     src,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand,
+    umemcpy_type_e  type);
+
+uregion_access_e umemzero(
+    task_t*         t,
+    void*           usr_dst,
+    size_t          size,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand);
+
+void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size);

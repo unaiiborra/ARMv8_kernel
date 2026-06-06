@@ -262,7 +262,8 @@ static inline void* new_cache(cache_malloc_size size, void* prev)
     void*  ptr = raw_kmalloc(
         CACHE_PAGES[i],
         CACHE_ALLOCATION_TAGS[i],
-        &CACHE_MALLOC_RAW_KMALLOC_CFG);
+        &CACHE_MALLOC_RAW_KMALLOC_CFG,
+        NULL);
 
     DEBUG_ASSERT(((uintptr_t)ptr % (CACHE_PAGES[i] * PAGE_SIZE)) == 0);
 

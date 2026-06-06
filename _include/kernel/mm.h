@@ -163,39 +163,24 @@ typedef struct {
 extern const raw_kmalloc_cfg* const RAW_KMALLOC_KMAP_CFG;
 extern const raw_kmalloc_cfg* const RAW_KMALLOC_DYNAMIC_CFG;
 
-
-
-#    define __RAW_KMALLOC_GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
-#    define __RAW_KMALLOC_3(pages, tag, cfg) \
-        __raw_kmalloc_null((pages), (tag), (cfg))
-#    define __RAW_KMALLOC_4(pages, tag, cfg, info) \
-        __raw_kmalloc((pages), (tag), (cfg), (info))
-
-void* __raw_kmalloc(
+void* raw_kmalloc(
     size_t                 pages,
     const char*            tag,
     const raw_kmalloc_cfg* cfg,
     raw_kmalloc_info*      info);
 
-[[gnu::always_inline]] static inline void* __raw_kmalloc_null(
-    size_t                 pages,
-    const char*            tag,
-    const raw_kmalloc_cfg* cfg)
-{
-    return __raw_kmalloc(pages, tag, cfg, NULL);
-}
 
-
-#    define raw_kmalloc(...)     \
-        __RAW_KMALLOC_GET_MACRO( \
-            __VA_ARGS__,         \
-            __RAW_KMALLOC_4,     \
-            __RAW_KMALLOC_3)(__VA_ARGS__)
 void raw_kfree(void* ptr);
 
 
 void* kmalloc(size_t bytes);
 void* kzalloc(size_t bytes);
 void  kfree(void* ptr);
+
+static inline void cache_flush_range(void* start, void* end)
+{
+    extern void _cache_flush_range(void* start, void* end);
+    _cache_flush_range(start, end);
+}
 
 #endif

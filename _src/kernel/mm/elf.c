@@ -13,13 +13,13 @@ typedef struct {
     uint16_t eype;               /* ET_EXEC, ET_DYN */
     uint16_t e_machine;          /* EM_AARCH64 */
     uint32_t e_version;
-    uint64_t e_entry; /* entry point */
-    uint64_t e_phoff; /* offset PHDR table */
-    uint64_t e_shoff; /* offset SHDR table (ignorar) */
+    uint64_t e_entry;
+    uint64_t e_phoff;
+    uint64_t e_shoff;
     uint32_t e_flags;
-    uint16_t e_ehsize;    /* sizeof(Elf64_Ehdr) */
-    uint16_t e_phentsize; /* sizeof(Elf64_Phdr) */
-    uint16_t e_phnum;     /* nº program headers */
+    uint16_t e_ehsize;
+    uint16_t e_phentsize;
+    uint16_t e_phnum;
     uint16_t e_shentsize;
     uint16_t e_shnum;
     uint16_t e_shstrndx;
@@ -27,13 +27,13 @@ typedef struct {
 
 
 typedef struct {
-    uint32_t p_type;   /* PT_LOAD */
-    uint32_t p_flags;  /* PF_X | PF_W | PF_R */
-    uint64_t p_offset; /* offset en archivo */
-    uint64_t p_vaddr;  /* VA destino */
+    uint32_t p_type;  /* PT_LOAD */
+    uint32_t p_flags; /* PF_X | PF_W | PF_R */
+    uint64_t p_offset;
+    uint64_t p_vaddr;
     uint64_t p_paddr;
-    uint64_t p_filesz; /* bytes a copiar */
-    uint64_t p_memsz;  /* bytes en memoria */
+    uint64_t p_filesz;
+    uint64_t p_memsz;
     uint64_t p_align;
 } Elf64_Phdr;
 
@@ -58,8 +58,6 @@ typedef enum {
 #define PF_W     (1ULL << PF_W_BIT)
 #define PF_R     (1ULL << PF_R_BIT)
 
-
-extern void _cache_flush_range(void* start, void* end);
 
 elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry)
 {
@@ -105,36 +103,48 @@ elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry
 
             uint64_t memsz = align_up(ph[i].p_memsz, PAGE_SIZE);
 
-
             uint64_t data_flags = ph[i].p_flags & (PF_R | PF_W | PF_X);
 
-            uregion_reserve_static_result_t ureg = uregion_reserve_static(
+            uregion_reserve_e ureg = uregion_reserve_static(
                 t,
                 ph[i].p_vaddr,
                 memsz / PAGE_SIZE,
                 data_flags & PF_R,
                 data_flags & PF_W,
-                data_flags & PF_X);
+                data_flags & PF_X,
+                false);
 
-            ASSERT(ureg.result == UREGION_OK);
+            ASSERT(ureg == UREGION_OK);
 
-            void* kva = ureg.knl_va;
+            if (ph[i].p_filesz != 0) {
+                uregion_access_e uaccess = umemcpy(
+                    t,
+                    (void*)ph[i].p_vaddr,
+                    (uint8_t*)elf + ph[i].p_offset,
+                    ph[i].p_filesz,
+                    UREGION_REQUIRED_FLAGS_IGNORE,
+                    UREGION_FORBIDDEN_FLAGS_IGNORE,
+                    false,
+                    UMEMCPY_KNL_TO_USR);
 
-            if (ph[i].p_filesz != 0)
-                memcpy(kva, (uint8_t*)elf + ph[i].p_offset, ph[i].p_filesz);
-
+                ASSERT(uaccess == UREGION_ACCESS_OK);
+            }
 
             // memzero the remaining area
             if (memsz > ph[i].p_filesz) {
-                void*  dst      = (void*)((uintptr_t)kva + ph[i].p_filesz);
-                size_t rem_size = memsz - ph[i].p_filesz;
+                uregion_access_e uaccess = umemzero(
+                    t,
+                    (void*)(ph[i].p_vaddr + ph[i].p_filesz),
+                    memsz - ph[i].p_filesz,
+                    UREGION_REQUIRED_FLAGS_IGNORE,
+                    UREGION_FORBIDDEN_FLAGS_IGNORE,
+                    false);
 
-                memzero(dst, rem_size);
+                ASSERT(uaccess == UREGION_ACCESS_OK);
             }
 
-            _cache_flush_range(
-                align_down_pt(kva, 64),
-                align_down_pt((void*)((uintptr_t)kva + memsz), 64));
+            if (data_flags & PF_X)
+                uregion_flush_icache(t, ph[i].p_vaddr, memsz);
         }
 
         if (out_entry)

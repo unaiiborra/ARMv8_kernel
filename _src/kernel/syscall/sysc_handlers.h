@@ -31,8 +31,17 @@ typedef enum {
     // Exit process
     SYSC_EXIT,
 
-    // Print buffer
-    SYSC_PRINT,
+    // READ file descriptor
+    SYSC_READ,
+
+    // WRITE file descriptor
+    SYSC_WRITE,
+
+    // OPEN file
+    SYSC_OPEN,
+
+    // CLOSE file de
+    SYSC_CLOSE,
 
     // Thread spawn
     SYSC_SPAWN,
@@ -63,14 +72,6 @@ typedef int64_t (*syscall_handler)(
     sysarg_t a4,
     sysarg_t a5);
 
-int64_t syscall64_print(
-    sysarg_t                  buf_pt,
-    sysarg_t                  buf_sz,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
-
 
 int64_t syscall64_exit(
     sysarg_t                  exit_code,
@@ -80,6 +81,37 @@ int64_t syscall64_exit(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5);
 
+int64_t syscall64_read(
+    sysarg_t                  fd,
+    sysarg_t                  buf,
+    sysarg_t                  count,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5);
+
+int64_t syscall64_write(
+    sysarg_t                  fd,
+    sysarg_t                  buf,
+    sysarg_t                  count,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5);
+
+int64_t syscall64_open(
+    sysarg_t                  path,
+    sysarg_t                  flags,
+    sysarg_t                  mode,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5);
+
+int64_t syscall64_close(
+    sysarg_t                  fd,
+    [[maybe_unused]] sysarg_t a1,
+    [[maybe_unused]] sysarg_t a2,
+    [[maybe_unused]] sysarg_t a3,
+    [[maybe_unused]] sysarg_t a4,
+    [[maybe_unused]] sysarg_t a5);
 
 int64_t syscall64_spawn(
     sysarg_t                  fn,
@@ -98,7 +130,6 @@ int64_t syscall64_kill(
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5);
 
-
 int64_t syscall64_yield(
     [[maybe_unused]] sysarg_t a0,
     [[maybe_unused]] sysarg_t a1,
@@ -106,7 +137,6 @@ int64_t syscall64_yield(
     [[maybe_unused]] sysarg_t a3,
     [[maybe_unused]] sysarg_t a4,
     [[maybe_unused]] sysarg_t a5);
-
 
 int64_t syscall64_mmap(
     sysarg_t                  addr,

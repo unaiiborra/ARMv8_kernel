@@ -95,7 +95,7 @@ int64_t syscall64_mmap(
         else
             address = align_down(addr, PAGE_ALIGN);
 
-        uregion_result_e ures = uregion_reserve(
+        uregion_reserve_e ures = uregion_reserve(
             owner,
             address,
             pages,

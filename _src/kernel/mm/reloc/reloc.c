@@ -109,7 +109,8 @@ void early_reloc_cfg_end()
     void* stack_top = raw_kmalloc(
         div_ceil(STACK_SIZE, PAGE_SIZE),
         "kernel stack region",
-        &stack_cfg);
+        &stack_cfg,
+        NULL);
 
     void* stack_bottom = (char*)stack_top + STACK_SIZE;
 
