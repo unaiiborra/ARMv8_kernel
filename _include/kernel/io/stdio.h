@@ -14,9 +14,6 @@ void print(const char* s);
 #define DEBUG_LOG   1
 #define DEBUG_TRACE 2
 
-
-
-
 #define dbg_print(lv, s)       __dbg_print_##lv(s)
 #define dbg_printf(lv, s, ...) __dbg_printf_##lv(s, __VA_ARGS__)
 
@@ -33,9 +30,9 @@ void print(const char* s);
 #        define __dbg_printf_DEBUG_TRACE(s, ...)
 #    elif DEBUG == DEBUG_TRACE
 #        define __dbg_print_DEBUG_TRACE(s) \
-            print(IO_STDOUT, DEBUG_TRACE_ANSI_WRAP_STRING(s))
+            print(DEBUG_TRACE_ANSI_WRAP_STRING(s))
 #        define __dbg_printf_DEBUG_TRACE(s, ...) \
-            printf(IO_STDOUT, DEBUG_TRACE_ANSI_WRAP_STRING(s), __VA_ARGS__)
+            printf(DEBUG_TRACE_ANSI_WRAP_STRING(s), __VA_ARGS__)
 #    endif
 #else
 #    define __dbg_print_DEBUG_LOG(s)
