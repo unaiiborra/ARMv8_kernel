@@ -87,7 +87,7 @@ void early_reloc_cfg_end()
     mmu_unmap(
         MM_MMU_KERNEL_MAPPING,
         free_heap_start,
-        MEM_TiB,
+        MEM_TiB(1),
         NULL); // TODO: unmap from the actually reserved memory
 
 
@@ -104,7 +104,7 @@ void early_reloc_cfg_end()
         .init_zeroed  = true,
     };
 
-    const size_t STACK_SIZE = 4 * MEM_MiB;
+    const size_t STACK_SIZE = MEM_MiB(4);
 
     void* stack_top = raw_kmalloc(
         div_ceil(STACK_SIZE, PAGE_SIZE),

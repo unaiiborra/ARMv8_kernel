@@ -15,7 +15,7 @@
 #    include <stddef.h>
 #    include <stdint.h>
 
-#    define PAGE_SIZE  (MEM_KiB * 4ULL)
+#    define PAGE_SIZE  MEM_KiB(4)
 #    define PAGE_ALIGN PAGE_SIZE
 
 

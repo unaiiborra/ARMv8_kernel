@@ -26,20 +26,19 @@ void task_ctl_init()
 }
 
 
-task_t* task_new(const char* name, size_t stack_size)
+task_t* task_new(const char* name)
 {
     task_t* t = kmalloc(sizeof(task_t));
 
     *t = (task_t) {
-        .task_uid    = atomic_fetch_add(&task_uid, 1),
-        .name        = name,
-        .lock        = SPINLOCK_INIT,
-        .state       = TASK_NEW,
-        .stack_pages = div_ceil(stack_size, PAGE_SIZE),
-        .mapping     = mm_mmu_mapping_new(MMU_LO),
-        .regions     = NULL,
-        .files       = {0},
-        .threads     = kvec_new(thread*),
+        .task_uid = atomic_fetch_add(&task_uid, 1),
+        .name     = name,
+        .lock     = SPINLOCK_INIT,
+        .state    = TASK_NEW,
+        .mapping  = mm_mmu_mapping_new(MMU_LO),
+        .regions  = NULL,
+        .files    = {0},
+        .threads  = kvec_new(thread*),
     };
 
     vfs_serial_bind_stdio(
@@ -143,8 +142,6 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
 
 void terminate_task(task_t* task, uint32_t exit_code)
 {
-    
-    
     atomic_store(&task->state, TASK_DYING);
 
     spinlocked(&task->lock)

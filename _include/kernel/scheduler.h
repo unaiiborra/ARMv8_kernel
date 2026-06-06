@@ -36,7 +36,7 @@ void schedule(cpuid_t runqueue);
 /* --- Tasks --- */
 
 
-task_t* task_new(const char* name, size_t stack_size);
+task_t* task_new(const char* name);
 void    task_delete(task_t* ut);
 
 

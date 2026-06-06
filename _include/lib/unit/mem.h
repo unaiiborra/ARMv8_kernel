@@ -1,13 +1,12 @@
 #pragma once
 
 #include <stddef.h>
-#include <stdint.h>
 
-#define MEM_BYTE 0x1ULL
-#define MEM_KiB  (MEM_BYTE * 0x400ULL)
-#define MEM_MiB  (MEM_KiB * 0x400ULL)
-#define MEM_GiB  (MEM_MiB * 0x400ULL)
-#define MEM_TiB  (MEM_GiB * 0x400ULL)
+#define MEM_BYTE(n) (0x1ULL * (n))
+#define MEM_KiB(n)  (MEM_BYTE(1) * 0x400ULL * (n))
+#define MEM_MiB(n)  (MEM_KiB(1) * 0x400ULL * (n))
+#define MEM_GiB(n)  (MEM_MiB(1) * 0x400ULL * (n))
+#define MEM_TiB(n)  (MEM_GiB(1) * 0x400ULL * (n))
 
 
 #define BYTES_TO_BITS(byte_n) (byte_n * 8)

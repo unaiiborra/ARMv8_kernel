@@ -198,7 +198,7 @@ static vuintptr_t reserve_from_fva_node(
 }
 
 
-static const size_t PAGE_L3 = MEM_KiB * 4;
+static const size_t PAGE_L3 = MEM_KiB(4);
 static const size_t PAGE_L2 = PAGE_L3 * 512;
 static const size_t PAGE_L1 = PAGE_L2 * 512;
 

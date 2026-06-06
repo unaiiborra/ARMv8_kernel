@@ -5,6 +5,7 @@
 #include <drivers/gicv3.h>
 #include <kernel/embedded_binary.h>
 #include <kernel/init.h>
+#include <kernel/io/stdio.h>
 #include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
@@ -16,7 +17,6 @@
 #include <stdnoreturn.h>
 
 #include "kernel/devices/device.h"
-#include "kernel/io/stdio.h"
 #include "kernel/io/vfs_serial.h"
 #include "kernel/mm/elf.h"
 #include "kernel/smp.h"
@@ -43,7 +43,7 @@ noreturn void kernel_entry()
     elf_load_result elf_res;
     uintptr_t       test_entry;
 
-    task_t* test = task_new("test", 2 * MEM_MiB);
+    task_t* test = task_new("test");
 
     elf_res = elf_load(
         test,

@@ -2,6 +2,7 @@
 #include <kernel/panic.h>
 #include <lib/math.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <stdbool.h>
 #include <stddef.h>

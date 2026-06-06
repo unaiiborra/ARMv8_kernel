@@ -74,7 +74,6 @@ typedef struct {
     const char*        name;
     spinlock_t         lock;
     _Atomic task_state state;
-    uint32_t           stack_pages;
     mmu_mapping        mapping;
     uregion_t*         regions;
     fd_table_t         files;
@@ -82,5 +81,4 @@ typedef struct {
 } task_t;
 
 
-task_t* task_new(const char* name, size_t stack_size);
 void    terminate_task(task_t* task, uint32_t exit_code);

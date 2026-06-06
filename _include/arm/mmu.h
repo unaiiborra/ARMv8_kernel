@@ -53,9 +53,9 @@
 #define NULL_MAPPING_TBL (void*)~0ULL
 
 typedef enum {
-    MMU_GRANULARITY_4KB  = 4 * MEM_KiB,
-    MMU_GRANULARITY_16KB = 16 * MEM_KiB,
-    MMU_GRANULARITY_64KB = 64 * MEM_KiB,
+    MMU_GRANULARITY_4KB  = MEM_KiB(4),
+    MMU_GRANULARITY_16KB = MEM_KiB(16),
+    MMU_GRANULARITY_64KB = MEM_KiB(64),
 } mmu_granularity;
 
 typedef enum {
