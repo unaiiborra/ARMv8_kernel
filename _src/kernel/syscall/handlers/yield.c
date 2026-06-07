@@ -6,12 +6,12 @@
 
 
 int64_t syscall64_yield(
-    [[maybe_unused]] sysarg_t a0,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5)
+    unused_sysarg_t a0,
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5)
 {
     dbg_sysc_print(SYSC_YIELD, "");
 

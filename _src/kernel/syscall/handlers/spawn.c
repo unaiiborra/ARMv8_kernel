@@ -23,10 +23,10 @@ typedef enum {
 int64_t syscall64_spawn(
     sysarg_t                  fn,
     sysarg_t                  arg1,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5)
+    unused_sysarg_t a1,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5)
 {
     task_t*    task   = get_current_thread()->owner;
     uregion_t* region = NULL;

@@ -41,8 +41,8 @@ int64_t syscall64_mmap(
     sysarg_t                  lenght,
     sysarg_t                  prot,
     sysarg_t                  flags,
-    [[maybe_unused]] sysarg_t fd,
-    [[maybe_unused]] sysarg_t offset)
+    unused_sysarg_t fd,
+    unused_sysarg_t offset)
 {
     task_t* owner = get_current_thread()->owner;
 

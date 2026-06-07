@@ -1,11 +1,42 @@
-// #include "../sysc_handlers.h"
+#include <kernel/mm/uregion.h>
+#include <kernel/vfs.h>
+#include <lib/lock.h>
 
-// int64_t syscall64_write(
-//     sysarg_t                  fd,
-//     sysarg_t                  buf,
-//     sysarg_t                  count,
-//     [[maybe_unused]] sysarg_t a3,
-//     [[maybe_unused]] sysarg_t a4,
-//     [[maybe_unused]] sysarg_t a5)
-// {
-// }
+#include "../sysc_handlers.h"
+
+int64_t syscall64_write(
+    sysarg_t        fd,
+    sysarg_t        buf,
+    sysarg_t        count,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5)
+{
+    if ((int64_t)fd < 0 || fd > INT32_MAX)
+        return VFS_ERR_BADF;
+
+    if (count == 0 || count > VFS_MAX_WRITE_SIZE)
+        return VFS_ERR_INVAL;
+
+    task_t* task                   = get_current_thread()->owner;
+    deferT(void*, kfree) write_buf = kzalloc(count);
+
+    uregion_access_e uaccess;
+    spinlocked_irqsave(&task->lock)
+    {
+        uaccess = umemcpy(
+            task,
+            write_buf,
+            (void*)buf,
+            count,
+            UREGION_F_READ,
+            0,
+            false,
+            UMEMCPY_USR_TO_KNL);
+    }
+
+    if (uaccess != UREGION_ACCESS_OK)
+        return VFS_ERR_INVAL;
+
+    return vfs_write(&task->files, fd, write_buf, count);
+}

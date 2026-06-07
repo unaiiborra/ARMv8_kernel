@@ -890,6 +890,7 @@ uregion_access_e umemcpy(
     if (access != UREGION_ACCESS_OK)
         return access;
 
+    // second pass, perform the memcpy
     while (off < size) {
         uintptr_t       usr_ptr = usr_start + off;
         uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
@@ -975,6 +976,8 @@ uregion_access_e umemzero(
 
 void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size)
 {
+    ASSERT_OWNER_IS_LOCKED(t);
+    
     uintptr_t end    = align_up(usr_start + size, PAGE_ALIGN);
     uintptr_t cursor = align_down(usr_start, PAGE_ALIGN);
     size_t    off    = 0;

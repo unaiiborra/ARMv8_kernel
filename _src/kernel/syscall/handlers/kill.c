@@ -14,11 +14,11 @@ typedef enum {
 
 int64_t syscall64_kill(
     sysarg_t                  thid,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5)
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5)
 {
     thread* th      = get_current_thread();
     bool    deleted = false;

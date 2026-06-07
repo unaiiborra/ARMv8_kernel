@@ -3,6 +3,9 @@
 #include <kernel/lib/rbtree.h>
 #include <stdint.h>
 
+#define VFS_MAX_WRITE_SIZE MEM_GiB(1)
+#define VFS_MAX_READ_SIZE  MEM_GiB(1)
+
 typedef int32_t file_descriptor_t;
 
 typedef enum : file_descriptor_t {
@@ -14,8 +17,8 @@ typedef enum : file_descriptor_t {
 } vfs_result_t;
 
 typedef struct {
-    vfs_result_t (*read)(void* ctx, uint8_t* buf, uint32_t len);
-    vfs_result_t (*write)(void* ctx, const uint8_t* buf, uint32_t len);
+    vfs_result_t (*read)(void* ctx, uint8_t* buf, uint32_t count);
+    vfs_result_t (*write)(void* ctx, const uint8_t* buf, uint32_t count);
     vfs_result_t (*open)(void* ctx, const char* path);
     vfs_result_t (*close)(void* ctx, file_descriptor_t fd);
     vfs_result_t (*mmap)(
@@ -49,18 +52,18 @@ vfs_result_t vfs_read(
     fd_table_t*       table,
     file_descriptor_t fd,
     uint8_t*          buf,
-    uint32_t          len);
+    uint32_t          count);
 
 vfs_result_t vfs_write(
     fd_table_t*       table,
     file_descriptor_t fd,
     const uint8_t*    buf,
-    uint32_t          len);
+    uint32_t          count);
 
 vfs_result_t vfs_mmap(
     fd_table_t*       table,
     void*             addr,
-    uint32_t          len,
+    uint32_t          count,
     uint32_t          prot,
     uint32_t          flags,
     file_descriptor_t fd,

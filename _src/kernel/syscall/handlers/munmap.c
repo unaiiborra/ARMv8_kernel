@@ -26,10 +26,10 @@ typedef enum {
 int64_t syscall64_unmap(
     sysarg_t                  addr,
     sysarg_t                  lenght,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5)
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5)
 {
     if (unlikely(addr > KERNEL_BASE)) {
         dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (addr > KERNEL_BASE)");

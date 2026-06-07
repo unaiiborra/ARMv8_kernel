@@ -4,12 +4,12 @@
 #include <kernel/scheduler.h>
 #include <stdint.h>
 
-
 #define SYSC64_SYSCNUM_REG 8
 #define SYSC64_RETURN_REG  0
-
-
 #define SYSC64_RES_UNKNOWN -1000
+
+typedef const uint64_t sysarg_t;
+#define unused_sysarg_t __attribute__((unused)) sysarg_t
 
 #if DEBUG == 2
 #    define dbg_sysc_print(sysc, msg, ...)                            \
@@ -26,22 +26,21 @@
 #    define dbg_sysc_print(sysc, msg, ...)
 #endif
 
-
-typedef enum {
+typedef enum : uint64_t {
     // Exit process
     SYSC_EXIT,
-
-    // READ file descriptor
-    SYSC_READ,
-
-    // WRITE file descriptor
-    SYSC_WRITE,
 
     // OPEN file
     SYSC_OPEN,
 
     // CLOSE file de
     SYSC_CLOSE,
+
+    // READ file descriptor
+    SYSC_READ,
+
+    // WRITE file descriptor
+    SYSC_WRITE,
 
     // Thread spawn
     SYSC_SPAWN,
@@ -62,8 +61,6 @@ typedef enum {
     SYSC_COUNT,
 } syscall_e;
 
-
-typedef const uint64_t sysarg_t;
 typedef int64_t (*syscall_handler)(
     sysarg_t a0,
     sysarg_t a1,
@@ -72,85 +69,84 @@ typedef int64_t (*syscall_handler)(
     sysarg_t a4,
     sysarg_t a5);
 
-
 int64_t syscall64_exit(
-    sysarg_t                  exit_code,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
-
-int64_t syscall64_read(
-    sysarg_t                  fd,
-    sysarg_t                  buf,
-    sysarg_t                  count,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
-
-int64_t syscall64_write(
-    sysarg_t                  fd,
-    sysarg_t                  buf,
-    sysarg_t                  count,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        exit_code,
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 int64_t syscall64_open(
-    sysarg_t                  path,
-    sysarg_t                  flags,
-    sysarg_t                  mode,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        path,
+    sysarg_t        flags,
+    sysarg_t        mode,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 int64_t syscall64_close(
-    sysarg_t                  fd,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        fd,
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
+
+int64_t syscall64_read(
+    sysarg_t        fd,
+    sysarg_t        buf,
+    sysarg_t        count,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
+
+int64_t syscall64_write(
+    sysarg_t        fd,
+    sysarg_t        buf,
+    sysarg_t        count,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 int64_t syscall64_spawn(
-    sysarg_t                  fn,
-    sysarg_t                  arg1, // passed to the spawned thread as x1
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        fn,
+    sysarg_t        arg1, // passed to the spawned thread as x1
+    unused_sysarg_t a1,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 
 int64_t syscall64_kill(
-    sysarg_t                  thid,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        thid,
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 int64_t syscall64_yield(
-    [[maybe_unused]] sysarg_t a0,
-    [[maybe_unused]] sysarg_t a1,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    unused_sysarg_t a0,
+    unused_sysarg_t a1,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
 
 int64_t syscall64_mmap(
-    sysarg_t                  addr,
-    sysarg_t                  lenght,
-    sysarg_t                  prot,
-    sysarg_t                  flags,
-    [[maybe_unused]] sysarg_t fd,    // TODO: implement fs
-    [[maybe_unused]] sysarg_t offset // TODO: implement fs
+    sysarg_t        addr,
+    sysarg_t        lenght,
+    sysarg_t        prot,
+    sysarg_t        flags,
+    unused_sysarg_t fd,    // TODO: implement fs
+    unused_sysarg_t offset // TODO: implement fs
 );
 
 int64_t syscall64_unmap(
-    sysarg_t                  addr,
-    sysarg_t                  lenght,
-    [[maybe_unused]] sysarg_t a2,
-    [[maybe_unused]] sysarg_t a3,
-    [[maybe_unused]] sysarg_t a4,
-    [[maybe_unused]] sysarg_t a5);
+    sysarg_t        addr,
+    sysarg_t        lenght,
+    unused_sysarg_t a2,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);

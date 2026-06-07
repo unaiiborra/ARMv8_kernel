@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/lock.h"
+
 
 typedef struct {
     rb_header_t              __tree_header;
@@ -125,8 +127,14 @@ vfs_result_t vfs_read(
     fd_table_t*       table,
     file_descriptor_t fd,
     uint8_t*          buf,
-    uint32_t          len)
+    uint32_t          count)
 {
+    if ((int64_t)fd < 0 || fd > INT32_MAX)
+        return VFS_ERR_BADF;
+
+    if (count == 0 || count > VFS_MAX_READ_SIZE)
+        return VFS_ERR_INVAL;
+
     file_descriptor_node_t* descriptor;
 
     vfs_result_t result = validate_descriptor_op(
@@ -138,15 +146,21 @@ vfs_result_t vfs_read(
     if (unlikely(result != VFS_OK))
         return result;
 
-    return descriptor->ops->read(descriptor->device_data, buf, len);
+    return descriptor->ops->read(descriptor->device_data, buf, count);
 }
 
 vfs_result_t vfs_write(
     fd_table_t*       table,
     file_descriptor_t fd,
     const uint8_t*    buf,
-    uint32_t          len)
+    uint32_t          count)
 {
+    if ((int64_t)fd < 0 || fd > INT32_MAX)
+        return VFS_ERR_BADF;
+
+    if (count == 0 || count > VFS_MAX_WRITE_SIZE)
+        return VFS_ERR_INVAL;
+
     file_descriptor_node_t* descriptor;
 
     vfs_result_t result = validate_descriptor_op(
@@ -158,7 +172,7 @@ vfs_result_t vfs_write(
     if (unlikely(result != VFS_OK))
         return result;
 
-    return descriptor->ops->write(descriptor->device_data, buf, len);
+    return descriptor->ops->write(descriptor->device_data, buf, count);
 }
 
 vfs_result_t vfs_mmap(
