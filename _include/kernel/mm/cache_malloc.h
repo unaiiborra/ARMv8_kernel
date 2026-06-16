@@ -13,8 +13,9 @@ typedef enum {
     CACHE_256  = 256,
     CACHE_512  = 512,
     CACHE_1024 = 1024,
+    CACHE_2048 = 2048,
 } cache_malloc_size;
 
 
 void* cache_malloc(cache_malloc_size s);
-void  cache_free(cache_malloc_size s, void* ptr);
+void  cache_free(void* ptr);

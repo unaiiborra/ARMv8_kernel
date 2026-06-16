@@ -53,6 +53,5 @@ safe_early void mm_early_init()
 void mm_init()
 {
     raw_kmalloc_init();
-
     cache_malloc_init();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kernel/lib/rbtree.h>
+#include <lib/data_structures/rbtree.h>
 #include <stdint.h>
 
 #define VFS_MAX_WRITE_SIZE MEM_GiB(1)

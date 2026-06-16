@@ -2,7 +2,7 @@
 #include <stddef.h>
 
 #include "../sysc_handlers.h"
-#include "kernel/lib/kvec.h"
+#include <lib/data_structures/kvec.h>
 #include "kernel/panic.h"
 #include "kernel/scheduler.h"
 #include "lib/lock.h"

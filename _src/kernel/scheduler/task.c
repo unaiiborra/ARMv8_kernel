@@ -2,10 +2,10 @@
 
 #include <arm/mmu.h>
 #include <kernel/io/stdio.h>
-#include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
+#include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -14,6 +14,7 @@
 #include "kernel/devices/device.h"
 #include "kernel/io/vfs_serial.h"
 #include "kernel/task.h"
+#include "lib/data_structures/rbtree.h"
 #include "lib/math.h"
 #include "lib/stdattribute.h"
 
@@ -36,7 +37,7 @@ task_t* task_new(const char* name)
         .lock     = SPINLOCK_INIT,
         .state    = TASK_NEW,
         .mapping  = mm_mmu_mapping_new(MMU_LO),
-        .regions  = NULL,
+        .regions  = RBT_INIT,
         .files    = {0},
         .threads  = kvec_new(thread*),
     };

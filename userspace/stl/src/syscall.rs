@@ -1,10 +1,14 @@
-use core::{ffi::c_void, hint::unreachable_unchecked};
+use crate::vfs::{FileDescriptor, VfsError};
+use core::{ffi::c_void, hint::unreachable_unchecked, i32};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub enum SyscallCode {
     Exit,
-    Print,
+    Open,
+    Close,
+    Read,
+    Write,
     Spawn,
     Kill,
     Yield,
@@ -114,19 +118,45 @@ pub fn syscall_exit(code: i32) -> ! {
     };
 }
 
-// ─── Print ───────────────────────────────────────────────────────────────────
-#[repr(i64)]
-#[derive(Debug, Clone, Copy)]
-pub enum SyscallPrintError {
-    InvalidBuf = -1,
+// ─── Open ────────────────────────────────────────────────────────────────────
+#[inline]
+pub fn syscall_open(_path: &str, _flags: i32, _mode: i32) -> Result<FileDescriptor, VfsError> {
+    todo!()
 }
 
+// ─── Close ────────────────────────────────────────────────────────────────────
 #[inline]
-pub fn syscall_print(buf: *const u8, size: usize) -> Result<(), SyscallPrintError> {
-    match unsafe { syscall!(SyscallCode::Print, buf as u64, size as u64) } {
-        0 => Ok(()),
-        -1 => Err(SyscallPrintError::InvalidBuf),
-        r => panic!("syscall_print: unexpected result code {r}"),
+pub fn syscall_close(_fd: FileDescriptor) -> Result<(), VfsError> {
+    todo!()
+}
+
+// ─── Read ────────────────────────────────────────────────────────────────────
+#[inline]
+pub fn syscall_read(fd: FileDescriptor, buf: *mut u8, count: usize) -> Result<usize, VfsError> {
+    let code = unsafe { syscall!(SyscallCode::Read, fd.get_value(), buf, count) };
+
+    if code < 0 || code > i32::MAX as i64 {
+        match VfsError::try_from(code as i32) {
+            Ok(err) => Err(err),
+            Err(_) => panic!("unknown syscall error: {}", code),
+        }
+    } else {
+        Ok(code as usize)
+    }
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+#[inline]
+pub fn syscall_write(fd: FileDescriptor, buf: *const u8, count: usize) -> Result<usize, VfsError> {
+    let code = unsafe { syscall!(SyscallCode::Write, fd.get_value(), buf, count) };
+
+    if code < 0 || code > i32::MAX as i64 {
+        match VfsError::try_from(code as i32) {
+            Ok(err) => Err(err),
+            Err(_) => panic!("unknown syscall error: {}", code),
+        }
+    } else {
+        Ok(code as usize)
     }
 }
 
@@ -163,7 +193,6 @@ pub fn syscall_spawn(entry: StartFn, arg: u64) -> Result<u64, SyscallSpawnError>
 pub enum SyscallKillError {
     NotFound = -1,
 }
-
 
 #[inline]
 pub fn syscall_kill(thid: u64) -> Result<(), SyscallKillError> {
@@ -287,6 +316,7 @@ pub fn syscall_munmap(addr: *mut c_void, length: usize) -> Result<(), SyscallMun
 
 mod c {
 
+    use crate::vfs::FileDescriptor;
     use core::ffi::c_void;
 
     // c_api.rs - wrappers planos para C, llaman a syscall directamente
@@ -296,9 +326,36 @@ mod c {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn syscall_print(buf: *const u8, size: usize) -> i64 {
-        match super::syscall_print(buf, size) {
-            Ok(_) => 0,
+    pub extern "C" fn syscall_open(path: *const u8, path_len: usize, flags: i32, mode: i32) -> i64 {
+        let path =
+            unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(path, path_len)) };
+
+        match super::syscall_open(path, flags, mode) {
+            Ok(fd) => unsafe { fd.get_value() as i64 },
+            Err(e) => e as i64,
+        }
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn syscall_close(fd: u32) -> i64 {
+        match super::syscall_close(FileDescriptor::new(fd)) {
+            Ok(()) => 0,
+            Err(e) => e as i64,
+        }
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn syscall_read(fd: u32, buf: *mut u8, count: usize) -> i64 {
+        match super::syscall_read(FileDescriptor::new(fd), buf, count) {
+            Ok(n) => n as i64,
+            Err(e) => e as i64,
+        }
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn syscall_write(fd: u32, buf: *const u8, count: usize) -> i64 {
+        match super::syscall_write(FileDescriptor::new(fd), buf as *mut u8, count) {
+            Ok(n) => n as i64,
             Err(e) => e as i64,
         }
     }

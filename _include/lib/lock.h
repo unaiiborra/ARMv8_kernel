@@ -99,7 +99,8 @@ typedef struct {
 }
 
 // not for flow control as the state can change after the load
-[[gnu::always_inline]] static inline bool spinlock_is_locked(spinlock_t* lock)
+[[gnu::always_inline]] static inline bool spinlock_is_locked(
+    const spinlock_t* lock)
 {
     return atomic_load_explicit(&lock->flag, memory_order_relaxed);
 }

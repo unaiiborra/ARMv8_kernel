@@ -1,5 +1,5 @@
-#include <kernel/lib/rbtree.h>
 #include <kernel/panic.h>
+#include <lib/data_structures/rbtree.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
@@ -19,7 +19,7 @@ typedef struct rbtnode {
     union {
         uint64_t key_unsigned;
         int64_t  key_signed;
-        uint8_t  T;
+        uint8_t  T[];
     };
 } rbtnode_t;
 
@@ -91,7 +91,7 @@ always_inline void rotate_set_parents(
     }
 }
 
-void* rbt_find_i64(rbtree_t* tree, int64_t key)
+void* rbt_find_i64(const rbtree_t* tree, int64_t key)
 {
     rbtnode_t* node = tree->root;
 
@@ -101,7 +101,7 @@ void* rbt_find_i64(rbtree_t* tree, int64_t key)
     return node;
 }
 
-void* rbt_find_u64(rbtree_t* tree, uint64_t key)
+void* rbt_find_u64(const rbtree_t* tree, uint64_t key)
 {
     rbtnode_t* node = tree->root;
 
@@ -112,7 +112,7 @@ void* rbt_find_u64(rbtree_t* tree, uint64_t key)
 }
 
 rbt_find_result_e rbt_find(
-    rbtree_t*       tree,
+    const rbtree_t* tree,
     rbt_condition_t cond,
     void*           cmp_ctx,
     void**          node_out)
@@ -229,13 +229,14 @@ always_inline bst_insert_res_e bst_insert_signed(rbtree_t* tree, rbtnode_t* node
 always_inline bst_insert_res_e
 bst_insert_conditional(rbtree_t* tree, rbtnode_t* node, rbt_condition_t cond)
 {
+    int32_t    cmp;
     rbtnode_t* parent = NULL;
     rbtnode_t* cur    = tree->root;
 
     while (cur) {
         parent = cur;
 
-        int32_t cmp = cond(node, cur);
+        cmp = cond(node, cur);
 
         if (cmp == RBT_EQUALS)
             return COND_EQUALS;
@@ -257,7 +258,7 @@ bst_insert_conditional(rbtree_t* tree, rbtnode_t* node, rbt_condition_t cond)
         return COND_OK;
     }
 
-    if (cond(node, parent) == RBT_LESS_THAN)
+    if (cmp == RBT_LESS_THAN)
         parent->left = node;
     else
         parent->right = node;
@@ -462,6 +463,46 @@ static void erase_color(rbtree_t* tree, rbtnode_t* parent)
     }
 }
 
+static rbtnode_t* inorder_successor(rbtnode_t* node)
+{
+    if (node->right) {
+        node = node->right;
+        while (node->left)
+            node = node->left;
+        return node;
+    }
+
+    rbtnode_t* parent = get_parent(node);
+
+    while (parent && node == parent->right) {
+        node   = parent;
+        parent = get_parent(parent);
+    }
+
+    return parent;
+}
+
+static rbtnode_t* inorder_predecessor(rbtnode_t* node)
+{
+    if (node->left) {
+        node = node->left;
+
+        while (node->right)
+            node = node->right;
+
+        return node;
+    }
+
+    rbtnode_t* parent = get_parent(node);
+
+    while (parent && node == parent->left) {
+        node   = parent;
+        parent = get_parent(parent);
+    }
+
+    return parent;
+}
+
 rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node)
 {
     ASSERT(tree && node, "invalid params!");
@@ -523,6 +564,48 @@ rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond)
     }
 
     return insert_result; // custom code result
+}
+
+void* rbt_rightmost(const rbtree_t* tree)
+{
+    rbtnode_t* node = tree->root;
+
+    while (node && node->right)
+        node = node->right;
+
+    return node;
+}
+
+void* rbt_leftmost(const rbtree_t* tree)
+{
+    rbtnode_t* node = tree->root;
+
+    while (node && node->left)
+        node = node->left;
+
+    return node;
+}
+
+void rbt_for_each(const rbtree_t* tree, rbt_visit_t visit, void* ctx)
+{
+    rbtnode_t* node = rbt_leftmost(tree);
+    while (node) {
+        if (!visit(node, ctx))
+            return;
+
+        node = inorder_successor(node);
+    }
+}
+
+void rbt_for_each_rev(const rbtree_t* tree, rbt_visit_t visit, void* ctx)
+{
+    rbtnode_t* node = rbt_rightmost(tree);
+    while (node) {
+        if (!visit(node, ctx))
+            return;
+
+        node = inorder_predecessor(node);
+    }
 }
 
 void* rbt_remove(rbtree_t* tree, void* n)

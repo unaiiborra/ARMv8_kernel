@@ -6,7 +6,7 @@
 #include <kernel/embedded_binary.h>
 #include <kernel/init.h>
 #include <kernel/io/stdio.h>
-#include <kernel/lib/kvec.h>
+#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <lib/stdattribute.h>
@@ -41,18 +41,18 @@ noreturn void kernel_entry()
     printf("Hello from the %s!\n\r", "kernel");
 
     elf_load_result elf_res;
-    uintptr_t       test_entry;
+    uintptr_t       shell_entry;
 
-    task_t* test = task_new("test");
+    task_t* shell = task_new("shell");
 
     elf_res = elf_load(
-        test,
-        EMBEDDED_BINARY(test_elf),
-        EMBEDDED_BINARY_SIZE(test_elf),
-        &test_entry);
+        shell,
+        EMBEDDED_BINARY(shell_elf),
+        EMBEDDED_BINARY_SIZE(shell_elf),
+        &shell_entry);
     ASSERT(elf_res == ELF_LOAD_OK);
 
-    schedule_ready_thread(test, test_entry);
+    schedule_ready_thread(shell, shell_entry);
 
     scheduler_loop_cpu_enter();
 

@@ -9,6 +9,8 @@
 #include <kernel/task.h>
 #include <lib/align.h>
 #include <lib/branch.h>
+#include <lib/data_structures/kvec.h>
+#include <lib/data_structures/rbtree.h>
 #include <lib/lock.h>
 #include <lib/math.h>
 #include <lib/mem.h>
@@ -16,13 +18,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kernel/lib/kvec.h"
-#include "kernel/lib/rbtree.h"
 
-
-#define ASSERT_OWNER_IS_LOCKED(owner)     \
-    DEBUG_ASSERT(                         \
-        spinlock_is_locked(&owner->lock), \
+#define ASSERT_OWNER_IS_LOCKED(owner)       \
+    DEBUG_ASSERT(                           \
+        spinlock_is_locked(&(owner)->lock), \
         "the task should be locked before calling!")
 
 
@@ -63,19 +62,15 @@ typedef struct uregion {
 } uregion_t;
 
 typedef struct uregion_node {
-    struct uregion_node* next;
-    uregion_t            region;
+    rb_header_t _header;
+    uregion_t   region;
 } uregion_node_t;
 
-
-[[gnu::always_inline]] static inline uregion_node_t* get_head_node(task_t* t)
-{
-    if (!t->regions)
-        return NULL;
-
-    return (uregion_node_t*)((uint8_t*)t->regions -
-                             offsetof(uregion_node_t, region));
-}
+typedef struct { // user memory area
+    uregion_t* uregion;
+    vuintptr_t user_address;
+    size_t     page_count;
+} uma_t;
 
 static void committed_init(uregion_t* region)
 {
@@ -204,20 +199,43 @@ static inline mmu_pg_cfg usr_mmu_cfg_from_flags(uint32_t flags)
     }
 }
 
-// finds the node whose region contains the usr va
-static uregion_node_t* region_find_usrva(task_t* t, uintptr_t usrva)
+static rbt_condition_e find_region_condition(void* usrva_ctx, void* node_b)
 {
-    uregion_node_t* curr = get_head_node(t);
+    uintptr_t       usrva = (uintptr_t)usrva_ctx;
+    uregion_node_t* node  = node_b;
+    if (usrva < node->region.usr_start)
+        return RBT_LESS_THAN;
+    if (usrva >= node->region.usr_start + node->region.pages * PAGE_SIZE)
+        return RBT_GREATER_THAN;
+    return RBT_EQUALS;
+}
 
-    while (curr) {
-        uintptr_t start = curr->region.usr_start;
-        uintptr_t end   = start + curr->region.pages * PAGE_SIZE;
+static rbt_condition_e insert_region_condition(void* node_a, void* node_b)
+{
+    const uregion_node_t *a = node_a, *b = node_b;
+    uintptr_t             a_start = a->region.usr_start;
+    uintptr_t             b_start = b->region.usr_start;
+    uintptr_t a_end = a_start + ((uintptr_t)a->region.pages * PAGE_SIZE);
+    uintptr_t b_end = b_start + ((uintptr_t)b->region.pages * PAGE_SIZE);
+    if (a_end <= b_start)
+        return RBT_LESS_THAN;
+    if (a_start >= b_end)
+        return RBT_GREATER_THAN;
+    return RBT_EQUALS;
+}
 
-        if (usrva >= start && usrva < end)
-            return curr;
+// finds the node whose region contains the usr va
+static uregion_node_t* region_find_usrva(const task_t* t, uintptr_t usrva)
+{
+    uregion_node_t*   node;
+    rbt_find_result_e fres = rbt_find(
+        &t->regions,
+        find_region_condition,
+        (void*)usrva,
+        (void**)&node);
 
-        curr = curr->next;
-    }
+    if (likely(fres == RBT_FIND_OK))
+        return node;
 
     return NULL;
 }
@@ -225,62 +243,8 @@ static uregion_node_t* region_find_usrva(task_t* t, uintptr_t usrva)
 // ordered by usr_start, returns false if it overlaps (and does not insert)
 static bool region_insert(task_t* t, uregion_node_t* node)
 {
-    uintptr_t new_start = node->region.usr_start;
-    uintptr_t new_end   = new_start + node->region.pages * PAGE_SIZE;
-
-    uregion_node_t* prev = NULL;
-    uregion_node_t* curr = get_head_node(t);
-
-    // ordered high to low
-    while (curr && curr->region.usr_start > new_start) {
-        prev = curr;
-        curr = curr->next;
-    }
-
-    // check overlap with prev (which has higher address)
-    if (prev) {
-        uintptr_t prev_start = prev->region.usr_start;
-        if (new_end > prev_start)
-            return false;
-    }
-
-    // check overlap with curr (which has lower address)
-    if (curr) {
-        uintptr_t curr_end = curr->region.usr_start +
-                             curr->region.pages * PAGE_SIZE;
-        if (curr_end > new_start)
-            return false;
-    }
-
-    node->next = curr;
-
-    if (prev)
-        prev->next = node;
-    else
-        t->regions = &node->region;
-
-    return true;
-}
-
-static bool region_remove(task_t* t, uregion_node_t* node)
-{
-    uregion_node_t* prev = NULL;
-    uregion_node_t* curr = get_head_node(t);
-
-    while (curr) {
-        if (curr == node) {
-            if (prev)
-                prev->next = curr->next;
-            else
-                t->regions = curr->next ? &curr->next->region : NULL;
-            return true;
-        }
-
-        prev = curr;
-        curr = curr->next;
-    }
-
-    return false;
+    return rbt_insert(&t->regions, node, insert_region_condition) ==
+           RBT_INSERT_OK;
 }
 
 static uregion_node_t* node_malloc(
@@ -307,7 +271,6 @@ static uregion_node_t* node_malloc(
     if (static_lifetime)
         flags |= F_STATIC_LIFETIME;
 
-    node->next   = NULL;
     node->region = (uregion_t) {
         .usr_start     = usr_va,
         .pages         = pages,
@@ -627,12 +590,10 @@ static void region_destroy(task_t* t, uregion_node_t* node)
     // iters over all the nodes and calls physdata_destroy
     rbt_destroy(&region->physical_data, physdata_destroy, &t->mapping);
 
-    if (region->pages > 64) {
+    if (region->pages > 64)
         kfree(region->committed.bg);
-    }
 
-    region_remove(t, node);
-    kfree(node);
+    kfree(rbt_remove(&t->regions, node));
 }
 
 bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
@@ -666,10 +627,10 @@ bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
 }
 
 bool uregion_is_reserved(
-    task_t*     t,
-    uintptr_t   start,
-    size_t      size,
-    uregion_t** out_region)
+    const task_t* t,
+    uintptr_t     start,
+    size_t        size,
+    uregion_t**   out_region)
 {
     ASSERT_OWNER_IS_LOCKED(t);
 
@@ -695,10 +656,10 @@ bool uregion_is_reserved(
 }
 
 bool uregion_is_committed(
-    task_t*     t,
-    uintptr_t   start,
-    size_t      size,
-    uregion_t** out_region)
+    const task_t* t,
+    uintptr_t     start,
+    size_t        size,
+    uregion_t**   out_region)
 {
     ASSERT_OWNER_IS_LOCKED(t);
 
@@ -738,6 +699,54 @@ bool uregion_is_committed(
     return true;
 }
 
+static inline uregion_access_e unode_check_access(
+    const task_t*   t,
+    uregion_node_t* unode,
+    uintptr_t       start,
+    uintptr_t       end,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    bool            commit_on_demand,
+    kvec(uma_t) * to_commit,
+    uintptr_t* chunk_end_out)
+{
+    if (!unode)
+        return UREGION_ACCESS_NOT_RESERVED;
+
+    uregion_t* uregion = &unode->region;
+
+    if ((uregion->flags & required_flags) != required_flags ||
+        (uregion->flags & forbidden_flags) != 0)
+        return UREGION_ACCESS_NO_PERMISSION;
+
+    uintptr_t region_end = uregion->usr_start + uregion->pages * PAGE_SIZE;
+    uintptr_t chunk_end  = min(end, region_end);
+    size_t    chunk_size = chunk_end - start;
+
+    DEBUG_ASSERT(chunk_end > start);
+    DEBUG_ASSERT(chunk_size % PAGE_SIZE == 0);
+
+    if (!uregion_is_committed(t, start, chunk_size, NULL)) {
+        if (!commit_on_demand)
+            return UREGION_ACCESS_NOT_COMMITTED;
+
+        // commit on demand
+        if (to_commit != NULL)
+            kvec_push(
+                to_commit,
+                &(uma_t) {
+                    .uregion      = uregion,
+                    .user_address = start,
+                    .page_count   = chunk_size / PAGE_SIZE,
+                });
+    }
+
+    if (chunk_end_out)
+        *chunk_end_out = chunk_end;
+
+    return UREGION_ACCESS_OK;
+}
+
 uregion_access_e uregions_check_access(
     task_t*         t,
     uintptr_t       start,
@@ -746,12 +755,6 @@ uregion_access_e uregions_check_access(
     uregion_flags_e forbidden_flags,
     bool            commit_on_demand)
 {
-    typedef struct { // user memory area
-        uregion_t* uregion;
-        vuintptr_t user_address;
-        size_t     page_count;
-    } uma_t;
-
     ASSERT_OWNER_IS_LOCKED(t);
 
     scoped_kvec(uma_t) to_commit = kvec_new(uma_t);
@@ -761,37 +764,22 @@ uregion_access_e uregions_check_access(
 
     // first pass, check access and collect areas to commit
     while (cursor < end) {
-        uregion_node_t* node = region_find_usrva(t, cursor);
+        uregion_node_t* unode = region_find_usrva(t, cursor);
 
-        if (!node)
-            return UREGION_ACCESS_NOT_RESERVED;
+        uintptr_t        chunk_end;
+        uregion_access_e uaccess = unode_check_access(
+            t,
+            unode,
+            cursor,
+            end,
+            required_flags,
+            forbidden_flags,
+            commit_on_demand,
+            &to_commit,
+            &chunk_end);
 
-        uregion_t* uregion = &node->region;
-
-        if ((uregion->flags & required_flags) != required_flags ||
-            (uregion->flags & forbidden_flags) != 0)
-            return UREGION_ACCESS_NO_PERMISSION;
-
-        uintptr_t region_end = uregion->usr_start + uregion->pages * PAGE_SIZE;
-        uintptr_t chunk_end  = min(end, region_end);
-        size_t    chunk_size = chunk_end - cursor;
-
-        DEBUG_ASSERT(chunk_end > cursor);
-        DEBUG_ASSERT(chunk_size % PAGE_SIZE == 0);
-
-        if (!uregion_is_committed(t, cursor, chunk_size, NULL)) {
-            if (!commit_on_demand)
-                return UREGION_ACCESS_NOT_COMMITTED;
-
-            // commit on demand
-            kvec_push(
-                &to_commit,
-                &(uma_t) {
-                    .uregion      = uregion,
-                    .user_address = cursor,
-                    .page_count   = chunk_size / PAGE_SIZE,
-                });
-        }
+        if (uaccess != UREGION_ACCESS_OK)
+            return uaccess;
 
         cursor = chunk_end;
     }
@@ -813,6 +801,35 @@ uregion_access_e uregions_check_access(
 static constexpr uintptr_t USR_ADDRSPACE_END = KERNEL_BASE &
                                                ~(0xFFFF000000000000ULL);
 
+typedef struct {
+    size_t     size;
+    uintptr_t  prev_start;
+    uintptr_t* out;
+    bool       found;
+} find_free_ctx_t;
+
+static bool find_free_visitor(void* node, void* ctx)
+{
+    uregion_node_t*  curr = node;
+    find_free_ctx_t* fctx = ctx;
+
+    uintptr_t curr_end = curr->region.usr_start +
+                         curr->region.pages * PAGE_SIZE;
+
+    uintptr_t gap = fctx->prev_start - curr_end;
+
+    if (gap >= fctx->size) {
+        if (fctx->out)
+            *fctx->out = align_down(fctx->prev_start - fctx->size, PAGE_SIZE);
+
+        fctx->found = true;
+        return false; // stop
+    }
+
+    fctx->prev_start = curr->region.usr_start;
+    return true;
+}
+
 bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out)
 {
     ASSERT_OWNER_IS_LOCKED(t);
@@ -820,37 +837,25 @@ bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out)
     if (!pages)
         return false;
 
-    size_t size = pages * PAGE_SIZE;
+    size_t size = (size_t)pages * PAGE_SIZE;
 
-    uintptr_t       prev_start = USR_ADDRSPACE_END;
-    uregion_node_t* curr       = get_head_node(t); // high to low
+    find_free_ctx_t ctx = {
+        .size       = size,
+        .prev_start = USR_ADDRSPACE_END,
+        .out        = out,
+        .found      = false,
+    };
 
-    while (curr) {
-        uintptr_t curr_end = curr->region.usr_start +
-                             curr->region.pages * PAGE_SIZE;
+    rbt_for_each_rev(&t->regions, find_free_visitor, &ctx);
 
-        uintptr_t gap = prev_start - curr_end;
-
-        if (gap >= size) {
-            if (out)
-                *out = align_down(
-                    prev_start - size,
-                    PAGE_SIZE); // top of the gap, aligned down
-            return true;
-        }
-
-        prev_start = curr->region.usr_start;
-        curr       = curr->next;
-    }
-
-    // check gap between address 0 and the lowest region
-    if (prev_start >= size) {
+    if (!ctx.found && ctx.prev_start >= size) {
         if (out)
-            *out = align_down(prev_start - size, PAGE_SIZE);
+            *out = align_down(ctx.prev_start - size, PAGE_SIZE);
+
         return true;
     }
 
-    return false; // no free gap found
+    return ctx.found;
 }
 
 uint32_t uregion_get_flags(uregion_t* region)
@@ -922,6 +927,67 @@ uregion_access_e umemcpy(
     return UREGION_ACCESS_OK;
 }
 
+uregion_access_e ustrncpy(
+    const task_t*   t,
+    char*           kernel_buf,
+    char*           usr_string,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    size_t          max)
+{
+    ASSERT_OWNER_IS_LOCKED((task_t*)t);
+
+    size_t    off       = 0;
+    uintptr_t usr_start = (uintptr_t)usr_string;
+
+    while (off < max) {
+        uintptr_t       usr_ptr = usr_start + off;
+        uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
+
+        uintptr_t        chunk_end;
+        uregion_access_e uaccess = unode_check_access(
+            t,
+            unode,
+            usr_start + off,
+            usr_start + max,
+            required_flags,
+            forbidden_flags,
+            false,
+            NULL,
+            &chunk_end);
+
+        if (uaccess != UREGION_ACCESS_OK)
+            return uaccess;
+
+        physdata_node_t*  pnode = NULL;
+        rbt_find_result_e fres  = rbt_find(
+            &unode->region.physical_data,
+            pdata_find_condition,
+            (void*)usr_ptr,
+            (void**)&pnode);
+
+        DEBUG_ASSERT(fres == RBT_FIND_OK && pnode);
+
+        size_t node_offset  = usr_ptr - pnode->physdata.user_address;
+        size_t block_remain = pnode->physdata.page_count * PAGE_SIZE -
+                              node_offset;
+        size_t chunk        = min(block_remain, max - off);
+
+        const char* knl_ptr = kpa_to_kva_pt(
+            pnode->physdata.physical_address + node_offset);
+
+        for (size_t i = 0; i < chunk; i++, off++) {
+            kernel_buf[off] = knl_ptr[i];
+
+            if (knl_ptr[i] == '\0')
+                return UREGION_ACCESS_OK;
+        }
+    }
+
+    kernel_buf[max - 1] = '\0';
+    return UREGION_ACCESS_TRUNCATED;
+}
+
 uregion_access_e umemzero(
     task_t*         t,
     void*           usr_dst,
@@ -977,7 +1043,7 @@ uregion_access_e umemzero(
 void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size)
 {
     ASSERT_OWNER_IS_LOCKED(t);
-    
+
     uintptr_t end    = align_up(usr_start + size, PAGE_ALIGN);
     uintptr_t cursor = align_down(usr_start, PAGE_ALIGN);
     size_t    off    = 0;

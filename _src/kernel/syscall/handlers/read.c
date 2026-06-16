@@ -7,13 +7,11 @@
 #include "kernel/task.h"
 #include "kernel/vfs.h"
 #include "lib/lock.h"
-#include "lib/stdattribute.h"
-
 
 int64_t syscall64_read(
-    sysarg_t                  fd,
-    sysarg_t                  buf,
-    sysarg_t                  count,
+    sysarg_t        fd,
+    sysarg_t        buf,
+    sysarg_t        count,
     unused_sysarg_t a3,
     unused_sysarg_t a4,
     unused_sysarg_t a5)
@@ -24,8 +22,8 @@ int64_t syscall64_read(
     if (count == 0 || count > VFS_MAX_READ_SIZE)
         return VFS_ERR_INVAL;
 
-    task_t* task                  = get_current_thread()->owner;
-    deferT(void*, kfree) read_buf = kzalloc(count);
+    task_t*        task     = get_current_thread()->owner;
+    scoped_kfree_t read_buf = kzalloc(count);
 
     vfs_result_t vfs_res = vfs_read(&task->files, fd, read_buf, count);
 

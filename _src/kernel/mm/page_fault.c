@@ -7,16 +7,13 @@
 
 #include "arm/sysregs/sysregs.h"
 #include "kernel/io/stdio.h"
-#include "kernel/mm.h"
 #include "kernel/mm/uregion.h"
 #include "kernel/panic.h"
 #include "kernel/scheduler.h"
 #include "kernel/task.h"
-#include "lib/align.h"
 #include "lib/branch.h"
 #include "lib/lock.h"
-#include "lib/mem.h"
-#include "lib/stdattribute.h"
+
 
 #define case_print(v)                        \
     dbg_printf(                              \

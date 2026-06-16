@@ -1,6 +1,6 @@
 #include "kernel/io/term.h"
 
-#include <kernel/lib/kvec.h>
+#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <lib/branch.h>
 #include <lib/lock.h>

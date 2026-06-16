@@ -4,7 +4,7 @@
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
 #include <kernel/io/stdio.h>
-#include <kernel/lib/kvec.h>
+#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/mm/mmu.h>
 #include <kernel/panic.h>

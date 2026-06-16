@@ -1,6 +1,6 @@
 #include <kernel/devices/device.h>
 #include <kernel/devices/driver_ops/timer.h>
-#include <kernel/lib/kvec.h>
+#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/time.h>

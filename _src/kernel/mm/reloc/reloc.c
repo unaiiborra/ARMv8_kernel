@@ -90,10 +90,7 @@ void early_reloc_cfg_end()
         MEM_TiB(1),
         NULL); // TODO: unmap from the actually reserved memory
 
-
     extern noreturn void kernel_entry();
-
-
 
     raw_kmalloc_cfg stack_cfg = {
         .fill_reserve = true,

@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #include "kernel/devices/device.h"
-#include "kernel/lib/kvec.h"
+#include "lib/data_structures/kvec.h"
 #include "lib/lock.h"
 #include "lib/stdattribute.h"
 

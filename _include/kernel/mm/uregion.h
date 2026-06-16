@@ -42,6 +42,7 @@ typedef enum {
     UREGION_ACCESS_NOT_RESERVED,  // some or none pages are reserved
     UREGION_ACCESS_NOT_COMMITTED, // reserved but not commited fully
     UREGION_ACCESS_NO_PERMISSION, // required flags not set
+    UREGION_ACCESS_TRUNCATED,     // requested max size reached
 } uregion_access_e;
 
 
@@ -134,10 +135,10 @@ bool uregion_free(task_t* t, uintptr_t usr_va, uint32_t pages);
 /// @param out_region if non-NULL and the range is reserved, set to the
 ///                   containing region
 bool uregion_is_reserved(
-    task_t*     t,
-    uintptr_t   start,
-    size_t      size,
-    uregion_t** out_region);
+    const task_t* t,
+    uintptr_t     start,
+    size_t        size,
+    uregion_t**   out_region);
 
 /// Returns true if [start, start + size) is fully contained within a reserved
 /// region AND every page in the range has a physical address assigned.
@@ -148,10 +149,10 @@ bool uregion_is_reserved(
 /// @param out_region if non-NULL and the range is committed, set to the
 ///                   containing region
 bool uregion_is_committed(
-    task_t*     t,
-    uintptr_t   start,
-    size_t      size,
-    uregion_t** out_region);
+    const task_t* t,
+    uintptr_t     start,
+    size_t        size,
+    uregion_t**   out_region);
 
 
 
@@ -207,5 +208,13 @@ uregion_access_e umemzero(
     uregion_flags_e required_flags,
     uregion_flags_e forbidden_flags,
     bool            commit_on_demand);
+
+uregion_access_e ustrncpy(
+    const task_t*   t,
+    char*           kernel_buf,
+    char*           usr_string,
+    uregion_flags_e required_flags,
+    uregion_flags_e forbidden_flags,
+    size_t          max);
 
 void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size);

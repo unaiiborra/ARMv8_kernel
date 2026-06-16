@@ -89,7 +89,6 @@ bool kvec_get_mut(const kvec* k, size_t i, void** out);
 [[gnu::always_inline]] static inline void* kvec_data(const kvec* k)
 {
     DEBUG_ASSERT((uintptr_t)k->container_ % k->T_align_ == 0);
-    DEBUG_ASSERT((uintptr_t)k->container_ % k->T_size_ == 0);
 
     return k->container_;
 }

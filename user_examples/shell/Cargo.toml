@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+enum_dispatch = "0.3.13"
 # set the path to the corresponding userspace/stl folder
 stl = { path = "../../userspace/stl" }
 

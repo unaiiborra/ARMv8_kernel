@@ -8,3 +8,4 @@ pub mod stdio;
 pub mod stdlib;
 pub mod syscall;
 pub mod thread;
+pub mod vfs;

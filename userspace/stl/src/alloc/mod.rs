@@ -1,27 +1,25 @@
 #[allow(hidden_glob_reexports)]
 extern crate alloc;
-
 pub use alloc::*;
-
 use core::{alloc::GlobalAlloc, ffi::c_void};
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "allocator_logs")]
 use crate::{printf, stdio::print};
 
 #[global_allocator]
-static STL_ALLOCATOR: StlAlloc = StlAlloc {};
+static STL_ALLOCATOR: StlAllocator = StlAllocator {};
 
 unsafe extern "C" {
     fn __stl_malloc(layout_size: usize, layout_align: usize, zeroed: bool) -> *mut c_void;
     fn __stl_free(addr: *mut c_void, layout_size: usize, layout_align: usize) -> bool;
 }
 
-struct StlAlloc;
-unsafe impl GlobalAlloc for StlAlloc {
+struct StlAllocator;
+unsafe impl GlobalAlloc for StlAllocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let addr = unsafe { __stl_malloc(layout.size(), layout.align(), false) };
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "allocator_logs")]
         {
             printf!(
                 "[alloc] ptr={:p} size={} align={}\n\r",
@@ -41,7 +39,7 @@ unsafe impl GlobalAlloc for StlAlloc {
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
         let addr = unsafe { __stl_malloc(layout.size(), layout.align(), true) };
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "allocator_logs")]
         {
             printf!(
                 "[alloc_zeroed] ptr={:p} size={} align={}\n\r",
@@ -61,7 +59,7 @@ unsafe impl GlobalAlloc for StlAlloc {
     unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
         let _freed = unsafe { __stl_free(ptr as *mut c_void, layout.size(), layout.align()) };
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "allocator_logs")]
         {
             printf!(
                 "[dealloc] ptr={:p} size={} align={} freed={}\n\r",

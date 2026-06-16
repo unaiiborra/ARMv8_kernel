@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../../malloc/raw_kmalloc/raw_kmalloc.h"
+#include "kernel/mm/cache_malloc.h"
 #include "lib/branch.h"
 #include "lib/lock.h"
 
@@ -21,87 +21,139 @@ typedef struct cache8 {
     bitfield64     reserved[BITFIELD_COUNT(CACHE_8_ENTRIES)];
     struct cache8* prev;
     struct cache8* next;
+    uint64_t       _padding[0];
+    uint64_t       cache_id;
 } cache8;
-_Static_assert(sizeof(cache8) <= CACHE_8_PAGES * PAGE_SIZE);
-
 
 typedef struct cache16 {
     uint64_t        buf[CACHE_16_ENTRIES][ENTRY_SIZE(CACHE_16)];
     bitfield64      reserved[BITFIELD_COUNT(CACHE_16_ENTRIES)];
     struct cache16* prev;
     struct cache16* next;
+    uint64_t        _padding[1];
+    uint64_t        cache_id;
 } cache16;
-_Static_assert(sizeof(cache16) <= CACHE_16_PAGES * PAGE_SIZE);
-
 
 typedef struct cache32 {
     uint64_t        buf[CACHE_32_ENTRIES][ENTRY_SIZE(CACHE_32)];
     bitfield64      reserved[BITFIELD_COUNT(CACHE_32_ENTRIES)];
     struct cache32* prev;
     struct cache32* next;
+    uint64_t        _padding[1];
+    uint64_t        cache_id;
 } cache32;
-_Static_assert(sizeof(cache32) <= CACHE_32_PAGES * PAGE_SIZE);
-
 
 typedef struct cache64 {
     uint64_t        buf[CACHE_64_ENTRIES][ENTRY_SIZE(CACHE_64)];
     bitfield64      reserved[BITFIELD_COUNT(CACHE_64_ENTRIES)];
     struct cache64* prev;
     struct cache64* next;
+    uint64_t        _padding[1];
+    uint64_t        cache_id;
 } cache64;
-_Static_assert(sizeof(cache64) <= CACHE_64_PAGES * PAGE_SIZE);
-
 
 typedef struct cache128 {
     uint64_t         buf[CACHE_128_ENTRIES][ENTRY_SIZE(CACHE_128)];
     bitfield64       reserved[BITFIELD_COUNT(CACHE_128_ENTRIES)];
     struct cache128* prev;
     struct cache128* next;
+    uint64_t         _padding[11];
+    uint64_t         cache_id;
 } cache128;
-_Static_assert(sizeof(cache128) <= CACHE_128_PAGES * PAGE_SIZE);
-
 
 typedef struct cache256 {
     uint64_t         buf[CACHE_256_ENTRIES][ENTRY_SIZE(CACHE_256)];
     bitfield64       reserved[BITFIELD_COUNT(CACHE_256_ENTRIES)];
     struct cache256* prev;
     struct cache256* next;
+    uint64_t         _padding[28];
+    uint64_t         cache_id;
 } cache256;
-_Static_assert(sizeof(cache256) <= CACHE_256_PAGES * PAGE_SIZE);
-
 
 typedef struct cache512 {
     uint64_t         buf[CACHE_512_ENTRIES][ENTRY_SIZE(CACHE_512)];
     bitfield64       reserved[BITFIELD_COUNT(CACHE_512_ENTRIES)];
     struct cache512* prev;
     struct cache512* next;
+    uint64_t         _padding[60];
+    uint64_t         cache_id;
 } cache512;
-_Static_assert(sizeof(cache512) <= CACHE_512_PAGES * PAGE_SIZE);
-
 
 typedef struct cache1024 {
     uint64_t          buf[CACHE_1024_ENTRIES][ENTRY_SIZE(CACHE_1024)];
     bitfield64        reserved[BITFIELD_COUNT(CACHE_1024_ENTRIES)];
     struct cache1024* prev;
     struct cache1024* next;
+    uint64_t          _padding[124];
+    uint64_t          cache_id;
 } cache1024;
-_Static_assert(sizeof(cache1024) <= CACHE_1024_PAGES * PAGE_SIZE);
 
+typedef struct cache2048 {
+    uint64_t          buf[CACHE_2048_ENTRIES][ENTRY_SIZE(CACHE_2048)];
+    bitfield64        reserved[BITFIELD_COUNT(CACHE_1024_ENTRIES)];
+    struct cache1024* prev;
+    struct cache1024* next;
+    uint64_t          _padding[252];
+    uint64_t          cache_id;
+} cache2048;
+
+_Static_assert(sizeof(cache8) <= CACHE_8_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache8, cache_id) == CACHE_8_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache16) <= CACHE_16_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache16, cache_id) ==
+    CACHE_16_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache32) <= CACHE_32_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache32, cache_id) ==
+    CACHE_32_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache64) <= CACHE_64_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache64, cache_id) ==
+    CACHE_64_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache128) <= CACHE_128_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache128, cache_id) ==
+    CACHE_128_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache256) <= CACHE_256_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache256, cache_id) ==
+    CACHE_256_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache512) <= CACHE_512_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache512, cache_id) ==
+    CACHE_512_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache1024) <= CACHE_1024_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache1024, cache_id) ==
+    CACHE_1024_PAGES * PAGE_SIZE - sizeof(uint64_t));
+
+_Static_assert(sizeof(cache2048) <= CACHE_2048_PAGES * PAGE_SIZE);
+_Static_assert(
+    offsetof(cache2048, cache_id) ==
+    CACHE_2048_PAGES * PAGE_SIZE - sizeof(uint64_t));
 
 typedef struct {
     uint64_t*   buf;
     bitfield64* reserved;
     uintptr_t*  prev;
     uintptr_t*  next;
+    uint64_t*   cache_id;
 } cache_fields;
-
 
 typedef struct cache_descriptor {
     size_t entry_size;
     size_t entries;
     size_t bitfields;
 } cache_descriptor;
-
 
 typedef struct {
     cache_malloc_size size;
@@ -115,8 +167,7 @@ typedef struct {
     size_t cache_count;
 } cache_malloc_state;
 
-
-static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     "cache malloc 8",
     "cache malloc 16",
     "cache malloc 32",
@@ -130,7 +181,7 @@ static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZES] = {
 // this array must stay ordered from smaller to bigger
 static constexpr size_t CACHE_PAGE_SIZES[2] = {4, 8};
 
-static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     CACHE_8_PAGES,
     CACHE_16_PAGES,
     CACHE_32_PAGES,
@@ -142,7 +193,7 @@ static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZES] = {
 };
 
 
-static constexpr size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     CACHE_8_ENTRIES,
     CACHE_16_ENTRIES,
     CACHE_32_ENTRIES,
@@ -154,7 +205,7 @@ static constexpr size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZES] = {
 };
 
 
-static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZES] = {
+static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     BITFIELD_COUNT(CACHE_8_ENTRIES),
     BITFIELD_COUNT(CACHE_16_ENTRIES),
     BITFIELD_COUNT(CACHE_32_ENTRIES),
@@ -180,6 +231,7 @@ static inline cache_fields get_generic_fields(
         cache256  c256;
         cache512  c512;
         cache1024 c1024;
+        cache2048 c2048;
     } cache_union;
 
     cache_union* u = (cache_union*)cache_ptr;
@@ -190,6 +242,7 @@ static inline cache_fields get_generic_fields(
     c.reserved = &u->c##size.reserved[0];        \
     c.prev     = (uintptr_t*)(&u->c##size.prev); \
     c.next     = (uintptr_t*)(&u->c##size.next); \
+    c.cache_id = &u->c##size.cache_id;           \
     break
 
     switch (size) {
@@ -209,6 +262,8 @@ static inline cache_fields get_generic_fields(
             DECLARE_CACHE(512);
         case CACHE_1024:
             DECLARE_CACHE(1024);
+        case CACHE_2048:
+            DECLARE_CACHE(2048);
     }
 
     return c;
@@ -228,14 +283,14 @@ static constexpr raw_kmalloc_cfg CACHE_MALLOC_RAW_KMALLOC_CFG = {
 };
 
 
-static cache_malloc_state state[CACHE_MALLOC_SUPPORTED_SIZES];
+static cache_malloc_state state[CACHE_MALLOC_SUPPORTED_SIZE_COUNT];
 
 
 void cache_malloc_init()
 {
     size_t log = log2_floor((uint32_t)CACHE_8);
 
-    for (size_t i = 0; i < CACHE_MALLOC_SUPPORTED_SIZES; i++) {
+    for (size_t i = 0; i < CACHE_MALLOC_SUPPORTED_SIZE_COUNT; i++) {
         state[i] = (cache_malloc_state) {
             .size             = power_of2(log),
             .first_cache      = NULL,
@@ -252,7 +307,7 @@ void cache_malloc_init()
 static inline size_t cache_idx_from_size(cache_malloc_size size)
 {
     ASSERT(size >= CACHE_8 && size <= CACHE_1024);
-    return log2_floor(size) - log2_floor((uint32_t)MIN_CACHE);
+    return log2_floor(size) - log2_floor((uint32_t)MIN_CACHE_SIZE);
 }
 
 
@@ -269,30 +324,11 @@ static inline void* new_cache(cache_malloc_size size, void* prev)
 
     cache_fields c = get_generic_fields(size, ptr);
 
-    *c.prev = (uintptr_t)prev;
-    *c.next = 0;
+    *c.prev     = (uintptr_t)prev;
+    *c.next     = 0;
+    *c.cache_id = CACHE_ID_MAGIC | log2_floor(size);
 
     state[i].cache_count++;
-
-
-    // set the page allocator data
-    mm_page_data data;
-    puintptr_t   pa = (puintptr_t)kva_to_kpa_pt(ptr);
-
-
-    raw_kmalloc_lock();
-
-
-    dbgT(bool) result = page_allocator_get_data(pa, &data);
-    DEBUG_ASSERT(result);
-
-    data.cache_size = log2_floor_u32(size);
-
-    result = page_allocator_set_data(pa, data);
-    DEBUG_ASSERT(result);
-
-
-    raw_kmalloc_unlock();
 
     return ptr;
 }
@@ -333,6 +369,23 @@ static inline bool find_empty_slot(
     return false;
 }
 
+static inline bool cache_malloc_size_from_ptr(void* ptr, cache_malloc_size* out)
+{
+    for (size_t i = 0; i < ARRAY_LEN(CACHE_PAGE_SIZES); i++) {
+        void*    base = align_down_pt(ptr, PAGE_SIZE * CACHE_PAGE_SIZES[i]);
+        uint64_t cache_id_field = *(
+            (uint64_t*)((char*)base + CACHE_PAGE_SIZES[i] * PAGE_SIZE -
+                        sizeof(uint64_t)));
+
+        if ((cache_id_field & CACHE_ID_MAGIC) != CACHE_ID_MAGIC)
+            continue;
+
+        *out = power_of2(cache_id_field & CACHE_ID_MASK);
+        return true;
+    }
+
+    return false;
+}
 
 void* cache_malloc(cache_malloc_size size)
 {
@@ -435,8 +488,14 @@ void* cache_malloc(cache_malloc_size size)
 }
 
 
-void cache_free(cache_malloc_size size, void* ptr)
+void cache_free(void* ptr)
 {
+    cache_malloc_size size;
+    if (!cache_malloc_size_from_ptr(ptr, &size)) 
+        PANIC(
+            "cache_free: provided pointer does not relate to a valid cache "
+            "allocation");
+
     size_t              i = cache_idx_from_size(size);
     cache_malloc_state* s = &state[i];
 
@@ -524,35 +583,4 @@ void cache_free(cache_malloc_size size, void* ptr)
     }
 
     raw_kfree(cache_ptr);
-}
-
-
-
-
-bool cache_malloc_size_from_ptr(void* ptr, cache_malloc_size* out)
-{
-    for (size_t i = 0; i < ARRAY_LEN(CACHE_PAGE_SIZES); i++) {
-        void* base = align_down_pt(ptr, PAGE_SIZE * CACHE_PAGE_SIZES[i]);
-
-        mm_page_data data;
-        bool         result = page_allocator_get_data((puintptr_t)base, &data);
-
-        if (!result)
-            continue;
-
-        size_t log = data.cache_size;
-
-        if (log == 0)
-            continue;
-
-        DEBUG_ASSERT(
-            log >= log2_floor_u32(MIN_CACHE) &&
-            log <= log2_floor_u32(MAX_CACHE));
-
-        *out = power_of2(log);
-
-        return true;
-    }
-
-    return false;
 }

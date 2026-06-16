@@ -1,4 +1,4 @@
-#include <kernel/lib/rbtree.h>
+#include <lib/data_structures/rbtree.h>
 #include <kernel/mm.h>
 #include <kernel/vfs.h>
 #include <lib/branch.h>

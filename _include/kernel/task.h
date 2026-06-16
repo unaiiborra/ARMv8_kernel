@@ -1,8 +1,8 @@
 #pragma once
 
 #include <arm/mmu.h>
-#include <kernel/lib/kvec.h>
 #include <kernel/mm.h>
+#include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
 #include <lib/mem.h>
 #include <lib/stdbitfield.h>
@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "kernel/vfs.h"
+#include "lib/data_structures/rbtree.h"
 
 struct thread;
 
@@ -75,10 +76,10 @@ typedef struct {
     spinlock_t         lock;
     _Atomic task_state state;
     mmu_mapping        mapping;
-    uregion_t*         regions;
+    rbtree_t           regions;
     fd_table_t         files;
     kvec(thread*) threads;
 } task_t;
 
 
-void    terminate_task(task_t* task, uint32_t exit_code);
+void terminate_task(task_t* task, uint32_t exit_code);

@@ -150,3 +150,19 @@ int64_t syscall64_unmap(
     unused_sysarg_t a3,
     unused_sysarg_t a4,
     unused_sysarg_t a5);
+
+int64_t syscall64_execveat(
+    sysarg_t        dirfd,
+    sysarg_t        path,
+    sysarg_t        argv,
+    sysarg_t        envp,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);
+
+int64_t syscall64_openat(
+    sysarg_t        dirfd,
+    sysarg_t        pathname,
+    sysarg_t        flags,
+    unused_sysarg_t a3,
+    unused_sysarg_t a4,
+    unused_sysarg_t a5);

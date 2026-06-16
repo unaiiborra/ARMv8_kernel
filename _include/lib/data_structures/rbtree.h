@@ -53,10 +53,10 @@ typedef enum : int32_t {
 typedef rbt_condition_e (*rbt_condition_t)(void* node_a, void* node_b);
 typedef void (*rbt_free_t)(void* node, void* ctx);
 
-void*             rbt_find_i64(rbtree_t* tree, int64_t key);
-void*             rbt_find_u64(rbtree_t* tree, uint64_t key);
+void*             rbt_find_i64(const rbtree_t* tree, int64_t key);
+void*             rbt_find_u64(const rbtree_t* tree, uint64_t key);
 rbt_find_result_e rbt_find(
-    rbtree_t*       tree,
+    const rbtree_t* tree,
     rbt_condition_t cond,
     void*           cmp_ctx, // passed as node_a to cond
     void**          node_out);
@@ -64,6 +64,13 @@ rbt_find_result_e rbt_find(
 rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node);
 rbt_insert_result_e rbt_insert_u64(rbtree_t* tree, void* node);
 rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond);
+
+void* rbt_rightmost(const rbtree_t* tree);
+void* rbt_leftmost(const rbtree_t* tree);
+
+typedef bool (*rbt_visit_t)(void* node, void* ctx); // false = stop early
+void rbt_for_each(const rbtree_t* tree, rbt_visit_t visit, void* ctx);
+void rbt_for_each_rev(const rbtree_t* tree, rbt_visit_t visit, void* ctx);
 
 void* rbt_remove(rbtree_t* tree, void* node);
 

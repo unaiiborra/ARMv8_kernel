@@ -4,11 +4,11 @@
 #include <stdint.h>
 
 
-#define MIN_CACHE CACHE_8
-#define MAX_CACHE CACHE_1024
+#define MIN_CACHE_SIZE CACHE_8
+#define MAX_CACHE_SIZE CACHE_2048
 
 
-#define CACHE_MALLOC_SUPPORTED_SIZES 8
+#define CACHE_MALLOC_SUPPORTED_SIZE_COUNT 9
 
 // pages per cache
 #define STATIC_ASSERT_POW2(N)                                                  \
@@ -58,4 +58,3 @@ constexpr uint64_t CACHE_ID_MASK  = 0xF;
 constexpr uint64_t CACHE_ID_MAGIC = 0xAAAAAAAAAAAAAAAA & ~CACHE_ID_MASK;
 
 void cache_malloc_init();
-bool cache_malloc_size_from_ptr(void* ptr, cache_malloc_size* out);
