@@ -24,8 +24,8 @@ Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**
 - ELF binary loader
 - EL1 to EL0 (kernel to userspace) transition
 - Basic syscall interface (`map`, `unmap`, `print`, `exit`)
-- Preemptive round-robin scheduler *(in progress)*
-- Multithreading support *(in progress)*
+- Preemptive round-robin scheduler
+- Multithreading support
 
 ### Drivers
 
@@ -46,21 +46,21 @@ Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**
 
 ```
 _src/
-├── arm/          # Low-level ARMv8 code: MMU, cache, exceptions, sysregs, TF-A/SMCCC
-├── boot/         # Early boot: stack setup, BSS clearing, EL2 to EL1 transition
-├── drivers/      # Hardware drivers (UART, GICv3, ARM timer, TMU)
-├── kernel/       # Core kernel subsystems (see below)
-│   ├── init/     # Early and main initialization sequence
-│   ├── mm/       # Memory management: page allocator, vmalloc, kmalloc, ELF loader
-│   ├── scheduler/# Task and thread management, context switching
-│   ├── syscall/  # Syscall dispatch and handlers
-│   ├── exception/# Exception and IRQ handling at EL0/EL1
-│   ├── panic/    # Kernel panic with some ESR decoding
-│   ├── io/       # UART-backed stdio and terminal buffers
-│   └── devices/  # Device map and driver registration
-├── lib/          # Shared utilities: spinlocks, memcpy, string formatting
-userspace/        # Minimal C standard library and template for compiling userspace programs
-user_examples/    # Example userspace programs and embedding tooling
+├── arm/           # Low-level ARMv8 code: MMU, cache, exceptions, sysregs, TF-A/SMCCC
+├── boot/          # Early boot: stack setup, BSS clearing, EL2 to EL1 transition
+├── drivers/       # Hardware drivers (UART, GICv3, ARM timer, TMU)
+├── kernel/        # Core kernel subsystems (see below)
+│   ├── init/      # Early and main initialization sequence
+│   ├── mm/        # Memory management: page allocator, vmalloc, kmalloc, ELF loader
+│   ├── scheduler/ # Task and thread management, context switching
+│   ├── syscall/   # Syscall dispatch and handlers
+│   ├── exception/ # Exception and IRQ handling at EL0/EL1
+│   ├── panic/     # Kernel panic with some ESR decoding
+│   ├── io/        # UART-backed stdio and terminal buffers
+│   └── devices/   # Device map and driver registration
+├── lib/           # Shared utilities: spinlocks, memcpy, string formatting
+userspace/         # Minimal C standard library and template for compiling userspace programs
+user_examples/     # Example userspace programs and embedding tooling
 ```
 
 ---
