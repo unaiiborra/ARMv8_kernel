@@ -45,7 +45,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 
 # Rust files TODO: Allow using debug build + gdb
-$(OBJ_DIR)/rslib.a: Cargo.toml _src/*.rs
+$(OBJ_DIR)/rslib.a: Cargo.toml src/*.rs
 	$(RUST) build --release --target $(RS_TARGET)
 	mkdir -p $(OBJ_DIR)
 	cp $(RS_LIB_DIR) $(OBJ_DIR)/rslib.a
