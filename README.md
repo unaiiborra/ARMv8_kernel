@@ -45,7 +45,7 @@ Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**
 ## Project Structure
 
 ```
-_src/
+src/
 ├── arm/           # Low-level ARMv8 code: MMU, cache, exceptions, sysregs, TF-A/SMCCC
 ├── boot/          # Early boot: stack setup, BSS clearing, EL2 to EL1 transition
 ├── drivers/       # Hardware drivers (UART, GICv3, ARM timer, TMU)
@@ -69,11 +69,11 @@ user_examples/     # Example userspace programs and embedding tooling
 
 ### Boot
 
-The kernel starts in assembly (`_src/boot/`), sets up stacks, clears BSS, flushes the caches and performs the initial EL2 → EL1 transition and jumps to the C code (`_src/kernel/kernel_entry.c`).
+The kernel starts in assembly (`src/boot/`), sets up stacks, clears BSS, flushes the caches and performs the initial EL2 → EL1 transition and jumps to the C code (`src/kernel/kernel_entry.c`).
 
 ### Initialization
 
-Once execution reaches C, the kernel performs early MMU initialization (see `_src/arm/mmu/`). During this stage, it sets up the translation tables and performs an initial setup of the memory allocators. It then relocates the kernel to high virtual addresses and jumps back to the kernel entry point, now executing from the higher virtual address space.
+Once execution reaches C, the kernel performs early MMU initialization (see `src/arm/mmu/` and `src/kernel/mm/init`). During this stage, it sets up the translation tables and performs an initial setup of the memory allocators. It then relocates the kernel to high virtual addresses and jumps back to the kernel entry point, now executing from the higher virtual address space.
 
 Once running in the higher virtual address space, the kernel completes memory subsystem initialization, bringing all allocators to a fully operational state. It then initializes device drivers and other subsystems, and finally transitions into the main scheduler loop.
 
