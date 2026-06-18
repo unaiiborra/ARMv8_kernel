@@ -3,7 +3,7 @@
 #include "kernel/scheduler.h"
 
 
-void el1_low_a64_irq_handler(arm_ctx* ectx)
+void el1_low_a64_irq_handler(arm_ctx_t* ectx)
 {
     scheduler_ectx_store(ectx);
 

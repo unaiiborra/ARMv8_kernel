@@ -49,7 +49,7 @@ int64_t syscall64_spawn(
         }
     }
 
-    thread* new_th = schedule_new_thread(task, fn);
+    thread_t* new_th = schedule_new_thread(task, fn);
 
     uint64_t thid = new_th->th_uid;
 

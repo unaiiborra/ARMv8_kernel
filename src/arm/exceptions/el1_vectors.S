@@ -11,14 +11,11 @@
 
 .section .text
 .global _el1_init_vector
-.align 4
 _el1_init_vector:
     adr     x0, _el1_vector_table
     msr     VBAR_EL1, x0
     isb
     ret
-
-
 
 .macro EL1_CALL_WITH_CONTEXT label
     ectx_store
@@ -28,7 +25,6 @@ _el1_init_vector:
 .endm
 
 .section .text
-.align 11
 _el1_cur_sp0_sync:
     EL1_CALL_WITH_CONTEXT el1_cur_sp0_sync_handler
 

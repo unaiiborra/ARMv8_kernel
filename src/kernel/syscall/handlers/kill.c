@@ -20,13 +20,13 @@ int64_t syscall64_kill(
     unused_sysarg_t a4,
     unused_sysarg_t a5)
 {
-    thread* th      = get_current_thread();
+    thread_t* th      = get_current_thread();
     bool    deleted = false;
 
     spinlocked_irqsave(&th->owner->lock)
     {
         size_t   n       = kvec_len(&th->owner->threads);
-        thread** threads = kvec_data(&th->owner->threads);
+        thread_t** threads = kvec_data(&th->owner->threads);
 
         for (size_t i = 0; i < n; i++) {
             if (threads[i] && threads[i]->th_uid == thid) {

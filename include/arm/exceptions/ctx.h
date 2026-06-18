@@ -36,41 +36,41 @@ typedef struct {
 
     gpr_t     x[XREG_COUNT]; // x0-x30
     vreg128_t v[VREG_COUNT]; // v0-v31
-} arm_ctx;
+} arm_ctx_t;
 
 
-_Static_assert(sizeof(arm_ctx) % 16 == 0, "");
+_Static_assert(sizeof(arm_ctx_t) % 16 == 0, "");
 
 _Static_assert(
-    ARM_STRUCT_ECTX_SIZE == sizeof(arm_ctx),
+    ARM_STRUCT_ECTX_SIZE == sizeof(arm_ctx_t),
     "arm_ectx size mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, sp_elx) == ARM_STRUCT_ECTX_OFFS_SP_ELX,
+    offsetof(arm_ctx_t, sp_elx) == ARM_STRUCT_ECTX_OFFS_SP_ELX,
     "sp_elx offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, fpcr) == ARM_STRUCT_ECTX_OFFS_FPCR,
+    offsetof(arm_ctx_t, fpcr) == ARM_STRUCT_ECTX_OFFS_FPCR,
     "fpcr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, fpsr) == ARM_STRUCT_ECTX_OFFS_FPSR,
+    offsetof(arm_ctx_t, fpsr) == ARM_STRUCT_ECTX_OFFS_FPSR,
     "fpsr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, elr) == ARM_STRUCT_ECTX_OFFS_ELR,
+    offsetof(arm_ctx_t, elr) == ARM_STRUCT_ECTX_OFFS_ELR,
     "elr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, spsr) == ARM_STRUCT_ECTX_OFFS_SPSR,
+    offsetof(arm_ctx_t, spsr) == ARM_STRUCT_ECTX_OFFS_SPSR,
     "spsr offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, x) == ARM_STRUCT_ECTX_OFFS_X,
+    offsetof(arm_ctx_t, x) == ARM_STRUCT_ECTX_OFFS_X,
     "x offset mismatch");
 
 _Static_assert(
-    offsetof(arm_ctx, v) == ARM_STRUCT_ECTX_OFFS_V,
+    offsetof(arm_ctx_t, v) == ARM_STRUCT_ECTX_OFFS_V,
     "v offset mismatch");
 
 _Static_assert(
@@ -102,17 +102,17 @@ typedef enum {
 } arm_exception_level;
 
 
-static inline arm_stack ectx_get_stack(const arm_ctx* ectx)
+static inline arm_stack ectx_get_stack(const arm_ctx_t* ectx)
 {
     return (arm_stack)(ectx->spsr & 1);
 }
 
-static inline arm_exception_level ectx_get_el(const arm_ctx* ectx)
+static inline arm_exception_level ectx_get_el(const arm_ctx_t* ectx)
 {
     return (arm_exception_level)((ectx->spsr & (1ul << 2)) ? EL1 : EL0);
 }
 
-static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx* ectx)
+static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx_t* ectx)
 {
     switch (ectx->spsr & 0b1111ul) {
         case SPSR_EL0:
@@ -135,19 +135,19 @@ static inline arm_spsr_m_mode ectx_get_aarch64_selected_el(const arm_ctx* ectx)
     }
 }
 
-static inline void ectx_set_stack(arm_ctx* ectx, arm_stack stack)
+static inline void ectx_set_stack(arm_ctx_t* ectx, arm_stack stack)
 {
     ectx->spsr = (ectx->spsr & ~1ul) | ((uint64_t)stack & 1);
 }
 
-static inline void ectx_set_el(arm_ctx* ectx, arm_exception_level el)
+static inline void ectx_set_el(arm_ctx_t* ectx, arm_exception_level el)
 {
     uint64_t bit = (el == EL1) ? (1ul << 2) : 0ul;
     ectx->spsr   = (ectx->spsr & ~(1ul << 2)) | bit;
 }
 
 static inline void ectx_set_aarch64_selected_el(
-    arm_ctx*        ectx,
+    arm_ctx_t*        ectx,
     arm_spsr_m_mode mode)
 {
     switch (mode) {
@@ -162,7 +162,7 @@ static inline void ectx_set_aarch64_selected_el(
 }
 
 static inline void ectx_set_eret_cfg(
-    arm_ctx*            ectx,
+    arm_ctx_t*            ectx,
     arm_stack           stack,
     arm_exception_level el,
     arm_spsr_m_mode     mode)

@@ -29,7 +29,7 @@ void exception_panic(
 /// Declares a non implemented EL1 exception handler, panics with the name of
 /// the exception
 #define DECLARE_EL1_EXCEPTION_HANDLER_PANIC(origin, stack, type) \
-    void el1_##origin##_##stack##_##type##_handler(arm_ctx*)     \
+    void el1_##origin##_##stack##_##type##_handler(arm_ctx_t*)     \
     {                                                            \
         exception_panic(                                         \
             "el1_" #origin "_" #stack "_" #type " exception",    \

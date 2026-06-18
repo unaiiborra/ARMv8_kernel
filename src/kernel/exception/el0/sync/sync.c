@@ -17,7 +17,7 @@
 // https://developer.arm.com/documentation/ddi0601/latest/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-
 
 
-void exception_handler_sync(arm_ctx* ectx)
+void exception_handler_sync(arm_ctx_t* ectx)
 {
     uint64_t esr_el1         = sysreg_read(esr_el1);
     esr_ec   exception_class = ESR_EC(esr_el1);
@@ -99,7 +99,7 @@ void exception_handler_sync(arm_ctx* ectx)
 
             scheduler_ectx_store(ectx);
 
-            dbgT(thread*) cur = get_current_thread();
+            dbgT(thread_t*) cur = get_current_thread();
             DEBUG_ASSERT(cur);
 
             sysc64_dispatch();
@@ -133,7 +133,9 @@ void exception_handler_sync(arm_ctx* ectx)
             dbg_print(
                 DEBUG_TRACE,
                 "[exception_handler_sync] ESR_EC_IABT_LOWER_EL");
+            scheduler_ectx_store(ectx);
             terminate_task(get_current_thread()->owner, 1);
+            scheduler_ectx_load(ectx);
             break;
 
         case ESR_EC_IABT_SAME_EL:

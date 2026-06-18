@@ -20,8 +20,8 @@ void          scheduler_loop_cpu_enter();
 noreturn void scheduler_loop_cpu_exit();
 
 
-void scheduler_ectx_store(arm_ctx* ectx);
-void scheduler_ectx_load(arm_ctx* ectx);
+void scheduler_ectx_store(arm_ctx_t* ectx);
+void scheduler_ectx_load(arm_ctx_t* ectx);
 
 
 uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid);
@@ -60,18 +60,17 @@ typedef enum {
 typedef struct thread {
     uint64_t             th_uid;
     task_t*              owner;
-    arm_ctx              ctx;
+    arm_ctx_t              ctx;
     uint64_t             last_access_time_us;
-    uint32_t             th_flags;
     cpuid_t              sched_cpu;
     _Atomic thread_state state;
-} thread;
+} thread_t;
 
 
 void scheduler_init();
 
 
-thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
+thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
 
 /// creates a new thread and adds it to the scheduler. The thread will be marked
 /// as new so it will not execute until marked as READY.
@@ -85,13 +84,13 @@ thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
 
 
 /// deletes a thread and unschedules it
-[[gnu::always_inline]] static inline thread_state unschedule_thread(thread* th)
+[[gnu::always_inline]] static inline thread_state unschedule_thread(thread_t* th)
 {
     return atomic_exchange(&th->state, THREAD_DEAD);
 }
 
 
-static inline void thread_promote_to_ready(thread* th)
+static inline void thread_promote_to_ready(thread_t* th)
 {
     thread_state expected = THREAD_NEW;
     bool         was_new  = atomic_compare_exchange_strong(
@@ -107,13 +106,13 @@ static inline void thread_promote_to_ready(thread* th)
 
 
 #ifdef DEBUG
-thread* __get_current_thread_from_runqueue();
+thread_t* __get_current_thread_from_runqueue();
 #endif
 
 /// calling this function without previously calling scheduler_ectx_store()
 /// will cause ub, it is only safe to be called within the saved ctx as it
 /// gives fast access by using sp_el0
-static inline thread* get_current_thread()
+static inline thread_t* get_current_thread()
 {
     uintptr_t th = sysreg_read(sp_el0);
 
@@ -121,5 +120,5 @@ static inline thread* get_current_thread()
         ((th & KERNEL_BASE) == KERNEL_BASE || th == 0) &&
         th == (uintptr_t)__get_current_thread_from_runqueue());
 
-    return (thread*)th;
+    return (thread_t*)th;
 }

@@ -4,7 +4,7 @@
 #include <kernel/io/stdio.h>
 #include <stddef.h>
 
-void el1_low_a64_sync_handler(arm_ctx* ectx)
+void el1_low_a64_sync_handler(arm_ctx_t* ectx)
 {
     exception_handler_sync(ectx);
 }

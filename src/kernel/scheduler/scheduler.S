@@ -19,7 +19,7 @@
 //     vreg128_t v[VREG_COUNT]; // v0-v31
 // } arm_ectx;
 
-// extern void _scheduler_loop_cpu_enter(arm_ctx* el0_ctx, arm_ctx* el1_ctx);
+// extern void _scheduler_loop_cpu_enter(arm_ctx_t* el0_ctx, arm_ctx_t* el1_ctx);
 .global _scheduler_loop_cpu_enter
 _scheduler_loop_cpu_enter:
     // use x0 as the *el1_ctx, as this is not an interrupt ctx store,
@@ -59,7 +59,7 @@ _scheduler_loop_cpu_enter:
 
 
 
-// extern void _scheduler_loop_cpu_exit(arm_ctx* el1_ctx);
+// extern void _scheduler_loop_cpu_exit(arm_ctx_t* el1_ctx);
 .global _scheduler_loop_cpu_exit
 _scheduler_loop_cpu_exit:
     ectx_load x0

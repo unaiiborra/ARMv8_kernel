@@ -39,7 +39,7 @@ task_t* task_new(const char* name)
         .mapping  = mm_mmu_mapping_new(MMU_LO),
         .regions  = RBT_INIT,
         .files    = {0},
-        .threads  = kvec_new(thread*),
+        .threads  = kvec_new(thread_t*),
     };
 
     vfs_serial_bind_stdio(
@@ -55,7 +55,7 @@ static inline bool add_thread_ref(task_t* t, struct thread* th)
     DEBUG_ASSERT(th != NULL);
 
     size_t   n       = kvec_len(&t->threads);
-    thread** threads = kvec_dataT(thread*, &t->threads);
+    thread_t** threads = kvec_dataT(thread_t*, &t->threads);
 
     for (size_t i = 0; i < n; i++) {
         if (threads[i] == NULL) {
@@ -101,7 +101,7 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
     {
         size_t n = kvec_len(&t->threads);
 
-        thread** threads = kvec_dataT(thread*, &t->threads);
+        thread_t** threads = kvec_dataT(thread_t*, &t->threads);
 
         for (size_t i = 0; i < n; i++) {
             if (threads[i] == th) {
@@ -111,7 +111,7 @@ void task_delete_thread_ref(task_t* t, struct thread* th)
 
                     // pop NULLs until the first valid pt
                     while (kvec_len(&t->threads) > 0) {
-                        thread* last = NULL;
+                        thread_t* last = NULL;
                         kvec_get_copy(
                             &t->threads,
                             kvec_len(&t->threads) - 1,
@@ -148,7 +148,7 @@ void terminate_task(task_t* task, uint32_t exit_code)
     spinlocked(&task->lock)
     {
         size_t   n       = kvec_len(&task->threads);
-        thread** threads = kvec_data(&task->threads);
+        thread_t** threads = kvec_data(&task->threads);
 
         for (size_t i = 0; i < n; i++) {
             unschedule_thread(threads[i]);

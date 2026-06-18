@@ -30,22 +30,22 @@
 #endif
 
 
-static thread* runqueue_schedule();
+static thread_t* runqueue_schedule();
 
-extern void _scheduler_loop_cpu_enter(arm_ctx* el0_ctx, arm_ctx* el1_ctx);
-extern noreturn void _scheduler_loop_cpu_exit(arm_ctx* el1_ctx);
+extern void _scheduler_loop_cpu_enter(arm_ctx_t* el0_ctx, arm_ctx_t* el1_ctx);
+extern noreturn void _scheduler_loop_cpu_exit(arm_ctx_t* el1_ctx);
 
 
 typedef struct thread_node {
     struct thread_node *prev, *next;
-    thread              th;
+    thread_t              th;
 } thread_node;
 
 
 typedef struct {
     _Alignas(CACHE_LINE) cpulock_t lock;
     thread_node* list;
-    thread*      current_thread;
+    thread_t*      current_thread;
 
     atomic_ulong  preemptive_duration_microsec; // not core-local
     timer_event_t preemptive_event;             // core-local
@@ -57,7 +57,7 @@ typedef struct {
 } runqueue_t;
 
 
-static arm_ctx pre_sched_mode_ctx[NUM_CPUS];
+static arm_ctx_t pre_sched_mode_ctx[NUM_CPUS];
 
 static runqueue_t runqueue[NUM_CPUS];
 
@@ -65,13 +65,13 @@ static atomic_ulong thread_uid_counter;
 
 
 
-static inline thread_node* node_from_thread(thread* th)
+static inline thread_node* node_from_thread(thread_t* th)
 {
     return (thread_node*)((char*)th - offsetof(thread_node, th));
 }
 
 
-static inline void set_current_thread(thread* th)
+static inline void set_current_thread(thread_t* th)
 {
     DEBUG_ASSERT(((uintptr_t)th & KERNEL_BASE) == KERNEL_BASE || th == NULL);
 
@@ -79,7 +79,7 @@ static inline void set_current_thread(thread* th)
     sysreg_write(sp_el0, th);
 }
 
-static inline void set_thread_mapping(thread* th)
+static inline void set_thread_mapping(thread_t* th)
 {
     dbgT(bool) res = mmu_core_set_mapping(
         mm_mmu_core_handler_get_self(),
@@ -116,7 +116,7 @@ void scheduler_init()
             &runqueue[i].preemptive_duration_microsec,
             DEFAULT_PREEMPTIVE_MICROSEC);
 
-        pre_sched_mode_ctx[i] = (arm_ctx) {0};
+        pre_sched_mode_ctx[i] = (arm_ctx_t) {0};
     }
 
     task_ctl_init();
@@ -125,7 +125,7 @@ void scheduler_init()
 #ifdef DEBUG /// fn only valid for debug purposes, use get_current_thread()
              /// instead to avoid memory access (uses sp_el0) and get faster
              /// accesses
-thread* __get_current_thread_from_runqueue()
+thread_t* __get_current_thread_from_runqueue()
 {
     return runqueue[get_cpuid()].current_thread;
 }
@@ -212,7 +212,7 @@ void scheduler_loop_cpu_enter()
         expected = THREAD_READY;
     }
 
-    thread* th = &cur->th;
+    thread_t* th = &cur->th;
 
     arm_exceptions_disable_all();
 
@@ -225,7 +225,7 @@ void scheduler_loop_cpu_enter()
         NULL,
         atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000);
 
-    memzero(&pre_sched_mode_ctx[cpuid], sizeof(arm_ctx));
+    memzero(&pre_sched_mode_ctx[cpuid], sizeof(arm_ctx_t));
 
     _scheduler_loop_cpu_enter(&th->ctx, &pre_sched_mode_ctx[cpuid]);
 }
@@ -238,14 +238,14 @@ noreturn void scheduler_loop_cpu_exit()
 }
 
 
-void scheduler_ectx_store(arm_ctx* ectx)
+void scheduler_ectx_store(arm_ctx_t* ectx)
 {
     cpuid_t cpuid = get_cpuid();
 
     cpulock_acquire(&runqueue[cpuid].lock);
 
     // restore into sp_el0 the active thread
-    thread* curr = runqueue[get_cpuid()].current_thread;
+    thread_t* curr = runqueue[get_cpuid()].current_thread;
     DEBUG_ASSERT(curr == NULL || is_kva_ptr(curr));
 
     if (curr) {
@@ -258,14 +258,14 @@ void scheduler_ectx_store(arm_ctx* ectx)
 }
 
 
-void scheduler_ectx_load(arm_ctx* ectx)
+void scheduler_ectx_load(arm_ctx_t* ectx)
 {
     cpuid_t cpuid = get_cpuid();
 
     arm_exceptions_disable_all();
 
 
-    thread* curr = schedule_is_required(cpuid)
+    thread_t* curr = schedule_is_required(cpuid)
                        // schedule_required == true:
                        // schedule a new thread
                        ? runqueue_schedule()
@@ -289,13 +289,13 @@ void scheduler_ectx_load(arm_ctx* ectx)
 
 
 /// creates a new thread and adds it to the scheduler
-thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
+thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 {
     cpuid_t cpuid = get_cpuid();
 
 
     thread_node* node = kmalloc(sizeof(thread_node));
-    node->th          = (thread) {
+    node->th          = (thread_t) {
         .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
         .owner  = owner,
         .ctx =
@@ -307,7 +307,6 @@ thread* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
              .x      = {},
              .v      = {}},
         .last_access_time_us = 0,
-        .th_flags            = 0,
         .sched_cpu           = cpuid,
     };
 
@@ -405,10 +404,10 @@ static void free_threads(kvec(thread*) * to_free)
 }
 
 
-static thread* runqueue_schedule()
+static thread_t* runqueue_schedule()
 {
     const cpuid_t      cpuid = get_cpuid();
-    thread* const      curr  = get_current_thread();
+    thread_t* const      curr  = get_current_thread();
     thread_node* const node  = node_from_thread(curr);
 
     ASSERT(curr);
