@@ -80,7 +80,7 @@ int64_t syscall64_mmap(
     size_t pages = div_ceil(lenght, PAGE_SIZE);
 
 
-    spinlocked(&owner->lock)
+    spinlocked(&owner->memory_lock)
     {
         uintptr_t address;
 

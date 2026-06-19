@@ -32,7 +32,7 @@ int64_t syscall64_read(
 
     uregion_access_e uaccess;
 
-    irqflags_t irqflags = spinlock_acquire_irqsave(&task->lock);
+    irqflags_t irqflags = spinlock_acquire_irqsave(&task->memory_lock);
     {
         uaccess = umemcpy(
             task,
@@ -44,7 +44,7 @@ int64_t syscall64_read(
             true,
             UMEMCPY_KNL_TO_USR);
     }
-    spinlock_release_irqrestore(&task->lock, irqflags);
+    spinlock_release_irqrestore(&task->memory_lock, irqflags);
 
     if (uaccess != UREGION_ACCESS_OK)
         return VFS_ERR_INVAL;

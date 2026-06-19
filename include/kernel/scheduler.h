@@ -4,11 +4,11 @@
 #include <arm/mmu.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
-#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/panic.h>
 #include <kernel/smp.h>
 #include <kernel/task.h>
+#include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
 #include <lib/stdbitfield.h>
 #include <stdatomic.h>
@@ -32,14 +32,6 @@ void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds);
 /// thread.
 void schedule(cpuid_t runqueue);
 
-
-/* --- Tasks --- */
-
-
-task_t* task_new(const char* name);
-void    task_delete(task_t* ut);
-
-
 /* --- Threads --- */
 
 typedef enum {
@@ -60,7 +52,7 @@ typedef enum {
 typedef struct thread {
     uint64_t             th_uid;
     task_t*              owner;
-    arm_ctx_t              ctx;
+    arm_ctx_t            ctx;
     uint64_t             last_access_time_us;
     cpuid_t              sched_cpu;
     _Atomic thread_state state;

@@ -23,7 +23,7 @@ typedef enum {
     SYSC_MUNMAP_ALIGN_NOT_SUPPORTED = -2,
 } sysc_munmap_res;
 
-int64_t syscall64_unmap(
+int64_t syscall64_munmap(
     sysarg_t                  addr,
     sysarg_t                  lenght,
     unused_sysarg_t a2,
@@ -51,11 +51,11 @@ int64_t syscall64_unmap(
     bool    freed;
 
 
-    irqflags_t irqflags = spinlock_acquire_irqsave(&owner->lock);
+    irqflags_t irqflags = spinlock_acquire_irqsave(&owner->memory_lock);
     {
         freed = uregion_free(owner, addr, pages);
     }
-    spinlock_release_irqrestore(&owner->lock, irqflags);
+    spinlock_release_irqrestore(&owner->memory_lock, irqflags);
 
 
     if (unlikely(!freed)) {

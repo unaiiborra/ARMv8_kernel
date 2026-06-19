@@ -16,7 +16,6 @@ typedef struct {
     void** const state;
 } driver_handle_t;
 
-
 typedef enum {
     DEVICE_CLASS_GENERIC = 0,
     DEVICE_CLASS_IRQ_CTRL,
@@ -28,8 +27,6 @@ typedef enum {
     DEVICE_CLASS_COUNT,
 } device_class_t;
 
-
-
 typedef struct {
     uint64_t       uid;
     const char*    name;
@@ -39,7 +36,6 @@ typedef struct {
     void*          driver_state;
     const void*    driver_ops;
 } device_t;
-
 
 void device_ctrl_init();
 

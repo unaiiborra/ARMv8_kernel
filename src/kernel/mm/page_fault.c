@@ -131,7 +131,7 @@ static void translation_fault(
     uintptr_t fault_address  = get_fault_address();
     size_t    dabt_word_size = get_dabt_word_size(iss);
 
-    spinlocked(&task->lock)
+    spinlocked(&task->memory_lock)
     {
         uregion_access_e uaccess = uregions_check_access(
             task,

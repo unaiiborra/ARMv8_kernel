@@ -1,10 +1,11 @@
 
+#include <lib/data_structures/kvec.h>
 #include <stddef.h>
 
 #include "../sysc_handlers.h"
-#include <lib/data_structures/kvec.h>
 #include "kernel/panic.h"
 #include "kernel/scheduler.h"
+#include "kernel/task.h"
 #include "lib/lock.h"
 
 typedef enum {
@@ -13,7 +14,7 @@ typedef enum {
 } sysc_kill_res_e;
 
 int64_t syscall64_kill(
-    sysarg_t                  thid,
+    sysarg_t        thid,
     unused_sysarg_t a1,
     unused_sysarg_t a2,
     unused_sysarg_t a3,
@@ -21,42 +22,38 @@ int64_t syscall64_kill(
     unused_sysarg_t a5)
 {
     thread_t* th      = get_current_thread();
-    bool    deleted = false;
+    bool      deleted = false;
 
-    spinlocked_irqsave(&th->owner->lock)
+    spinlocked_irqsave(&th->owner->threads_lock)
     {
-        size_t   n       = kvec_len(&th->owner->threads);
-        thread_t** threads = kvec_data(&th->owner->threads);
+        thread_t* thread = task_get_thread(th->owner, thid);
 
-        for (size_t i = 0; i < n; i++) {
-            if (threads[i] && threads[i]->th_uid == thid) {
-                thread_state old_state = unschedule_thread(threads[i]);
+        if (thread == NULL)
+            break;
 
-                deleted = (old_state != THREAD_DEAD);
-                DEBUG_ASSERT(old_state != THREAD_NEW);
+        thread_state old_state = unschedule_thread(thread);
 
-                if (deleted) {
-                    dbg_sysc_print(
-                        SYSC_KILL,
-                        "SYSC_KILL_OK thread %d",
-                        threads[i]->th_uid);
+        DEBUG_ASSERT(old_state != THREAD_NEW);
+        deleted = (old_state != THREAD_DEAD);
 
-                    return SYSC_KILL_OK;
-                }
-                else {
-                    dbg_sysc_print(
-                        SYSC_KILL,
-                        "SYSC_KILL_NOT_FOUND (already deleted thread %d (%d))",
-                        threads[i]->th_uid);
+        if (deleted) {
+            dbg_sysc_print(
+                SYSC_KILL,
+                "SYSC_KILL_OK thread %d",
+                threads[i]->th_uid);
 
-                    return SYSC_KILL_NOT_FOUND;
-                }
-            }
+            return SYSC_KILL_OK;
+        }
+        else {
+            dbg_sysc_print(
+                SYSC_KILL,
+                "SYSC_KILL_NOT_FOUND (already deleted thread %d (%d))",
+                threads[i]->th_uid);
+
+            return SYSC_KILL_NOT_FOUND;
         }
     }
 
-
     dbg_sysc_print(SYSC_KILL, "SYSC_KILL_NOT_FOUND (non existant thread)");
-
     return SYSC_KILL_NOT_FOUND;
 }

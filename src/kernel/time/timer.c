@@ -108,7 +108,6 @@ timer_event_t timer_create_event(
         .ctx     = ctx,
     };
 
-
     spinlocked_irqsave(&clock->timer_lock)
     {
         if (clock->event_list) {

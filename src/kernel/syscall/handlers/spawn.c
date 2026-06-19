@@ -31,7 +31,7 @@ int64_t syscall64_spawn(
     task_t*    task   = get_current_thread()->owner;
     uregion_t* region = NULL;
 
-    spinlocked(&task->lock)
+    spinlocked(&task->memory_lock)
     {
         bool mapped = uregion_is_reserved(task, fn, 4, &region);
 

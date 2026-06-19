@@ -5,9 +5,6 @@
 
 #include "../sysc_handlers.h"
 
-
-
-
 int64_t syscall64_exit(
     sysarg_t        exit_code,
     unused_sysarg_t a1,

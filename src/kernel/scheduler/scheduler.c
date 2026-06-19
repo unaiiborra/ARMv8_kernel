@@ -4,7 +4,6 @@
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
 #include <kernel/io/stdio.h>
-#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
@@ -13,6 +12,7 @@
 #include <kernel/task.h>
 #include <kernel/time.h>
 #include <lib/branch.h>
+#include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
 #include <lib/stdattribute.h>
 #include <stdatomic.h>
@@ -38,22 +38,20 @@ extern noreturn void _scheduler_loop_cpu_exit(arm_ctx_t* el1_ctx);
 
 typedef struct thread_node {
     struct thread_node *prev, *next;
-    thread_t              th;
-} thread_node;
+    thread_t            th;
+} thread_node_t;
 
 
 typedef struct {
     _Alignas(CACHE_LINE) cpulock_t lock;
-    thread_node* list;
+    thread_node_t* list;
     thread_t*      current_thread;
-
-    atomic_ulong  preemptive_duration_microsec; // not core-local
-    timer_event_t preemptive_event;             // core-local
-
+    atomic_ulong   preemptive_duration_microsec;
+    timer_event_t  preemptive_event;
     // for example when a thread calls the syscall yield or when the preemptive
     // timer arrives, this value becomes true. It marks if a schedule call is
     // required to change the current thread
-    bool schedule_required; // completely core-local
+    bool schedule_required;
 } runqueue_t;
 
 
@@ -65,9 +63,9 @@ static atomic_ulong thread_uid_counter;
 
 
 
-static inline thread_node* node_from_thread(thread_t* th)
+static inline thread_node_t* node_from_thread(thread_t* th)
 {
-    return (thread_node*)((char*)th - offsetof(thread_node, th));
+    return (thread_node_t*)((char*)th - offsetof(thread_node_t, th));
 }
 
 
@@ -187,14 +185,14 @@ void scheduler_loop_cpu_enter()
 {
     cpuid_t cpuid = get_cpuid();
 
-    thread_node* list = runqueue[cpuid].list;
+    thread_node_t* list = runqueue[cpuid].list;
 
     if (!list)
         return;
 
 
     // check that we have at least 1 READY thread
-    thread_node *cur, *start;
+    thread_node_t *cur, *start;
     cur   = list;
     start = list;
 
@@ -266,14 +264,14 @@ void scheduler_ectx_load(arm_ctx_t* ectx)
 
 
     thread_t* curr = schedule_is_required(cpuid)
-                       // schedule_required == true:
-                       // schedule a new thread
-                       ? runqueue_schedule()
+                         // schedule_required == true:
+                         // schedule a new thread
+                         ? runqueue_schedule()
 
-                       // schedule_required ==
-                       // false: continue with the
-                       // current thread
-                       : get_current_thread();
+                         // schedule_required ==
+                         // false: continue with the
+                         // current thread
+                         : get_current_thread();
 
 
     runqueue[cpuid].current_thread = curr;
@@ -293,9 +291,8 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 {
     cpuid_t cpuid = get_cpuid();
 
-
-    thread_node* node = kmalloc(sizeof(thread_node));
-    node->th          = (thread_t) {
+    thread_node_t* node = kmalloc(sizeof(thread_node_t));
+    node->th            = (thread_t) {
         .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
         .owner  = owner,
         .ctx =
@@ -312,11 +309,11 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 
     atomic_init(&node->th.state, THREAD_NEW);
 
-    task_add_thread_ref(node->th.owner, &node->th); // sets the local_th_uid
+    task_add_thread_ref(node->th.owner, &node->th);
 
     cpulocked(&runqueue[cpuid].lock)
     {
-        thread_node** first = &runqueue[cpuid].list;
+        thread_node_t** first = &runqueue[cpuid].list;
 
         if (unlikely(*first == NULL)) {
             *first     = node;
@@ -324,7 +321,7 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
             node->next = node;
         }
         else {
-            thread_node* last = (*first)->prev;
+            thread_node_t* last = (*first)->prev;
 
             node->next = *first;
             node->prev = last;
@@ -333,7 +330,6 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
             (*first)->prev = node;
         }
     }
-
 
     if (unlikely(start_ready)) {
         thread_state expected = THREAD_NEW;
@@ -355,7 +351,7 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
 
 // removes the thread from the scheduler and from the owner, the lock must be
 // taken. Does not free the node
-static void unqueue_thread(thread_node* node, cpuid_t runqueue_id)
+static void unqueue_thread(thread_node_t* node, cpuid_t runqueue_id)
 {
     if (runqueue[runqueue_id].current_thread == &node->th) {
         set_current_thread(NULL);
@@ -372,11 +368,9 @@ static void unqueue_thread(thread_node* node, cpuid_t runqueue_id)
             runqueue[runqueue_id].list = node->next;
     }
 
-    task_delete_thread_ref(node->th.owner, &node->th);
+    dbgT(bool) deleted = task_try_delete_thread_ref(node->th.owner, &node->th);
+    DEBUG_ASSERT(deleted);
 }
-
-
-
 
 // defer the deleting of threads
 static void free_threads(kvec(thread*) * to_free)
@@ -384,7 +378,7 @@ static void free_threads(kvec(thread*) * to_free)
     size_t n = kvec_len(to_free);
 
     for (size_t i = 0; i < n; i++) {
-        thread_node* fnode;
+        thread_node_t* fnode;
         dbgT(bool) res = kvec_get_copy(to_free, i, &fnode);
         DEBUG_ASSERT(res && atomic_load(&fnode->th.state) == THREAD_DEAD);
 
@@ -406,13 +400,13 @@ static void free_threads(kvec(thread*) * to_free)
 
 static thread_t* runqueue_schedule()
 {
-    const cpuid_t      cpuid = get_cpuid();
+    const cpuid_t        cpuid = get_cpuid();
     thread_t* const      curr  = get_current_thread();
-    thread_node* const node  = node_from_thread(curr);
+    thread_node_t* const node  = node_from_thread(curr);
 
     ASSERT(curr);
 
-    deferT(kvec(thread*), free_threads) to_free = kvec_new(thread_node*);
+    deferT(kvec(thread*), free_threads) to_free = kvec_new(thread_node_t*);
 
 
     cpulocked(&runqueue[cpuid].lock)
@@ -453,7 +447,7 @@ static thread_t* runqueue_schedule()
 
 
         /* --- select a new valid thread as scheduled --- */
-        thread_node* selected_node = node;
+        thread_node_t* selected_node = node;
 
         while (true) {
             // select next thread in the queue
@@ -461,7 +455,7 @@ static thread_t* runqueue_schedule()
             expected      = THREAD_READY;
 
             // check that the thread's owner is not dying
-            task_state owner_state = atomic_load(
+            task_state_e owner_state = atomic_load(
                 &selected_node->th.owner->state);
 
             DEBUG_ASSERT(

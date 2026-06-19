@@ -5,9 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "lib/lock.h"
-
-
 typedef struct {
     rb_header_t              __tree_header;
     uint64_t                 fd; // used as key of by the tree

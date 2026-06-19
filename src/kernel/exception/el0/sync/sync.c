@@ -98,10 +98,10 @@ void exception_handler_sync(arm_ctx_t* ectx)
                 "[exception_handler_sync] ESR_EC_SVC_AARCH64");
 
             scheduler_ectx_store(ectx);
-
+#ifdef DEBUG
             dbgT(thread_t*) cur = get_current_thread();
             DEBUG_ASSERT(cur);
-
+#endif
             sysc64_dispatch();
 
             scheduler_ectx_load(ectx);

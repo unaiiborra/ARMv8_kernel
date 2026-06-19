@@ -61,7 +61,7 @@ typedef enum {
 
 elf_load_result elf_load(task_t* t, void* elf, size_t size, uintptr_t* out_entry)
 {
-    spinlocked(&t->lock)
+    spinlocked(&t->memory_lock)
     {
         ASSERT(elf);
 

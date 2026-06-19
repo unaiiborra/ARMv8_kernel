@@ -18,13 +18,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
-#define ASSERT_OWNER_IS_LOCKED(owner)       \
-    DEBUG_ASSERT(                           \
-        spinlock_is_locked(&(owner)->lock), \
-        "the task should be locked before calling!")
-
-
 /// flags of the entire region. It is uregion_flags_e + internal flags
 typedef enum {
     F_READ             = UREGION_F_READ,
@@ -485,7 +478,7 @@ uregion_reserve_e uregion_reserve(
     bool      write,
     bool      exec)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uregion_node_t* node = node_malloc(usr_va, pages, read, write, exec, false);
 
@@ -509,7 +502,7 @@ uregion_reserve_e uregion_reserve_static(
     bool      exec,
     bool      zeroed)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uregion_node_t* node = node_malloc(usr_va, pages, read, write, exec, true);
 
@@ -540,7 +533,7 @@ uregion_reserve_e uregion_reserve_static(
 
 void uregion_commit(task_t* t, uintptr_t usrva, uint32_t pages, bool zeroed)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uregion_node_t* node = region_find_usrva(t, usrva);
 
@@ -598,7 +591,7 @@ static void region_destroy(task_t* t, uregion_node_t* node)
 
 bool uregion_free(task_t* t, uintptr_t usrva, uint32_t pages)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uregion_node_t* node = region_find_usrva(t, usrva);
     if (unlikely(!node))
@@ -632,7 +625,7 @@ bool uregion_is_reserved(
     size_t        size,
     uregion_t**   out_region)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     if (size == 0)
         return false;
@@ -661,7 +654,7 @@ bool uregion_is_committed(
     size_t        size,
     uregion_t**   out_region)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uregion_t* region;
 
@@ -755,7 +748,7 @@ uregion_access_e uregions_check_access(
     uregion_flags_e forbidden_flags,
     bool            commit_on_demand)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     scoped_kvec(uma_t) to_commit = kvec_new(uma_t);
     uintptr_t end                = align_up(start + size, PAGE_ALIGN);
@@ -832,7 +825,7 @@ static bool find_free_visitor(void* node, void* ctx)
 
 bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     if (!pages)
         return false;
@@ -935,7 +928,7 @@ uregion_access_e ustrncpy(
     uregion_flags_e forbidden_flags,
     size_t          max)
 {
-    ASSERT_OWNER_IS_LOCKED((task_t*)t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED((task_t*)t);
 
     size_t    off       = 0;
     uintptr_t usr_start = (uintptr_t)usr_string;
@@ -1042,7 +1035,7 @@ uregion_access_e umemzero(
 
 void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size)
 {
-    ASSERT_OWNER_IS_LOCKED(t);
+    DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
     uintptr_t end    = align_up(usr_start + size, PAGE_ALIGN);
     uintptr_t cursor = align_down(usr_start, PAGE_ALIGN);

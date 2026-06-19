@@ -16,7 +16,7 @@ static const syscall_handler SYSC64_TABLE[SYSC_COUNT] = {
     [SYSC_KILL]   = syscall64_kill,
     [SYSC_YIELD]  = syscall64_yield,
     [SYSC_MMAP]   = syscall64_mmap,
-    [SYSC_MUNMAP] = syscall64_unmap,
+    [SYSC_MUNMAP] = syscall64_munmap,
 };
 
 static inline void sysc64_set_result(gpr_t* gpr, int64_t result)

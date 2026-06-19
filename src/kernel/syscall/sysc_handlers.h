@@ -143,7 +143,7 @@ int64_t syscall64_mmap(
     unused_sysarg_t offset // TODO: implement fs
 );
 
-int64_t syscall64_unmap(
+int64_t syscall64_munmap(
     sysarg_t        addr,
     sysarg_t        lenght,
     unused_sysarg_t a2,

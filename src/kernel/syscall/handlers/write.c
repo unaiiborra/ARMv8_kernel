@@ -23,7 +23,7 @@ int64_t syscall64_write(
     scoped_kfree_t write_buf = kzalloc(count);
 
     uregion_access_e uaccess;
-    spinlocked_irqsave(&task->lock)
+    spinlocked_irqsave(&task->memory_lock)
     {
         uaccess = umemcpy(
             task,
