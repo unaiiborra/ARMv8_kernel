@@ -6,17 +6,18 @@
 #include <lib/stdmacros.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "lib/stdattribute.h"
 
 
 
 /*   CLOCKSOURCE   */
 
-static uint64_t clocksource_get_tick([[maybe_unused]] driver_handle_t handle)
+static uint64_t clocksource_get_tick(maybe_unused driver_handle_t handle)
 {
     return sysreg_read(CNTPCT_EL0);
 }
 
-static uint64_t clocksource_get_freq_hz([[maybe_unused]] driver_handle_t handle)
+static uint64_t clocksource_get_freq_hz(maybe_unused driver_handle_t handle)
 {
     return sysreg_read(CNTFRQ_EL0);
 }
@@ -133,7 +134,7 @@ static int32_t timer_irq_notify_tick(
     return 0;
 }
 
-static int32_t timer_is_running([[maybe_unused]] driver_handle_t handle)
+static int32_t timer_is_running(maybe_unused driver_handle_t handle)
 {
     return sysreg_read(CNTV_CTL_EL0) & IENABLE(true);
 }

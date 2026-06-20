@@ -18,7 +18,6 @@ CXXFLAGS += -ffreestanding -Wall -Wextra \
 
 CFLAGS   += -ffreestanding -Wall -Wextra \
             -Istl_include \
-            -std=gnu23 \
             -I$(INCLUDE)
 
 LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib
@@ -64,6 +63,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET) & cargo clean
+	rm -rf $(OBJ_DIR) $(TARGET)
+	cargo clean
 
 .PHONY: all clean

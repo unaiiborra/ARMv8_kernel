@@ -18,6 +18,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/stdattribute.h"
+
 /// flags of the entire region. It is uregion_flags_e + internal flags
 typedef enum {
     F_READ             = UREGION_F_READ,
@@ -893,7 +895,7 @@ uregion_access_e umemcpy(
         uintptr_t       usr_ptr = usr_start + off;
         uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
 
-        rbt_find_result_e fres = rbt_find(
+        maybe_unused rbt_find_result_e fres = rbt_find(
             &unode->region.physical_data,
             pdata_find_condition,
             (void*)usr_ptr,
@@ -952,8 +954,8 @@ uregion_access_e ustrncpy(
         if (uaccess != UREGION_ACCESS_OK)
             return uaccess;
 
-        physdata_node_t*  pnode = NULL;
-        rbt_find_result_e fres  = rbt_find(
+        physdata_node_t*               pnode = NULL;
+        maybe_unused rbt_find_result_e fres  = rbt_find(
             &unode->region.physical_data,
             pdata_find_condition,
             (void*)usr_ptr,
@@ -1009,7 +1011,7 @@ uregion_access_e umemzero(
         uintptr_t       usr_ptr = usr_start + off;
         uregion_node_t* unode   = region_find_usrva(t, usr_start + off);
 
-        rbt_find_result_e fres = rbt_find(
+        maybe_unused rbt_find_result_e fres = rbt_find(
             &unode->region.physical_data,
             pdata_find_condition,
             (void*)usr_ptr,

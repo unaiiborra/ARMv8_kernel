@@ -13,6 +13,7 @@
 #include "kernel/task.h"
 #include "lib/branch.h"
 #include "lib/lock.h"
+#include "lib/stdattribute.h"
 
 
 #define case_print(v)                        \
@@ -123,9 +124,7 @@ typedef enum dfsc {
 }
 
 
-static void translation_fault(
-    [[maybe_unused]] int32_t level,
-    data_abort_iss*          iss)
+static void translation_fault(maybe_unused int32_t level, data_abort_iss* iss)
 {
     task_t*   task           = get_current_thread()->owner;
     uintptr_t fault_address  = get_fault_address();
@@ -167,9 +166,9 @@ void page_fault_handler()
 {
     uint64_t esr = sysreg_read(esr_el1);
 
-    [[maybe_unused]] esr_ec   exception_class = ESR_EC(esr);
-    [[maybe_unused]] uint64_t il  = ESR_IL(esr); // instruction lenght
-    uint64_t                  iss = ESR_ISS(esr);
+    maybe_unused esr_ec   exception_class = ESR_EC(esr);
+    maybe_unused uint64_t il              = ESR_IL(esr); // instruction lenght
+    uint64_t              iss             = ESR_ISS(esr);
     // uint64_t iss2 = ESR_ISS2(esr_el1);
 
     DEBUG_ASSERT(exception_class == ESR_EC_DABT_LOWER_EL);

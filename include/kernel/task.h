@@ -8,7 +8,8 @@
 #include <stdatomic.h>
 #include <stdint.h>
 
-typedef struct thread thread_t;
+typedef struct thread          thread_t;
+typedef struct thread_ref_node thread_ref_node_t;
 
 typedef enum {
     TASK_NEW,   // just created, might not even have threads assigne
@@ -17,8 +18,6 @@ typedef enum {
                 // threads
     TASK_DEAD,  // task has no threads alive
 } task_state_e;
-
-typedef struct thread_ref_node thread_ref_node_t;
 
 typedef struct task {
     uint64_t             task_uid;
@@ -43,6 +42,9 @@ void      task_delete(task_t* ut);
 void      terminate_task(task_t* task, uint32_t exit_code);
 bool      task_owns_thread(const task_t* task, uint64_t thid);
 thread_t* task_get_thread(const task_t* task, uint64_t thid);
+thread_t* task_get_any_thread_with_sched_cpu(
+    const task_t* task,
+    cpuid_t       sched_cpu);
 
 #ifdef DEBUG
 bool task_owner_memory_is_locked(const task_t* task);

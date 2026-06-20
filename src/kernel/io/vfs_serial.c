@@ -9,6 +9,7 @@
 #include "kernel/mm.h"
 #include "kernel/panic.h"
 #include "lib/lock.h"
+#include "lib/stdattribute.h"
 
 typedef struct {
     uint64_t    dev_uid;
@@ -131,7 +132,7 @@ static void handle_term_notify(vfs_serial_data_t* device_data, bool finished)
         if (finished == !notify_enabled)
             return;
 
-        int32_t res;
+        maybe_unused int32_t res;
         if (finished) {
             // irqs enabled but message fully sent, disable notify
             res = ops->irq_notify_tx(handle, 0, NULL, NULL);

@@ -75,7 +75,7 @@ static void irq_ctrl_config(
     const irq_ctrl_ops_t* ops = get_irq_ctrl_ops(dev);
     driver_handle_t       h   = irq_driver_handle(dev);
 
-    dbgT(int32_t) op_res[4];
+    maybe_unused int32_t op_res[4];
 
     op_res[0] = ops->irq_set_priority(h, irq_id, priority);
     op_res[1] = ops->irq_set_trigger(h, irq_id, trigger);
@@ -214,7 +214,7 @@ void irq_unregister(uint32_t irq_id)
     driver_handle_t       h   = irq_driver_handle(dev);
 
 
-    dbgT(int32_t) op_res = ops->irq_disable_id(h, irq_id);
+    maybe_unused int32_t op_res = ops->irq_disable_id(h, irq_id);
     DEBUG_ASSERT(op_res >= 0);
 
 
@@ -236,7 +236,7 @@ void irq_unregister(uint32_t irq_id)
 
 void irq_dispatch()
 {
-    dbgT(int32_t) op_res;
+    maybe_unused int32_t  op_res;
     const device_t*       dev    = irq_dev();
     const irq_ctrl_ops_t* ops    = get_irq_ctrl_ops(dev);
     driver_handle_t       handle = irq_driver_handle(dev);

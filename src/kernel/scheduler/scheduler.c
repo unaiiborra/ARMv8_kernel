@@ -1,6 +1,7 @@
 #include <arm/exceptions/ctx.h>
 #include <arm/exceptions/exceptions.h>
 #include <arm/mmu.h>
+#include <arm/reg.h>
 #include <arm/sysregs/sysregs.h>
 #include <kernel/hardware.h>
 #include <kernel/io/stdio.h>
@@ -14,6 +15,7 @@
 #include <lib/branch.h>
 #include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
+#include <lib/mem.h>
 #include <lib/stdattribute.h>
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -21,7 +23,6 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
-#include "lib/mem.h"
 #include "task.h"
 
 
@@ -29,18 +30,15 @@
 #    define DEFAULT_PREEMPTIVE_MICROSEC 3500 /* 3.5 ms */
 #endif
 
-
 static thread_t* runqueue_schedule();
 
 extern void _scheduler_loop_cpu_enter(arm_ctx_t* el0_ctx, arm_ctx_t* el1_ctx);
 extern noreturn void _scheduler_loop_cpu_exit(arm_ctx_t* el1_ctx);
 
-
 typedef struct thread_node {
     struct thread_node *prev, *next;
     thread_t            th;
 } thread_node_t;
-
 
 typedef struct {
     _Alignas(CACHE_LINE) cpulock_t lock;
@@ -51,16 +49,20 @@ typedef struct {
     // for example when a thread calls the syscall yield or when the preemptive
     // timer arrives, this value becomes true. It marks if a schedule call is
     // required to change the current thread
-    bool schedule_required;
+    atomic_bool schedule_required;
 } runqueue_t;
-
-
-static arm_ctx_t pre_sched_mode_ctx[NUM_CPUS];
 
 static runqueue_t runqueue[NUM_CPUS];
 
+// locks the runqueue_thread_counts and also serves as a lock that avoids
+// deadlocks between 2 runqueues when a thread is deleted and a new thread must
+// be stolen from another runqueue
+static spinlock_t runqueue_thread_counts_lock;
+_Alignas(CACHE_LINE) static uint32_t runqueue_thread_counts[NUM_CPUS];
+
 static atomic_ulong thread_uid_counter;
 
+static arm_ctx_t pre_sched_mode_ctx[NUM_CPUS];
 
 
 static inline thread_node_t* node_from_thread(thread_t* th)
@@ -79,42 +81,42 @@ static inline void set_current_thread(thread_t* th)
 
 static inline void set_thread_mapping(thread_t* th)
 {
-    dbgT(bool) res = mmu_core_set_mapping(
+    maybe_unused bool res = mmu_core_set_mapping(
         mm_mmu_core_handler_get_self(),
         th ? &th->owner->mapping : MM_MMU_UNMAPPED_LO);
 
     DEBUG_ASSERT(res);
 }
 
-
-static void event_preemptive_scheduling([[maybe_unused]] void* ctx)
+static void event_preemptive_scheduling(maybe_unused void* ctx)
 {
     cpuid_t cpuid = get_cpuid();
 
     irqlocked()
     {
-        runqueue[cpuid].schedule_required      = true;
+        atomic_store(&runqueue[cpuid].schedule_required, true);
         runqueue[cpuid].preemptive_event.clock = NULL;
     }
 }
-
 
 void scheduler_init()
 {
     sysreg_write(sp_el0, 0);
 
     atomic_init(&thread_uid_counter, 1);
+    runqueue_thread_counts_lock = SPINLOCK_INIT;
 
     for (size_t i = 0; i < NUM_CORES; i++) {
-        runqueue[i].list              = NULL;
-        runqueue[i].current_thread    = NULL;
-        runqueue[i].lock              = CPULOCK_INIT;
-        runqueue[i].schedule_required = false;
+        runqueue[i].list           = NULL;
+        runqueue[i].current_thread = NULL;
+        runqueue[i].lock           = CPULOCK_INIT;
+        atomic_init(&runqueue[i].schedule_required, false);
         atomic_init(
             &runqueue[i].preemptive_duration_microsec,
             DEFAULT_PREEMPTIVE_MICROSEC);
 
-        pre_sched_mode_ctx[i] = (arm_ctx_t) {0};
+        pre_sched_mode_ctx[i]     = (arm_ctx_t) {0};
+        runqueue_thread_counts[i] = 0;
     }
 
     task_ctl_init();
@@ -129,10 +131,9 @@ thread_t* __get_current_thread_from_runqueue()
 }
 #endif
 
-
 void schedule(cpuid_t cpuid)
 {
-    irqlocked()
+    cpulocked_irqsave(&runqueue[cpuid].lock)
     {
         if (runqueue[cpuid].preemptive_event.clock != NULL) {
             timer_cancel_event(runqueue[cpuid].preemptive_event);
@@ -140,20 +141,18 @@ void schedule(cpuid_t cpuid)
             runqueue[cpuid].preemptive_event.clock = NULL;
         }
 
-        runqueue[cpuid].schedule_required = true;
+        atomic_store(&runqueue[cpuid].schedule_required, true);
     }
 }
-
 
 // must be called with the runqueue lock taken
 static bool schedule_is_required(cpuid_t cpuid)
 {
     thread_state state = atomic_load(&get_current_thread()->state);
 
-    return runqueue[cpuid].schedule_required || state == THREAD_SLEEPING ||
-           state == THREAD_DEAD;
+    return state == THREAD_SLEEPING || state == THREAD_DEAD ||
+           atomic_load(&runqueue[cpuid].schedule_required);
 }
-
 
 uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid)
 {
@@ -167,7 +166,6 @@ uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid)
     unreachable();
 }
 
-
 void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds)
 {
     ASSERT(cpuid < NUM_CPUS);
@@ -180,7 +178,6 @@ void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds)
     }
 }
 
-
 void scheduler_loop_cpu_enter()
 {
     cpuid_t cpuid = get_cpuid();
@@ -189,7 +186,6 @@ void scheduler_loop_cpu_enter()
 
     if (!list)
         return;
-
 
     // check that we have at least 1 READY thread
     thread_node_t *cur, *start;
@@ -228,13 +224,11 @@ void scheduler_loop_cpu_enter()
     _scheduler_loop_cpu_enter(&th->ctx, &pre_sched_mode_ctx[cpuid]);
 }
 
-
 noreturn void scheduler_loop_cpu_exit()
 {
     _scheduler_loop_cpu_exit(&pre_sched_mode_ctx[get_cpuid()]);
     PANIC();
 }
-
 
 void scheduler_ectx_store(arm_ctx_t* ectx)
 {
@@ -254,7 +248,6 @@ void scheduler_ectx_store(arm_ctx_t* ectx)
 
     arm_exceptions_enable_all();
 }
-
 
 void scheduler_ectx_load(arm_ctx_t* ectx)
 {
@@ -285,91 +278,193 @@ void scheduler_ectx_load(arm_ctx_t* ectx)
     cpulock_release(&runqueue[cpuid].lock);
 }
 
-
-/// creates a new thread and adds it to the scheduler
-thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
+static void runqueue_insert_node(thread_node_t* node, cpuid_t runqueue_idx)
 {
-    cpuid_t cpuid = get_cpuid();
+    DEBUG_ASSERT(cpulock_is_locked(&runqueue[runqueue_idx].lock));
+    DEBUG_ASSERT(runqueue_idx < NUM_CPUS);
 
-    thread_node_t* node = kmalloc(sizeof(thread_node_t));
-    node->th            = (thread_t) {
-        .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
-        .owner  = owner,
-        .ctx =
-            {.fpcr   = 0,
-             .fpsr   = 0,
-             .elr    = entry,
-             .spsr   = 0, // TODO: allow kernel threads
-             .sp_elx = 0x0,
-             .x      = {},
-             .v      = {}},
-        .last_access_time_us = 0,
-        .sched_cpu           = cpuid,
-    };
+    node->th.sched_cpu = runqueue_idx;
 
-    atomic_init(&node->th.state, THREAD_NEW);
+    thread_node_t** first = &runqueue[runqueue_idx].list;
 
-    task_add_thread_ref(node->th.owner, &node->th);
+    if (unlikely(*first == NULL)) {
+        *first     = node;
+        node->prev = node;
+        node->next = node;
+    }
+    else {
+        thread_node_t* last = (*first)->prev;
 
-    cpulocked(&runqueue[cpuid].lock)
-    {
-        thread_node_t** first = &runqueue[cpuid].list;
+        node->next = *first;
+        node->prev = last;
 
-        if (unlikely(*first == NULL)) {
-            *first     = node;
-            node->prev = node;
-            node->next = node;
-        }
-        else {
-            thread_node_t* last = (*first)->prev;
-
-            node->next = *first;
-            node->prev = last;
-
-            last->next     = node;
-            (*first)->prev = node;
-        }
+        last->next     = node;
+        (*first)->prev = node;
     }
 
-    if (unlikely(start_ready)) {
-        thread_state expected = THREAD_NEW;
-
-        bool was_expected = atomic_compare_exchange_strong(
-            &node->th.state,
-            &expected,
-            THREAD_READY);
-
-        // the only reason the thread would not be marked as NEW would be if it
-        // was killed, for example by an exit syscall
-        ASSERT(was_expected || expected == THREAD_DEAD);
-    }
-
-    return &node->th;
+    DEBUG_ASSERT(runqueue_thread_counts[runqueue_idx] < UINT32_MAX);
+    runqueue_thread_counts[runqueue_idx]++;
 }
 
-
-
-// removes the thread from the scheduler and from the owner, the lock must be
-// taken. Does not free the node
-static void unqueue_thread(thread_node_t* node, cpuid_t runqueue_id)
+static void runqueue_remove_node(thread_node_t* node, cpuid_t runqueue_idx)
 {
-    if (runqueue[runqueue_id].current_thread == &node->th) {
-        set_current_thread(NULL);
-    }
+    DEBUG_ASSERT(cpulock_is_locked(&runqueue[runqueue_idx].lock));
+    DEBUG_ASSERT(runqueue_idx < NUM_CPUS);
+    DEBUG_ASSERT(runqueue_idx == node->th.sched_cpu);
 
     if (node->next == node) {
-        runqueue[runqueue_id].list = NULL;
+        runqueue[runqueue_idx].list = NULL;
     }
     else {
         node->prev->next = node->next;
         node->next->prev = node->prev;
 
-        if (runqueue[runqueue_id].list == node)
-            runqueue[runqueue_id].list = node->next;
+        if (runqueue[runqueue_idx].list == node)
+            runqueue[runqueue_idx].list = node->next;
     }
 
-    dbgT(bool) deleted = task_try_delete_thread_ref(node->th.owner, &node->th);
-    DEBUG_ASSERT(deleted);
+    DEBUG_ASSERT(runqueue_thread_counts[runqueue_idx] != 0);
+    runqueue_thread_counts[runqueue_idx]--;
+}
+
+/// creates a new thread and adds it to the scheduler
+thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
+{
+    thread_node_t* node = kmalloc(sizeof(thread_node_t));
+
+    spinlocked(&owner->threads_lock) spinlocked(&runqueue_thread_counts_lock)
+    {
+        // 1. choose best runqueue for the new thread
+        cpuid_t  runqueue_idx = 0;
+        uint32_t tmin         = UINT32_MAX;
+        uint32_t gmin         = UINT32_MAX;
+
+        for (size_t i = 0; i < NUM_CPUS; i++) {
+            // task thread runqueue count
+            uint32_t t = owner->threads_per_cpu[i];
+
+            // global runqueue count
+            uint32_t g = runqueue_thread_counts[i];
+
+            if (t < tmin || (t == tmin && g < gmin)) {
+                tmin         = t;
+                gmin         = g;
+                runqueue_idx = i;
+            }
+        }
+
+        // 2. initialize thread
+        node->th = (thread_t) {
+            .th_uid = atomic_fetch_add(&thread_uid_counter, 1),
+            .owner  = owner,
+            .ctx =
+                {.fpcr   = 0,
+                 .fpsr   = 0,
+                 .elr    = entry,
+                 .spsr   = 0x0, // TODO: allow kernel threads
+                 .sp_elx = 0x0,
+                 .x      = {[0 ... XREG_COUNT - 1] = 0},
+                 .v      = {[0 ... VREG_COUNT - 1] = 0}},
+            .last_access_time_us = 0,
+            .sched_cpu           = runqueue_idx,
+        };
+
+        atomic_init(&node->th.state, THREAD_NEW);
+
+        // 3. Add reference to the owner (already adds +1 to the threads_per_cpu)
+        task_add_thread_ref(node->th.owner, &node->th, runqueue_idx);
+
+        // 4. Insert to the runqueue
+        cpulocked(&runqueue[runqueue_idx].lock)
+        {
+            runqueue_insert_node(node, runqueue_idx);
+        }
+    }
+
+    if (start_ready) {
+        thread_state expected = THREAD_NEW;
+
+        maybe_unused bool was_expected = atomic_compare_exchange_strong(
+            &node->th.state,
+            &expected,
+            THREAD_READY);
+
+        // the only reason the thread would not be marked as NEW would be if
+        // it was killed, for example by an exit syscall
+        DEBUG_ASSERT(was_expected || expected == THREAD_DEAD);
+    }
+
+    return &node->th;
+}
+
+// removes the thread from the scheduler and from the owner, the runqueue lock
+// must be taken. Does not free the node
+static void unqueue_thread(thread_node_t* node, cpuid_t runqueue_idx)
+{
+    DEBUG_ASSERT(cpulock_is_locked(&runqueue[runqueue_idx].lock));
+
+    // 1. node removal
+    if (runqueue[runqueue_idx].current_thread == &node->th)
+        set_current_thread(NULL);
+
+    // the node is just removed, the caller must free it
+    runqueue_remove_node(node, runqueue_idx);
+
+    spinlocked(&node->th.owner->threads_lock)
+    {
+        task_t*           task    = node->th.owner;
+        maybe_unused bool deleted = task_try_delete_thread_ref(task, &node->th);
+        DEBUG_ASSERT(deleted);
+
+        // 2. load balancing
+        spinlocked_irqsave(&runqueue_thread_counts_lock)
+        {
+            cpuid_t  victim_cpu = 0;
+            uint32_t tmin       = task->threads_per_cpu[runqueue_idx];
+
+            // find most loaded cpu for this task, if some runqueues share
+            // values get compare with global
+            uint32_t tmax = 0, gmax = 0;
+
+            for (size_t i = 0; i < NUM_CPUS; i++) {
+                // task thread runqueue count
+                uint32_t t = task->threads_per_cpu[i];
+
+                // global runqueue count
+                uint32_t g = runqueue_thread_counts[i];
+
+                if (t > tmax || (t == tmax && g > gmax)) {
+                    tmax       = t;
+                    gmax       = g;
+                    victim_cpu = i;
+                }
+            }
+
+            // delta == quota || delta == quota + 1 (fully task balanced)
+            if (tmax - tmin <= 1)
+                return; // already task balanced
+
+            thread_t* victim = task_get_any_thread_with_sched_cpu(
+                task,
+                victim_cpu);
+
+            DEBUG_ASSERT(victim && victim->sched_cpu == victim_cpu);
+
+            thread_node_t* victim_node = node_from_thread(victim);
+
+            // remove thread from victim's runqueue
+            cpulocked(&runqueue[victim_cpu].lock)
+            {
+                runqueue_remove_node(victim_node, victim_cpu);
+            }
+
+            // insert the stolen node to the self runqueue, locked from the caller
+            runqueue_insert_node(victim_node, runqueue_idx);
+
+            task->threads_per_cpu[runqueue_idx]++;
+            task->threads_per_cpu[victim_cpu]--;
+        }
+    }
 }
 
 // defer the deleting of threads
@@ -378,8 +473,8 @@ static void free_threads(kvec(thread*) * to_free)
     size_t n = kvec_len(to_free);
 
     for (size_t i = 0; i < n; i++) {
-        thread_node_t* fnode;
-        dbgT(bool) res = kvec_get_copy(to_free, i, &fnode);
+        thread_node_t*    fnode;
+        maybe_unused bool res = kvec_get_copy(to_free, i, &fnode);
         DEBUG_ASSERT(res && atomic_load(&fnode->th.state) == THREAD_DEAD);
 
         dbg_printf(
@@ -444,7 +539,6 @@ static thread_t* runqueue_schedule()
 
         if (runqueue[cpuid].list == NULL)
             goto null_return; // No threads remaining in the runqueue
-
 
         /* --- select a new valid thread as scheduled --- */
         thread_node_t* selected_node = node;

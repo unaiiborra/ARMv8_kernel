@@ -62,9 +62,10 @@ static thread_ref_node_t* new_ref_node()
     return kmalloc(sizeof(thread_ref_node_t));
 }
 
-static inline void add_thread_ref(task_t* task, thread_t* th)
+void task_add_thread_ref(task_t* task, struct thread* th, cpuid_t sched_cpu)
 {
     DEBUG_ASSERT(th != NULL);
+    DEBUG_ASSERT(sched_cpu < NUM_CPUS);
     DEBUG_ASSERT_TASK_IS_THREAD_LOCKED(task);
 
     thread_ref_node_t* node = new_ref_node();
@@ -80,30 +81,13 @@ static inline void add_thread_ref(task_t* task, thread_t* th)
         node->prev = NULL;
     }
 
+    task->threads = node;
+
     if (task->thread_ref_count == 1024)
         PANIC("TODO: Handle max task thread count reached");
 
     task->thread_ref_count++;
-    task->threads = node;
-}
-
-void task_add_thread_ref(task_t* t, struct thread* th)
-{
-    irqflags_t flags = spinlock_acquire_irqsave(&t->threads_lock);
-
-    add_thread_ref(t, th);
-
-    spinlock_release_irqrestore(&t->threads_lock, flags);
-}
-
-void task_add_thread_refs(task_t* t, struct thread** th, size_t count)
-{
-    irqflags_t flags = spinlock_acquire_irqsave(&t->threads_lock);
-
-    for (size_t i = 0; i < count; i++)
-        add_thread_ref(t, th[i]);
-
-    spinlock_release_irqrestore(&t->threads_lock, flags);
+    task->threads_per_cpu[sched_cpu]++;
 }
 
 bool task_try_delete_thread_ref(task_t* task, struct thread* th)
@@ -111,9 +95,8 @@ bool task_try_delete_thread_ref(task_t* task, struct thread* th)
     DEBUG_ASSERT(th != NULL);
     DEBUG_ASSERT_TASK_IS_THREAD_LOCKED(task);
 
-    bool found = false;
-
-    thread_ref_node_t* node = task->threads;
+    bool               found = false;
+    thread_ref_node_t* node  = task->threads;
 
     while (node) {
         if (node->thread_ref != th) {
@@ -123,6 +106,9 @@ bool task_try_delete_thread_ref(task_t* task, struct thread* th)
 
         found = true;
 
+        task->thread_ref_count--;
+        task->threads_per_cpu[node->thread_ref->sched_cpu]--;
+
         if (node->prev)
             node->prev->next = node->next;
         else
@@ -131,12 +117,14 @@ bool task_try_delete_thread_ref(task_t* task, struct thread* th)
         if (node->next)
             node->next->prev = node->prev;
 
+
         kfree(node);
-        task->thread_ref_count--;
         break;
     }
 
     if (task->threads == NULL) {
+        DEBUG_ASSERT(task->thread_ref_count == 0);
+
         if (atomic_exchange(&task->state, TASK_DEAD) == TASK_DEAD)
             PANIC();
 
@@ -178,6 +166,24 @@ thread_t* task_get_thread(const task_t* task, uint64_t thid)
 
     while (node) {
         if (node->thread_ref->th_uid == thid)
+            return node->thread_ref;
+
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+thread_t* task_get_any_thread_with_sched_cpu(
+    const task_t* task,
+    cpuid_t       sched_cpu)
+{
+    DEBUG_ASSERT_TASK_IS_THREAD_LOCKED(task);
+
+    thread_ref_node_t* node = task->threads;
+
+    while (node) {
+        if (node->thread_ref->sched_cpu == sched_cpu)
             return node->thread_ref;
 
         node = node->next;

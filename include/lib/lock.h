@@ -283,13 +283,6 @@ static inline bool cpulock_trylock_irqsave(cpulock_t* lock, irqflags_t* irqflags
 // wrap the following code of the macros with { code } and the code will be
 // protected depending on the type of lock
 
-#define __CONCAT3(x, y, z) x##y##z
-#define __CONCAT(x, y, z)  __CONCAT3(x, y, z)
-#define __ITER_VAR(name)   __CONCAT(__iter_, __LINE__, name)
-#define __LOCK_VAR(name)   __CONCAT(__lock_, __LINE__, name)
-
-#define __DEFER(cleanup_fn) __attribute__((unused, cleanup(cleanup_fn)))
-
 [[gnu::always_inline]] static inline void irqrestore_cleanup(
     irqflags_t* irqflags_pt)
 {
@@ -336,41 +329,67 @@ static inline void cpulock_release_irqrestore_cleanup(
     cpulock_release_irqrestore(cleanup->lock, cleanup->irqflags);
 }
 
+#define __CONCAT3(x, y, z) x##y##z
+#define __CONCAT(x, y, z)  __CONCAT3(x, y, z)
+#define __DEFER(fn)        __attribute__((cleanup(fn)))
 
-#define irqlocked()                                        \
-    for (irqflags_t __ITER_VAR(irqlocked) = {0},           \
-                    __DEFER(irqrestore_cleanup)            \
-                        __LOCK_VAR(irqlocked) = irqsave(); \
-         __ITER_VAR(irqlocked).flags < 1;                  \
-         __ITER_VAR(irqlocked).flags++)
+#define irqlocked() __irqlocked_impl(__COUNTER__)
 
-#define spinlocked(lock)                                              \
-    for (spinlock_t __ITER_VAR(spinlocked) = {0},                     \
-                    *__DEFER(spinlock_release_cleanup) __LOCK_VAR(    \
-                        spinlocked) = (spinlock_acquire(lock), lock); \
-         __ITER_VAR(spinlocked).flag < 1;                             \
-         __ITER_VAR(spinlocked).flag++)
+#define __irqlocked_impl(id)                                               \
+    for (irqflags_t __CONCAT(__iter_, id, _iq) = {0},                      \
+                                          __DEFER(irqrestore_cleanup)      \
+                                              __CONCAT(__lock_, id, _iq) = \
+                                                  irqsave();               \
+         __CONCAT(__iter_, id, _iq).flags < 1;                             \
+         __CONCAT(__iter_, id, _iq).flags++)
 
-#define cpulocked(lock)                                                       \
-    for (cpulock_t __ITER_VAR(cpulocked) = {0, 0},                            \
-                   *__DEFER(cpulock_release_cleanup)                          \
-                       __LOCK_VAR(cpulocked) = (cpulock_acquire(lock), lock); \
-         __ITER_VAR(cpulocked).count < 1;                                     \
-         __ITER_VAR(cpulocked).count++)
 
-#define spinlocked_irqsave(lock)                                               \
-    for (spinlock_irqrestore_cleanup_t *                                       \
-             __ITER_VAR(spinlocked_irqsave) =                                  \
-             (spinlock_irqrestore_cleanup_t*)0,                                \
-             __DEFER(spinlock_release_irqrestore_cleanup) __LOCK_VAR(          \
-                 spinlocked_irqsave) = {lock, spinlock_acquire_irqsave(lock)}; \
-         (unsigned long)__ITER_VAR(spinlocked_irqsave) < 1;                    \
-         __ITER_VAR(spinlocked_irqsave) = (spinlock_irqrestore_cleanup_t*)1)
+#define spinlocked(lock) __spinlocked_impl(__COUNTER__, lock)
 
-#define cpulocked_irqsave(lock)                                                \
+#define __spinlocked_impl(id, lock)                                           \
+    for (spinlock_t __CONCAT(__iter_, id, _sl) = {0},                         \
+                                          *__DEFER(spinlock_release_cleanup)  \
+                                              __CONCAT(__lock_, id, _sl) =    \
+                                              (spinlock_acquire(lock), lock); \
+         __CONCAT(__iter_, id, _sl).flag < 1;                                 \
+         __CONCAT(__iter_, id, _sl).flag++)
+
+
+#define cpulocked(lock) __cpulocked_impl(__COUNTER__, lock)
+
+#define __cpulocked_impl(id, lock)                                          \
+    for (cpulock_t __CONCAT(__iter_, id, _cl) = {0, 0},                     \
+                                         *__DEFER(cpulock_release_cleanup)  \
+                                             __CONCAT(__lock_, id, _cl) =   \
+                                             (cpulock_acquire(lock), lock); \
+         __CONCAT(__iter_, id, _cl).count < 1;                              \
+         __CONCAT(__iter_, id, _cl).count++)
+
+
+#define spinlocked_irqsave(lock) __spinlocked_irqsave_impl(__COUNTER__, lock)
+
+#define __spinlocked_irqsave_impl(id, lock)                             \
+    for (spinlock_irqrestore_cleanup_t *                                \
+             __CONCAT(                                                  \
+                 __iter_,                                               \
+                 id,                                                    \
+                 _si) = (spinlock_irqrestore_cleanup_t*)0,              \
+                 __DEFER(spinlock_release_irqrestore_cleanup) __CONCAT( \
+                     __lock_,                                           \
+                     id,                                                \
+                     _si) = {lock, spinlock_acquire_irqsave(lock)};     \
+         (unsigned long)__CONCAT(__iter_, id, _si) < 1;                 \
+         __CONCAT(__iter_, id, _si) = (spinlock_irqrestore_cleanup_t*)1)
+
+
+#define cpulocked_irqsave(lock) __cpulocked_irqsave_impl(__COUNTER__, lock)
+
+#define __cpulocked_irqsave_impl(id, lock)                                     \
     for (cpulock_irqrestore_cleanup_t *                                        \
-             __ITER_VAR(cpulocked_irqsave) = (cpulock_irqrestore_cleanup_t*)0, \
-             __DEFER(cpulock_release_irqrestore_cleanup) __LOCK_VAR(           \
-                 cpulocked_irqsave) = {lock, cpulock_acquire_irqsave(lock)};   \
-         (unsigned long)__ITER_VAR(cpulocked_irqsave) < 1;                     \
-         __ITER_VAR(cpulocked_irqsave) = (cpulock_irqrestore_cleanup_t*)1)
+             __CONCAT(__iter_, id, _ci) = (cpulock_irqrestore_cleanup_t*)0,    \
+                                   __DEFER(cpulock_release_irqrestore_cleanup) \
+                                       __CONCAT(__lock_, id, _ci) =            \
+                                           {lock,                              \
+                                            cpulock_acquire_irqsave(lock)};    \
+         (unsigned long)__CONCAT(__iter_, id, _ci) < 1;                        \
+         __CONCAT(__iter_, id, _ci) = (cpulock_irqrestore_cleanup_t*)1)

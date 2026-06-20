@@ -333,7 +333,7 @@ int raw_kmalloc_lock_defer()
     return 1;
 }
 
-void raw_kmalloc_unlock_defer([[maybe_unused]] int* cleanup)
+void raw_kmalloc_unlock_defer(maybe_unused int* cleanup)
 {
     cpulock_release(&lock);
     irqrestore(irqlock_flags[get_cpuid()].irqlock);

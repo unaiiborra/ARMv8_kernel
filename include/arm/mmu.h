@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "lib/stdattribute.h"
 
 
 /*
@@ -291,7 +292,7 @@ static inline mmu_mapping mmu_mapping_new(
 
     void* tbl = allocator(g);
 
-    [[maybe_unused]] vuintptr_t pt = (vuintptr_t)tbl;
+    maybe_unused vuintptr_t pt = (vuintptr_t)tbl;
     DEBUG_ASSERT(pt && pt % g == 0 && pt % 16 == 0 && g % 64 == 0);
 
     return (mmu_mapping) {

@@ -91,8 +91,8 @@ typedef struct cache1024 {
 typedef struct cache2048 {
     uint64_t          buf[CACHE_2048_ENTRIES][ENTRY_SIZE(CACHE_2048)];
     bitfield64        reserved[BITFIELD_COUNT(CACHE_1024_ENTRIES)];
-    struct cache1024* prev;
-    struct cache1024* next;
+    struct cache2048* prev;
+    struct cache2048* next;
     uint64_t          _padding[252];
     uint64_t          cache_id;
 } cache2048;
@@ -176,7 +176,7 @@ static const char* CACHE_ALLOCATION_TAGS[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     "cache malloc 256",
     "cache malloc 512",
     "cache malloc 1024",
-};
+    "cache malloc 2048"};
 
 // this array must stay ordered from smaller to bigger
 static constexpr size_t CACHE_PAGE_SIZES[2] = {4, 8};
@@ -190,6 +190,7 @@ static constexpr size_t CACHE_PAGES[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     CACHE_256_PAGES,
     CACHE_512_PAGES,
     CACHE_1024_PAGES,
+    CACHE_2048_PAGES,
 };
 
 
@@ -202,6 +203,7 @@ static constexpr size_t CACHE_ENTRIES[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     CACHE_256_ENTRIES,
     CACHE_512_ENTRIES,
     CACHE_1024_ENTRIES,
+    CACHE_2048_ENTRIES,
 };
 
 
@@ -214,6 +216,7 @@ static constexpr size_t CACHE_BITFIELDS[CACHE_MALLOC_SUPPORTED_SIZE_COUNT] = {
     BITFIELD_COUNT(CACHE_256_ENTRIES),
     BITFIELD_COUNT(CACHE_512_ENTRIES),
     BITFIELD_COUNT(CACHE_1024_ENTRIES),
+    BITFIELD_COUNT(CACHE_2048_ENTRIES),
 };
 
 static spinlock_t lock;
@@ -306,7 +309,7 @@ void cache_malloc_init()
 
 static inline size_t cache_idx_from_size(cache_malloc_size size)
 {
-    ASSERT(size >= CACHE_8 && size <= CACHE_1024);
+    ASSERT(size >= CACHE_8 && size <= CACHE_2048);
     return log2_floor(size) - log2_floor((uint32_t)MIN_CACHE_SIZE);
 }
 
@@ -491,7 +494,7 @@ void* cache_malloc(cache_malloc_size size)
 void cache_free(void* ptr)
 {
     cache_malloc_size size;
-    if (!cache_malloc_size_from_ptr(ptr, &size)) 
+    if (!cache_malloc_size_from_ptr(ptr, &size))
         PANIC(
             "cache_free: provided pointer does not relate to a valid cache "
             "allocation");
@@ -510,11 +513,11 @@ void cache_free(void* ptr)
 
         DEBUG_ASSERT(entry_idx < CACHE_ENTRIES[i]);
 
-        size_t bf_i = entry_idx / BF_BITS;
-        size_t bf_n = entry_idx % BF_BITS;
+        size_t bf_n = entry_idx / BF_BITS;
+        size_t bf_i = entry_idx % BF_BITS;
 
-        ASSERT(bitfield_get(f.reserved[bf_i], bf_n), "cache_free: double free");
-        bitfield_clear(f.reserved[bf_i], bf_n);
+        ASSERT(bitfield_get(f.reserved[bf_n], bf_i), "cache_free: double free");
+        bitfield_clear(f.reserved[bf_n], bf_i);
 
         bool empty = true;
         for (size_t j = 0; j < CACHE_BITFIELDS[i]; j++) {

@@ -9,10 +9,7 @@
 #define defer(fn)        attr(gnu::__cleanup__(fn))
 #define deferT(T, defer) attrT(T, gnu::__cleanup__(defer))
 
-
-
-// debug
-#define dbgT(T) attr(maybe_unused) T
+#define maybe_unused attr(maybe_unused)
 
 #ifdef DEBUG
 #    define dbg_mode() 1

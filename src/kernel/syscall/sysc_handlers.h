@@ -14,7 +14,7 @@ typedef const uint64_t sysarg_t;
 #if DEBUG == 2
 #    define dbg_sysc_print(sysc, msg, ...)                            \
         do {                                                          \
-            [[maybe_unused]] thread* __cur_th = get_current_thread(); \
+            maybe_unused thread* __cur_th = get_current_thread(); \
             dbg_printf(                                               \
                 DEBUG_TRACE,                                          \
                 "[utask: %s thread %d] (" #sysc ") " msg,             \

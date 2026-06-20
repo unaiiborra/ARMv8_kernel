@@ -38,7 +38,6 @@ typedef struct {
     vreg128_t v[VREG_COUNT]; // v0-v31
 } arm_ctx_t;
 
-
 _Static_assert(sizeof(arm_ctx_t) % 16 == 0, "");
 
 _Static_assert(
