@@ -280,6 +280,16 @@ void str_fmt_print(str_fmt_putc putc, void* args, const char* f, va_list ap)
                 puts_(putc, args, buf);
                 break;
 
+            case 'l':
+                stdint_to_ascii(
+                    (STDINT_UNION) {.uint64 = (uint64_t)va_arg(ap, void*)},
+                    STDINT_UINT64,
+                    buf,
+                    sizeof(buf),
+                    STDINT_BASE_REPR_DEC);
+                puts_(putc, args, buf);
+                break;
+
             default:
                 putc('%', args);
                 putc(f[-1], args);

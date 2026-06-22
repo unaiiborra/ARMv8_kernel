@@ -70,13 +70,13 @@ BreakInheritanceList: AfterColon
 SortIncludes: true
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<.*>'
+  - Regex: "^<.*>"
     Priority: 1
   - Regex: '^".*"'
     Priority: 2
 
 ReflowComments: true
-CommentPragmas: '^ IWYU pragma:'
+CommentPragmas: "^ IWYU pragma:"
 
 PointerAlignment: Left
 DerivePointerAlignment: false
