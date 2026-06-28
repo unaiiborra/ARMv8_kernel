@@ -8,6 +8,8 @@
 #include "arm/mmu.h"
 #include "kernel/io/stdio.h"
 #include "kernel/mm/mmu.h"
+#include "kernel/time.h"
+#include "lib/stdattribute.h"
 
 
 
@@ -18,13 +20,14 @@ static void smp_cfg_end();
 
 #ifdef GDB
 // used as a breakpoint for forcing new threads detection
+volatile uint64_t smp_gdb_barrier_hang[NUM_CPUS];
+
 [[gnu::noinline]] void smp_gdb_thread_detect()
 {
     asm volatile("nop");
+    smp_gdb_barrier_hang[0] = 0;
 }
 
-volatile uint64_t smp_gdb_barrier_detect[NUM_CPUS];
-volatile uint64_t smp_gdb_barrier_hang[NUM_CPUS];
 
 #else
 #    define gdb_thread_detect()
@@ -35,13 +38,7 @@ void smp_init()
     cpuid_t self = get_cpuid();
 
 #ifdef GDB
-    for (cpuid_t i = 0; i < NUM_CPUS; i++) {
-        smp_gdb_barrier_detect[i] = 0;
-        smp_gdb_barrier_hang[i]   = 1;
-    }
-
-    smp_gdb_barrier_detect[self] = 1;
-    smp_gdb_barrier_hang[self]   = 0xffffffffffffffff;
+    smp_gdb_barrier_hang[self] = 0xffffffffffffffff;
 #endif
 
     for (size_t i = 0; i < NUM_CPUS; i++) {
@@ -79,18 +76,14 @@ void smp_init()
         }
     }
 
-#ifdef GDB
-retry:
-    for (size_t i = 0; i < NUM_CPUS; i++)
-        if (smp_gdb_barrier_detect[i] != 1)
-            goto retry;
 
+#ifdef GDB
     smp_gdb_thread_detect();
 #endif
 }
 
 
-void smp_cpu_cfg(size_t context_id)
+safe_early void smp_cpu_cfg(size_t context_id)
 {
     (void)context_id;
 
@@ -112,13 +105,11 @@ void smp_cpu_cfg(size_t context_id)
     mm_reloc(as_kva((void*)smp_cfg_end));
 }
 
-
 extern void kernel_entry();
-static void smp_cfg_end()
+safe_early static  void smp_cfg_end()
 {
 #ifdef GDB
-    cpuid_t cpuid                 = get_cpuid();
-    smp_gdb_barrier_detect[cpuid] = 1;
+    cpuid_t cpuid = get_cpuid();
 
     while (smp_gdb_barrier_hang[cpuid]) {
         asm volatile("wfi");

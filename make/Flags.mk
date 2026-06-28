@@ -8,16 +8,19 @@ ifdef DEBUG
     endif
 endif
 
+ifdef SCHEDULER_NUM_RUNQUEUES
+	DEFINES += -DSCHEDULER_NUM_RUNQUEUES=$(SCHEDULER_NUM_RUNQUEUES)
+endif
 
 MARCH       ?= armv8-a
 MCPU        ?= cortex-a53+simd
 RS_TARGET	?= aarch64-unknown-none
 CSTD		:= gnu23
-CPPSTD		:= gnu++20 
+CPPSTD		:= gnu++20
 
 ASM_FLAGS   += $(DEFINES) -I$(INCLUDE_DIR)
 
-CX_FLAGS 	+= $(OPT_LEVEL) $(DEFINES) -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -mno-outline-atomics -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include 
+CX_FLAGS 	+= $(OPT_LEVEL) $(DEFINES) -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-error=deprecated-declarations -ffreestanding -nostdlib -nostartfiles -mno-outline-atomics -I$(INCLUDE_DIR) -mcpu=$(MCPU) -nostdinc -I$(CROSS_COMPILE_PATH)/include
 
 C_FLAGS     += $(CX_FLAGS) -x c -std=$(CSTD)
 CPP_FLAGS   += $(CX_FLAGS) -x c++ -std=$(CPPSTD)

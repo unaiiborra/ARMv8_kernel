@@ -33,7 +33,7 @@ clock_t* clock_new(
     const device_t* clocksource,
     const device_t* timer,
     timepoint_t     current_time,
-    bool mutable);
+    bool            mutable);
 
 
 clock_t* clock_new_offset(
@@ -49,12 +49,27 @@ clock_t* clock_new_offset(
 void clock_delete(clock_t* clock);
 
 /// sets the current time, it will panic if the clock is immutable
-void        clock_set_time(clock_t* clock, timepoint_t current_time);
-timepoint_t clock_now(clock_t* clock);
-
+void          clock_set_time(clock_t* clock, timepoint_t current_time);
+timepoint_t   clock_now(clock_t* clock);
 duration_ns_t clock_time_until(clock_t* clock, timepoint_t tp);
 
+static inline duration_ns_t get_duration_ns(timepoint_t t0, timepoint_t t1)
+{
+    return (duration_ns_t)(t1 - t0);
+}
 
+#define __TIME_CONCAT(a, b)  a##b
+#define __TIME_CONCAT2(a, b) __TIME_CONCAT(a, b)
+
+#define clock_measure_impl(clock, duration_ptr, ctr)                       \
+    for (timepoint_t __TIME_CONCAT2(_tp_, ctr) = clock_now((clock)),       \
+                                          __TIME_CONCAT2(_iter_, ctr) = 0; \
+         __TIME_CONCAT2(_iter_, ctr) < 1;                                  \
+         *(duration_ptr) = clock_now(clock) - __TIME_CONCAT2(_tp_, ctr),   \
+                                          __TIME_CONCAT2(_iter_, ctr)++)
+
+#define clock_measure(clock, duration_ptr) \
+    clock_measure_impl(clock, duration_ptr, __COUNTER__)
 
 
 /* Core local timer */
@@ -80,3 +95,6 @@ timer_event_t timer_create_event_delta(
     duration_ns_t    delta_ns);
 
 bool timer_cancel_event(timer_event_t event);
+
+
+void ksleep(duration_ns_t ns);

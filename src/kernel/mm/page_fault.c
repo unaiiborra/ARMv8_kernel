@@ -126,40 +126,45 @@ typedef enum dfsc {
 
 static void translation_fault(maybe_unused int32_t level, data_abort_iss* iss)
 {
-    task_t*   task           = get_current_thread()->owner;
-    uintptr_t fault_address  = get_fault_address();
-    size_t    dabt_word_size = get_dabt_word_size(iss);
-
-    spinlocked(&task->memory_lock)
+    irqlocked()
     {
-        uregion_access_e uaccess = uregions_check_access(
-            task,
-            fault_address,
-            dabt_word_size == 0 ? 1 : dabt_word_size,
-            UREGION_REQUIRED_FLAGS_IGNORE,
-            UREGION_FORBIDDEN_FLAGS_IGNORE,
-            true);
+        task_t*   task           = get_current_thread()->owner;
+        uintptr_t fault_address  = get_fault_address();
+        size_t    dabt_word_size = get_dabt_word_size(iss);
 
-        switch (uaccess) {
-            case UREGION_ACCESS_OK:
-                return;
+        spinlocked(&task->memory_lock)
+        {
+            uregion_access_e uaccess = uregions_check_access(
+                task,
+                fault_address,
+                dabt_word_size == 0 ? 1 : dabt_word_size,
+                UREGION_REQUIRED_FLAGS_IGNORE,
+                UREGION_FORBIDDEN_FLAGS_IGNORE,
+                true);
 
-            case UREGION_ACCESS_NOT_RESERVED:
-                break; // terminate task
+            switch (uaccess) {
+                case UREGION_ACCESS_OK:
+                    return;
 
-            case UREGION_ACCESS_NOT_COMMITTED:
-                PANIC("uregions_check_access should have commited the page");
-            case UREGION_ACCESS_NO_PERMISSION:
-                PANIC(
-                    "uregions_check_access has been configured with no flag "
-                    "checks");
-            default:
-                PANIC();
+                case UREGION_ACCESS_NOT_RESERVED:
+                    break; // terminate task
+
+                case UREGION_ACCESS_NOT_COMMITTED:
+                    PANIC(
+                        "uregions_check_access should have commited the page");
+                case UREGION_ACCESS_NO_PERMISSION:
+                    PANIC(
+                        "uregions_check_access has been configured with no "
+                        "flag "
+                        "checks");
+                default:
+                    PANIC();
+            }
         }
-    }
 
-    // unreserved region access TODO: SIGNAL
-    terminate_task(get_current_thread()->owner, 2);
+        // unreserved region access TODO: SIGNAL
+        terminate_task(get_current_thread()->owner, 2);
+    }
 }
 
 void page_fault_handler()
@@ -200,7 +205,8 @@ void page_fault_handler()
             terminate_task(get_current_thread()->owner, 1);
         } break;
 
-        /* ── Translation faults ──────────────────────────────────────────── */
+        /* ── Translation faults
+         * ──────────────────────────────────────────── */
         case DFSC_TRANSLATION_Lm1: {
             case_print(DFSC_TRANSLATION_Lm1);
             translation_fault(-1, &dabt_iss);
@@ -222,7 +228,8 @@ void page_fault_handler()
             translation_fault(3, &dabt_iss);
         } break;
 
-        /* ── Access flag faults ──────────────────────────────────────────── */
+        /* ── Access flag faults
+         * ──────────────────────────────────────────── */
         case DFSC_ACCESS_FLAG_L0: {
             case_print(DFSC_ACCESS_FLAG_L0);
             PANIC("Access flag faults not implemented!");

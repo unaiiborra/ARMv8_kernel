@@ -12,7 +12,7 @@ use stl::{
 extern crate stl;
 
 const THREADS: usize = 200;
-static LOCK: Spinlock<i32> = Spinlock::new(0);
+static SPINLOCK: Spinlock<i32> = Spinlock::new(0);
 static FINISHED: AtomicU64 = AtomicU64::new(0);
 
 #[unsafe(no_mangle)]

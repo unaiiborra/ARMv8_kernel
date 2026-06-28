@@ -20,6 +20,7 @@ _el1_init_vector:
 .macro EL1_CALL_WITH_CONTEXT label
     ectx_store
     bl \label
+    bl performance_monitor_fence_notify_exception
     ectx_load sp
     eret
 .endm
@@ -92,7 +93,7 @@ _el1_vector_table:
     SET_VENTRY _el1_cur_sp0_irq
     SET_VENTRY _el1_cur_sp0_fiq
     SET_VENTRY _el1_cur_sp0_serror
-//  4..7: Current EL, SPx 
+//  4..7: Current EL, SPx
     SET_VENTRY _el1_cur_spx_sync
     SET_VENTRY _el1_cur_spx_irq
     SET_VENTRY _el1_cur_spx_fiq
@@ -102,7 +103,7 @@ _el1_vector_table:
     SET_VENTRY _el1_low_a64_irq
     SET_VENTRY _el1_low_a64_fiq
     SET_VENTRY _el1_low_a64_serror
-//  12..15: Lower EL, AArch32 
+//  12..15: Lower EL, AArch32
     SET_VENTRY _el1_low_a32_sync
     SET_VENTRY _el1_low_a32_irq
     SET_VENTRY _el1_low_a32_fiq

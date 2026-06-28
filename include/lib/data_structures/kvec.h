@@ -76,7 +76,7 @@ static inline void kvec_empty(kvec* k)
 
 /// Pushes a new item to the end of the vector. It returns the item idx. It
 /// copies the provided in
-int64_t kvec_push(kvec* k, const void* in);
+size_t kvec_push(kvec* k, const void* in);
 
 /// Removes the last item. It returns the idx of the removed element or -1 if
 /// the vec is empty

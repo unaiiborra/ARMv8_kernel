@@ -9,6 +9,7 @@
 #include <kernel/panic.h>
 #include <kernel/scheduler.h>
 #include <kernel/time.h>
+#include <lib/performance_monitor.h>
 #include <stddef.h>
 #include <target/imx8mp.h>
 
@@ -32,6 +33,7 @@ void kernel_init(void)
     scheduler_init();
     device_ctrl_init();
     irq_ctrl_init();
+    performance_monitor_init();
 
     for (kernel_initcall_t* fn = __kernel_initcalls_start;
          fn < __kernel_initcalls_end;

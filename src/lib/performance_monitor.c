@@ -47,9 +47,10 @@ attr(gnu::optimize("O3")) void performance_monitor_fence()
     fence_data[cpuid].cycle_end         = cycle;
     fence_data[cpuid].exception_count   = fence_data[cpuid].exception_counter;
     fence_data[cpuid].exception_counter = 0;
+    asm volatile("nop");
 }
 
-monitor_data_t performance_monitor_read(uint64_t cpu_freq)
+monitor_data_t performance_monitor_read_fence(uint64_t cpu_freq)
 {
     uint64_t cntfrq = sysreg_read(CNTFRQ_EL0);
 
@@ -74,7 +75,7 @@ monitor_data_t performance_monitor_read(uint64_t cpu_freq)
 
 monitor_data_t performance_monitor_print(uint64_t cpu_freq, const char* tag)
 {
-    monitor_data_t data   = performance_monitor_read(cpu_freq);
+    monitor_data_t data   = performance_monitor_read_fence(cpu_freq);
     uint64_t       cntfrq = sysreg_read(CNTFRQ_EL0);
 
     duration_ns_t wall_duration = clockpoint_rng_ns(
@@ -140,6 +141,7 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
     uint64_t cpu_min = UINT64_MAX, cpu_max = 0, cpu_sum = 0;
     uint64_t act_min = UINT64_MAX, act_max = 0, act_sum = 0;
     uint64_t exc_total = 0, exc_count = 0;
+    uint64_t cyc_min = UINT64_MAX, cyc_max = 0, cyc_sum = 0;
 
     for (size_t i = 0; i < n; i++) {
         duration_ns_t wall = clockpoint_rng_ns(
@@ -154,6 +156,7 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
                            ? ((__uint128_t)data[i].cycle_delta * cntfrq * 100) /
                                  ((uint64_t)data[i].wallclock_delta * cpu_freq)
                            : 0;
+        uint64_t cyc = data[i].cycle_end - data[i].cycle_start;
 
         if ((uint64_t)wall < wall_min)
             wall_min = wall;
@@ -166,6 +169,12 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
         if ((uint64_t)cpu > cpu_max)
             cpu_max = cpu;
         cpu_sum += cpu;
+
+        if (cyc < cyc_min)
+            cyc_min = cyc;
+        if (cyc > cyc_max)
+            cyc_max = cyc;
+        cyc_sum += cyc;
 
         if (act < act_min)
             act_min = act;
@@ -181,9 +190,10 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
     uint64_t wall_avg = wall_sum / n;
     uint64_t cpu_avg  = cpu_sum / n;
     uint64_t act_avg  = act_sum / n;
+    uint64_t cyc_avg  = cyc_sum / n;
 
-    uint64_t wall_var = 0, cpu_var = 0;
-    uint64_t jitter_min = UINT64_MAX, jitter_max = 0, jitter_sum = 0;
+    __uint128_t wall_var = 0, cpu_var = 0;
+    uint64_t    jitter_min = UINT64_MAX, jitter_max = 0, jitter_sum = 0;
 
     for (size_t i = 0; i < n; i++) {
         duration_ns_t wall = clockpoint_rng_ns(
@@ -197,17 +207,19 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
 
         int64_t dw = (int64_t)wall - (int64_t)wall_avg;
         int64_t dc = (int64_t)cpu - (int64_t)cpu_avg;
-        wall_var += (uint64_t)(dw * dw);
-        cpu_var += (uint64_t)(dc * dc);
+        wall_var += (__uint128_t)(dw < 0 ? -dw : dw) *
+                    (uint64_t)(dw < 0 ? -dw : dw);
+        cpu_var += (__uint128_t)(dc < 0 ? -dc : dc) *
+                   (uint64_t)(dc < 0 ? -dc : dc);
 
         if (i > 0) {
             duration_ns_t prev_wall = clockpoint_rng_ns(
                 data[i - 1].wallclock_start,
                 data[i - 1].wallclock_end,
                 cntfrq);
-            uint64_t jitter = (uint64_t)((uint64_t)wall > (uint64_t)prev_wall
-                                             ? wall - prev_wall
-                                             : prev_wall - wall);
+            uint64_t jitter = (uint64_t)wall > (uint64_t)prev_wall
+                                  ? (uint64_t)wall - (uint64_t)prev_wall
+                                  : (uint64_t)prev_wall - (uint64_t)wall;
             if (jitter < jitter_min)
                 jitter_min = jitter;
             if (jitter > jitter_max)
@@ -216,19 +228,29 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
         }
     }
 
-    uint64_t wall_std = wall_var / n;
-    uint64_t cpu_std  = cpu_var / n;
+    /* varianza -> desviacion tipica con raiz entera (semilla por clz) */
+    uint64_t wall_variance = (uint64_t)(wall_var / n);
+    uint64_t cpu_variance  = (uint64_t)(cpu_var / n);
 
-    if (wall_std > 0) {
-        uint64_t x = wall_std;
+    uint64_t wall_std, cpu_std;
+    if (wall_variance == 0) {
+        wall_std = 0;
+    }
+    else {
+        int      leading = __builtin_clzll(wall_variance);
+        uint64_t x       = 1ULL << ((64 - leading) / 2 + 1);
         for (int i = 0; i < 16; i++)
-            x = (x + wall_std / x) / 2;
+            x = (x + wall_variance / x) / 2;
         wall_std = x;
     }
-    if (cpu_std > 0) {
-        uint64_t x = cpu_std;
+    if (cpu_variance == 0) {
+        cpu_std = 0;
+    }
+    else {
+        int      leading = __builtin_clzll(cpu_variance);
+        uint64_t x       = 1ULL << ((64 - leading) / 2 + 1);
         for (int i = 0; i < 16; i++)
-            x = (x + cpu_std / x) / 2;
+            x = (x + cpu_variance / x) / 2;
         cpu_std = x;
     }
 
@@ -238,8 +260,8 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
 
     scoped_kfree_t wall_ptr    = kmalloc(sizeof(uint64_t) * n);
     scoped_kfree_t cpu_ptr     = kmalloc(sizeof(uint64_t) * n);
-    uint64_t *     wall_sorted = wall_ptr, *cpu_sorted = cpu_ptr;
-
+    uint64_t*      wall_sorted = wall_ptr;
+    uint64_t*      cpu_sorted  = cpu_ptr;
 
     for (size_t i = 0; i < n; i++) {
         wall_sorted[i] = clockpoint_rng_ns(
@@ -273,26 +295,36 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
     }
 
 #define PCTILE(arr, n, p) (arr[((n) * (p)) / 100])
+    uint64_t wall_p25 = PCTILE(wall_sorted, n, 25);
     uint64_t wall_p50 = PCTILE(wall_sorted, n, 50);
+    uint64_t wall_p75 = PCTILE(wall_sorted, n, 75);
     uint64_t wall_p90 = PCTILE(wall_sorted, n, 90);
     uint64_t wall_p95 = PCTILE(wall_sorted, n, 95);
     uint64_t wall_p99 = PCTILE(wall_sorted, n, 99);
+    uint64_t cpu_p25  = PCTILE(cpu_sorted, n, 25);
     uint64_t cpu_p50  = PCTILE(cpu_sorted, n, 50);
+    uint64_t cpu_p75  = PCTILE(cpu_sorted, n, 75);
     uint64_t cpu_p90  = PCTILE(cpu_sorted, n, 90);
     uint64_t cpu_p95  = PCTILE(cpu_sorted, n, 95);
     uint64_t cpu_p99  = PCTILE(cpu_sorted, n, 99);
 #undef PCTILE
 
+    uint64_t wall_iqr = wall_p75 - wall_p25;
+    uint64_t cpu_iqr  = cpu_p75 - cpu_p25;
+
 #define FMT_NS(v) \
     (v) / 1000000000, ((v) / 1000000) % 1000, ((v) / 1000) % 1000, (v) % 1000
 
     printf(
-        "[CPU%l][%s] n=%l\n\r"
+        "[CPU%l][%s] N=%l\n\r"
         "  wall   min=%ls.%lms.%lus.%lns\n\r"
         "         max=%ls.%lms.%lus.%lns\n\r"
         "         avg=%ls.%lms.%lus.%lns\n\r"
         "         std=%ls.%lms.%lus.%lns\n\r"
+        "         iqr=%ls.%lms.%lus.%lns\n\r"
+        "         p25=%ls.%lms.%lus.%lns\n\r"
         "         p50=%ls.%lms.%lus.%lns\n\r"
+        "         p75=%ls.%lms.%lus.%lns\n\r"
         "         p90=%ls.%lms.%lus.%lns\n\r"
         "         p95=%ls.%lms.%lus.%lns\n\r"
         "         p99=%ls.%lms.%lus.%lns\n\r"
@@ -300,16 +332,20 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
         "         max=%ls.%lms.%lus.%lns\n\r"
         "         avg=%ls.%lms.%lus.%lns\n\r"
         "         std=%ls.%lms.%lus.%lns\n\r"
+        "         iqr=%ls.%lms.%lus.%lns\n\r"
+        "         p25=%ls.%lms.%lus.%lns\n\r"
         "         p50=%ls.%lms.%lus.%lns\n\r"
+        "         p75=%ls.%lms.%lus.%lns\n\r"
         "         p90=%ls.%lms.%lus.%lns\n\r"
         "         p95=%ls.%lms.%lus.%lns\n\r"
         "         p99=%ls.%lms.%lus.%lns\n\r"
+        "  cycles min=%l max=%l avg=%l\n\r"
         "  active min=%l%% max=%l%% avg=%l%%\n\r"
         "  jitter min=%ls.%lms.%lus.%lns\n\r"
         "         max=%ls.%lms.%lus.%lns\n\r"
         "         avg=%ls.%lms.%lus.%lns\n\r"
-        "  exceptions total=%l \n\r"
-        "  samples_with_exc=%l/%l\n\r",
+        "  exceptions total=%l\n\r"
+        "  samples_with_exceptions=%l/%l\n\r",
         (uint64_t)get_cpuid(),
         tag,
         (uint64_t)n,
@@ -317,7 +353,10 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
         FMT_NS(wall_max),
         FMT_NS(wall_avg),
         FMT_NS(wall_std),
+        FMT_NS(wall_iqr),
+        FMT_NS(wall_p25),
         FMT_NS(wall_p50),
+        FMT_NS(wall_p75),
         FMT_NS(wall_p90),
         FMT_NS(wall_p95),
         FMT_NS(wall_p99),
@@ -325,10 +364,16 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
         FMT_NS(cpu_max),
         FMT_NS(cpu_avg),
         FMT_NS(cpu_std),
+        FMT_NS(cpu_iqr),
+        FMT_NS(cpu_p25),
         FMT_NS(cpu_p50),
+        FMT_NS(cpu_p75),
         FMT_NS(cpu_p90),
         FMT_NS(cpu_p95),
         FMT_NS(cpu_p99),
+        cyc_min,
+        cyc_max,
+        cyc_avg,
         act_min,
         act_max,
         act_avg,
@@ -341,7 +386,6 @@ attr(gnu::optimize("O3")) void performance_monitor_print_metrics(
 
 #undef FMT_NS
 }
-
 
 attr(gnu::optimize("O3")) void performance_monitor_fence_notify_exception()
 {
@@ -356,8 +400,8 @@ timepoint_t clockpoint_to_timepoint(clockcycle_t clockcycle, uint64_t freq)
 
 duration_ns_t clockpoint_rng_ns(clockcycle_t c0, clockcycle_t c1, uint64_t freq)
 {
-    return (duration_ns_t)((__int128_t)((__int128_t)c1 - (__int128_t)c0) *
-                           1000000000ULL / freq);
+    return (duration_ns_t)((__int128_t)((int64_t)c1 - (int64_t)c0) *
+                           1000000000 / freq);
 }
 
 duration_ns_t clockcycle_print_profiling(

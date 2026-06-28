@@ -89,10 +89,7 @@ static void downsize_vec(kvec* k)
     k->container_bytes_ = bytes;
 }
 
-
-
-
-int64_t kvec_push(kvec* k, const void* in)
+size_t kvec_push(kvec* k, const void* in)
 {
     uintptr_t i_offset = k->i_ * k->T_size_;
 

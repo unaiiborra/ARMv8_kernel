@@ -9,14 +9,15 @@
     b _smc_call
 .endm
 
-
-
-
 // should enter with x0 having the context_id
 .global _smp_wakeup_entry
-_smp_wakeup_entry: 
+_smp_wakeup_entry:
     msr daifset, #0xf
-    
+
+0:  mov x0, #0
+    nop
+    cbz x0, 0b
+
     mrs x1, MPIDR_EL1
     and x1, x1, #0xFF // core Aff0
 
@@ -31,12 +32,12 @@ _smp_wakeup_entry:
     mul x1, x1, x2  // x1 = coreid * stack size
     sub x1, x3, x1  // x1 = stack end - coreid * stack size
     sub x1, x1, x4  // x1 = virtual_stack_pos - KERNEL_BASE
-    
+
     mov sp, x1
 
     str x0, [sp, #-16]! // save context_id in the stack
-    
-    bl _el2_init_vector 
+
+    bl _el2_init_vector
 
     adr x0, smp_cpu_cfg
     ldr x1, [sp], #16
@@ -46,4 +47,3 @@ _smp_wakeup_entry:
 hang:
     wfe
     b hang
-

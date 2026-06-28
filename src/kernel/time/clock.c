@@ -84,7 +84,7 @@ static inline clock_t* setup_new_clock(
     uint32_t        shift,
     uint32_t        inv_mult,
     uint32_t        inv_shift,
-    bool mutable)
+    bool            mutable)
 {
     *out = (clock_t) {
         .dev_clocksource = clocksource,
@@ -107,7 +107,7 @@ clock_t* clock_new(
     const device_t* clocksource,
     const device_t* timer,
     timepoint_t     current_time,
-    bool mutable)
+    bool            mutable)
 {
     clock_init_t init = init_clocksource_and_timer(clocksource, timer);
 
@@ -134,7 +134,7 @@ clock_t* clock_new_offset(
     const device_t* clocksource,
     const device_t* timer,
     duration_ns_t   offset,
-    bool mutable)
+    bool            mutable)
 {
     clock_init_t init = init_clocksource_and_timer(clocksource, timer);
 
@@ -154,11 +154,11 @@ clock_t* clock_new_offset(
 
 
 void clock_new_static(
-    clock_t* new,
+    clock_t*        new,
     const device_t* clocksource,
     const device_t* timer,
     duration_ns_t   offset,
-    bool mutable)
+    bool            mutable)
 {
     clock_init_t init = init_clocksource_and_timer(clocksource, timer);
 
@@ -190,6 +190,11 @@ void clock_set_time(clock_t* clock, timepoint_t current_time)
 }
 
 timepoint_t clock_now(clock_t* clock)
+{
+    return clocksource_now_ns(clock) + clock->offset;
+}
+
+timepoint_t clock_now_uninterrupted(clock_t* clock)
 {
     return clocksource_now_ns(clock) + clock->offset;
 }

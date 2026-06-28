@@ -1,3 +1,4 @@
+#include "lib/stdattribute.h"
 #define __MMU_INTERNAL
 
 #include <arm/cpu.h>
@@ -248,7 +249,7 @@ bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g)
     return true;
 }
 
-bool mmu_core_handle_new(
+safe_early bool mmu_core_handle_new(
     mmu_core_handle* out,
     mmu_mapping*     lo_mapping,
     mmu_mapping*     hi_mapping,

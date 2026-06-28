@@ -37,8 +37,7 @@ static inline pv_ptr pv_ptr_new(puintptr_t pa, vuintptr_t va)
 size_t pa_supported_bits();
 
 
-static inline bool
-address_is_valid(uintptr_t a, size_t bits, bool sign_extended)
+static inline bool address_is_valid(uintptr_t a, size_t bits, bool sign_extended)
 {
     ASSERT(bits > 0 && bits <= 64);
 

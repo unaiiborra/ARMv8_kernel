@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/lock.h"
 #include "sysc_handlers.h"
 
 static const syscall_handler SYSC64_TABLE[SYSC_COUNT] = {
@@ -26,22 +27,25 @@ static inline void sysc64_set_result(gpr_t* gpr, int64_t result)
 
 void sysc64_dispatch()
 {
-    gpr_t* gpr = get_current_thread()->ctx.x;
+    irqlocked()
+    {
+        gpr_t* gpr = get_current_thread()->ctx.x;
 
-    size_t syscall_id = gpr[SYSC64_SYSCNUM_REG];
+        size_t syscall_id = gpr[SYSC64_SYSCNUM_REG];
 
-    if (syscall_id >= SYSC_COUNT) {
-        sysc64_set_result(gpr, SYSC64_RES_UNKNOWN);
-        return;
+        if (syscall_id >= SYSC_COUNT) {
+            sysc64_set_result(gpr, SYSC64_RES_UNKNOWN);
+            return;
+        }
+
+        int64_t result = SYSC64_TABLE[syscall_id](
+            gpr[0],
+            gpr[1],
+            gpr[2],
+            gpr[3],
+            gpr[4],
+            gpr[5]);
+
+        sysc64_set_result(gpr, result);
     }
-
-    int64_t result = SYSC64_TABLE[syscall_id](
-        gpr[0],
-        gpr[1],
-        gpr[2],
-        gpr[3],
-        gpr[4],
-        gpr[5]);
-
-    sysc64_set_result(gpr, result);
 }

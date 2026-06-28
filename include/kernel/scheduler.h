@@ -15,10 +15,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
-void          scheduler_loop_cpu_enter();
-noreturn void scheduler_loop_cpu_exit();
-
+void scheduler_loop_cpu_enter();
 
 void scheduler_ectx_store(arm_ctx_t* ectx);
 void scheduler_ectx_load(arm_ctx_t* ectx);

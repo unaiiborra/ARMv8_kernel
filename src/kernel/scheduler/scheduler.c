@@ -25,6 +25,13 @@
 
 #include "task.h"
 
+#ifndef SCHEDULER_NUM_RUNQUEUES
+constexpr size_t NUM_RUNQUEUES = NUM_CPUS;
+#else
+constexpr size_t NUM_RUNQUEUES = (SCHEDULER_NUM_RUNQUEUES) > NUM_CPUS
+                                     ? NUM_CPUS
+                                     : (SCHEDULER_NUM_RUNQUEUES);
+#endif
 
 #ifndef DEFAULT_PREEMPTIVE_MICROSEC
 #    define DEFAULT_PREEMPTIVE_MICROSEC 3500 /* 3.5 ms */
@@ -52,17 +59,17 @@ typedef struct {
     atomic_bool schedule_required;
 } runqueue_t;
 
-static runqueue_t runqueue[NUM_CPUS];
+static runqueue_t runqueue[NUM_RUNQUEUES];
 
 // locks the runqueue_thread_counts and also serves as a lock that avoids
 // deadlocks between 2 runqueues when a thread is deleted and a new thread must
 // be stolen from another runqueue
 static spinlock_t runqueue_thread_counts_lock;
-_Alignas(CACHE_LINE) static uint32_t runqueue_thread_counts[NUM_CPUS];
+_Alignas(CACHE_LINE) static uint32_t runqueue_thread_counts[NUM_RUNQUEUES];
 
 static atomic_ulong thread_uid_counter;
 
-static arm_ctx_t pre_sched_mode_ctx[NUM_CPUS];
+static arm_ctx_t pre_sched_mode_ctx[NUM_RUNQUEUES];
 
 
 static inline thread_node_t* node_from_thread(thread_t* th)
@@ -106,7 +113,7 @@ void scheduler_init()
     atomic_init(&thread_uid_counter, 1);
     runqueue_thread_counts_lock = SPINLOCK_INIT;
 
-    for (size_t i = 0; i < NUM_CORES; i++) {
+    for (size_t i = 0; i < NUM_RUNQUEUES; i++) {
         runqueue[i].list           = NULL;
         runqueue[i].current_thread = NULL;
         runqueue[i].lock           = CPULOCK_INIT;
@@ -156,7 +163,7 @@ static bool schedule_is_required(cpuid_t cpuid)
 
 uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid)
 {
-    ASSERT(cpuid < NUM_CPUS);
+    ASSERT(cpuid < NUM_RUNQUEUES);
 
     irqlocked()
     {
@@ -168,7 +175,7 @@ uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid)
 
 void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds)
 {
-    ASSERT(cpuid < NUM_CPUS);
+    ASSERT(cpuid < NUM_RUNQUEUES);
 
     irqlocked()
     {
@@ -181,6 +188,16 @@ void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds)
 void scheduler_loop_cpu_enter()
 {
     cpuid_t cpuid = get_cpuid();
+
+    if (cpuid > NUM_RUNQUEUES) {
+        dbg_printf(
+            DEBUG_TRACE,
+            "[CORE %d] exited runqueue due to explicit NUM_RUNQUEUES=%d\n\r",
+            cpuid,
+            (uint32_t)NUM_RUNQUEUES);
+        return;
+    }
+
 
     thread_node_t* list = runqueue[cpuid].list;
 
@@ -241,7 +258,7 @@ void scheduler_ectx_store(arm_ctx_t* ectx)
     DEBUG_ASSERT(curr == NULL || is_kva_ptr(curr));
 
     if (curr) {
-        curr->ctx = *ectx;
+        memcpy(&curr->ctx, ectx, sizeof(arm_ctx_t));
     }
 
     sysreg_write(sp_el0, curr);
@@ -281,7 +298,7 @@ void scheduler_ectx_load(arm_ctx_t* ectx)
 static void runqueue_insert_node(thread_node_t* node, cpuid_t runqueue_idx)
 {
     DEBUG_ASSERT(cpulock_is_locked(&runqueue[runqueue_idx].lock));
-    DEBUG_ASSERT(runqueue_idx < NUM_CPUS);
+    DEBUG_ASSERT(runqueue_idx < NUM_RUNQUEUES);
 
     node->th.sched_cpu = runqueue_idx;
 
@@ -309,7 +326,7 @@ static void runqueue_insert_node(thread_node_t* node, cpuid_t runqueue_idx)
 static void runqueue_remove_node(thread_node_t* node, cpuid_t runqueue_idx)
 {
     DEBUG_ASSERT(cpulock_is_locked(&runqueue[runqueue_idx].lock));
-    DEBUG_ASSERT(runqueue_idx < NUM_CPUS);
+    DEBUG_ASSERT(runqueue_idx < NUM_RUNQUEUES);
     DEBUG_ASSERT(runqueue_idx == node->th.sched_cpu);
 
     if (node->next == node) {
@@ -339,7 +356,7 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
         uint32_t tmin         = UINT32_MAX;
         uint32_t gmin         = UINT32_MAX;
 
-        for (size_t i = 0; i < NUM_CPUS; i++) {
+        for (size_t i = 0; i < NUM_RUNQUEUES; i++) {
             // task thread runqueue count
             uint32_t t = owner->threads_per_cpu[i];
 
@@ -426,7 +443,7 @@ static void unqueue_thread(thread_node_t* node, cpuid_t runqueue_idx)
             // values get compare with global
             uint32_t tmax = 0, gmax = 0;
 
-            for (size_t i = 0; i < NUM_CPUS; i++) {
+            for (size_t i = 0; i < NUM_RUNQUEUES; i++) {
                 // task thread runqueue count
                 uint32_t t = task->threads_per_cpu[i];
 
@@ -557,6 +574,7 @@ static thread_t* runqueue_schedule()
                 "no threads of a dead task should be in the runqueue");
 
             if (unlikely(owner_state == TASK_DYING)) {
+                atomic_store(&selected_node->th.state, THREAD_DEAD);
                 unqueue_thread(selected_node, cpuid);
                 kvec_push(&to_free, &selected_node);
 

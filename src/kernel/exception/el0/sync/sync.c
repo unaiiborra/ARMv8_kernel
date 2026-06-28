@@ -12,6 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/performance_monitor.h"
+
 
 // https://developer.arm.com/documentation/102412/0103/Handling-excepcions/Exception-handling-examples
 // https://developer.arm.com/documentation/ddi0601/latest/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-
@@ -21,7 +23,6 @@ void exception_handler_sync(arm_ctx_t* ectx)
 {
     uint64_t esr_el1         = sysreg_read(esr_el1);
     esr_ec   exception_class = ESR_EC(esr_el1);
-
 
     switch (exception_class) {
         case ESR_EC_UNKNOWN:
