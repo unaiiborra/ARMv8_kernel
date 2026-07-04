@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 static cpulock_t io_lock;
+cpulock_t* const IO_LOCK = &io_lock;
 
 void io_init()
 {

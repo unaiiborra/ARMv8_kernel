@@ -1,3 +1,4 @@
+set confirm off
 target remote localhost:__PORT__
 set print pretty on
 monitor halt

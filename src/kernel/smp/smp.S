@@ -12,12 +12,9 @@
 // should enter with x0 having the context_id
 .global _smp_wakeup_entry
 _smp_wakeup_entry:
-    msr daifset, #0xf
-
-0:  mov x0, #0
     nop
-    cbz x0, 0b
-
+    msr daifset, #0xf
+    
     mrs x1, MPIDR_EL1
     and x1, x1, #0xFF // core Aff0
 

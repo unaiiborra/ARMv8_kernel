@@ -1,3 +1,4 @@
+#include "lib/lock.h"
 #include "lib/stdattribute.h"
 #define __MMU_INTERNAL
 
@@ -210,8 +211,8 @@ bool mmu_core_set_lo_granularity(mmu_core_handle* ch, mmu_granularity g)
             return false;
     }
 
-    ch->flags &=
-        ~((uint64_t)COREH_GRANULARITY_MASK << COREH_LO_GRANULARITY_SHIFT);
+    ch->flags &= ~(
+        (uint64_t)COREH_GRANULARITY_MASK << COREH_LO_GRANULARITY_SHIFT);
     ch->flags |= val << COREH_LO_GRANULARITY_SHIFT;
 
     return true;
@@ -242,8 +243,8 @@ bool mmu_core_set_hi_granularity(mmu_core_handle* ch, mmu_granularity g)
             return false;
     }
 
-    ch->flags &=
-        ~((uint64_t)COREH_GRANULARITY_MASK << COREH_HI_GRANULARITY_SHIFT);
+    ch->flags &= ~(
+        (uint64_t)COREH_GRANULARITY_MASK << COREH_HI_GRANULARITY_SHIFT);
     ch->flags |= val << COREH_HI_GRANULARITY_SHIFT;
 
     return true;
@@ -306,8 +307,13 @@ void mmu_delete_mapping(mmu_mapping* m)
     *m = MMU_NULL_MAPPING;
 }
 
-mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
+safe_early mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
 {
+    if (ch == NULL)
+        while (1)
+            wfi();
+
+
     ASSERT(ch);
 
     if (!eq_caller_coreid(ch))
@@ -328,10 +334,10 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
     uint8_t  hi_va_bits    = mmu_core_get_hi_va_bits(ch);
     bool     valid_lo_bits = lo_va_bits >= 39 && lo_va_bits <= 48;
     bool     valid_hi_bits = hi_va_bits >= 39 && hi_va_bits <= 48;
-    uint64_t tg0 =
-        (ch->flags >> COREH_LO_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
-    uint64_t tg1 =
-        (ch->flags >> COREH_HI_GRANULARITY_SHIFT) & COREH_GRANULARITY_MASK;
+    uint64_t tg0           = (ch->flags >> COREH_LO_GRANULARITY_SHIFT) &
+                             COREH_GRANULARITY_MASK;
+    uint64_t tg1           = (ch->flags >> COREH_HI_GRANULARITY_SHIFT) &
+                             COREH_GRANULARITY_MASK;
 
 
     if (!valid_lo_bits && !valid_hi_bits)
@@ -384,8 +390,8 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
 
     /* paddress size */
     uint64_t id_aa64mmfr0 = _mmu_get_ID_AA64MMFR0_EL1();
-    uint64_t pa_range =
-        id_aa64mmfr0 & 0xFUL; /* [3:0] DDI0500J_cortex_a53_trm.pdf p.104 */
+    uint64_t pa_range     = id_aa64mmfr0 &
+                            0xFUL; /* [3:0] DDI0500J_cortex_a53_trm.pdf p.104 */
 
     uint64_t ips;
     switch (pa_range) {
@@ -423,12 +429,10 @@ mmu_activate_result mmu_core_activate(mmu_core_handle* ch)
     sctlr &= ~(1ULL << 2);
     sctlr &= ~(1ULL << 12);
 
-    sctlr |=
-        ((uint64_t)mmu_core_get_i_cache(ch) << 12); /* I instruction cache */
-    sctlr |= ((uint64_t)mmu_core_get_d_cache(ch) << 2); /* D data cache */
-    sctlr |=
-        ((uint64_t)mmu_core_get_align_trap(ch) << 1); /* A alignment trap */
-    sctlr |= (1ULL << 0);                             /* M MMU enable */
+    sctlr |= ((uint64_t)mmu_core_get_i_cache(ch) << 12); /* I instruction cache */
+    sctlr |= ((uint64_t)mmu_core_get_d_cache(ch) << 2);    /* D data cache */
+    sctlr |= ((uint64_t)mmu_core_get_align_trap(ch) << 1); /* A alignment trap */
+    sctlr |= (1ULL << 0);                                  /* M MMU enable */
 
 
     _mmu_set_MAIR_EL1(mair);

@@ -50,8 +50,7 @@ const device_t* device_get_by_uid(device_class_t class_id, uint64_t uid);
 const device_t* device_get_primary(device_class_t class_id);
 
 
-[[gnu::always_inline]] static inline driver_handle_t device_get_driver_handle(
-    const device_t* device)
+static inline driver_handle_t device_get_driver_handle(const device_t* device)
 {
     return (driver_handle_t) {
         .base  = mm_kernel_is_relocated() ? kpa_to_kva(device->base_pa)

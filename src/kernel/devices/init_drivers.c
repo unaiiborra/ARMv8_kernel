@@ -10,11 +10,14 @@
 #include <drivers/imx8mp_uart.h>
 #include <kernel/init.h>
 #include <lib/stdmacros.h>
+#include <stddef.h>
 #include <target/device_map.h>
 
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/exception/irq.h"
+#include "kernel/smp.h"
+#include "kernel/time.h"
 #include "target/imx8mp.h"
 
 
@@ -75,15 +78,16 @@ KERNEL_INITCALL(tmu_driver_register);
 
 static void agt_register()
 {
+    cpuid_t cpuid = get_cpuid();
     device_register(
-        "arm/generic-timer/clocksource",
+        STD_CLOCKSOURCE_NAMES[cpuid],
         DEVICE_CLASS_CLOCKSOURCE,
         255,
         0x0,
         ARM_GENERIC_TIMER_CLOCKSOURCE_OPS);
 
     device_register(
-        "arm/generic-timer/timer",
+        STD_TIMER_NAMES[cpuid],
         DEVICE_CLASS_TIMER,
         255,
         0x0,
@@ -91,12 +95,12 @@ static void agt_register()
 
     irq_register_driver(
         27,
-        "arm/generic-timer/timer",
+        STD_TIMER_NAMES[cpuid],
         DEVICE_CLASS_TIMER,
         ARM_GENERIC_TIMER_OPS,
         TRIGGER_LEVEL_SENSITIVE,
-        arm_get_cpu_affinity_as_u32(),
+        cpuid,
         90);
 }
 
-KERNEL_INITCALL(agt_register);
+KERNEL_CPU_INITCALL(agt_register); // per cpu call

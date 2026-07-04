@@ -111,13 +111,13 @@ void print_esr(exception_reason_sysregs* r, panic_exception_type type)
         "[ESR_EL%d "
         "(https://developer.arm.com/documentation/111107/2025-12/"
         "AArch64-Registers/"
-        "ESR-EL1--Exception-Syndrome-Register--EL1-)]\n",
+        "ESR-EL1--Exception-Syndrome-Register--EL1-)]\n\r",
         (int)sysreg_read(currentel));
 
-    printf("\traw: %p\n\t(%b)\n", esr, esr);
+    printf("\traw: %p\n\r\t(%b)\n\r", esr, esr);
 
     if (type == PANIC_EXCEPTION_TYPE_IRQ || type == PANIC_EXCEPTION_TYPE_FIQ) {
-        print("\tnote: asynchronous interrupt, esr not relevant\n");
+        print("\tnote: asynchronous interrupt, esr not relevant\n\r");
         return;
     }
 
@@ -129,8 +129,8 @@ void print_esr(exception_reason_sysregs* r, panic_exception_type type)
 
 
     if (type == PANIC_EXCEPTION_TYPE_SYNC) {
-        printf("\tIL (instruction lenght): %s\n", il ? "32 bit" : "16 bit");
-        printf("\tEC (exception class): %s\n", ec_msg(ec));
+        printf("\tIL (instruction lenght): %s\n\r", il ? "32 bit" : "16 bit");
+        printf("\tEC (exception class): %s\n\r", ec_msg(ec));
 
         switch (ec) {
             case ESR_EC_UNKNOWN:

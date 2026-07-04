@@ -38,7 +38,7 @@ static void print_exception_src(panic_exception_src src)
             break;
     }
 
-    printf("exception source: %s\n", msg);
+    printf("exception source: %s\n\r", msg);
 }
 
 
@@ -46,11 +46,11 @@ static void print_raw_sysregs(exception_reason_sysregs* sysregs)
 {
     printf(
 
-        "sysregs:\n"
-        "\tesr:    %p\n"
-        "\telr:    %p\n"
-        "\tfar:    %p\n"
-        "\tspsr:   %p\n",
+        "sysregs:\n\r"
+        "\tesr:    %p\n\r"
+        "\telr:    %p\n\r"
+        "\tfar:    %p\n\r"
+        "\tspsr:   %p\n\r",
         sysregs->esr,
         sysregs->elr,
         sysregs->far,

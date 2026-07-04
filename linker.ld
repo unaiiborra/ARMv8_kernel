@@ -23,7 +23,7 @@ SECTIONS {
         . = ALIGN(4096);
         __text_end = .;
     } > HI_VMEM AT > DDR_KERNEL
-    
+
     __text_size = __text_end - __text_start;
 
 
@@ -33,12 +33,15 @@ SECTIONS {
         *(.rodata.*)
         *(.platform_info)
 
-       
+
         . = ALIGN(8);
         __kernel_initcalls_start = .;
         KEEP(*(.kernel_initcall))
         __kernel_initcalls_end = .;
 
+        __kernel_cpu_initcalls_start = .;
+        KEEP(*(.kernel_cpu_initcall))
+        __kernel_cpu_initcalls_end = .;
 
         . = ALIGN(4096);
         __rodata_end = .;
@@ -50,7 +53,7 @@ SECTIONS {
     .data : ALIGN(4096) {
         __data_start = .;
         *(.data)
-        *(.data.*)        
+        *(.data.*)
 
         . = ALIGN(4096);
         __data_end = .;

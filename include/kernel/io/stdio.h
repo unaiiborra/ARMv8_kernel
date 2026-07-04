@@ -1,6 +1,9 @@
 #pragma once
 
 #include <lib/ansi.h>
+#include <lib/lock.h>
+
+extern cpulock_t* const IO_LOCK;
 
 void io_init();
 

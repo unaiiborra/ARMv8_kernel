@@ -12,11 +12,13 @@ typedef int64_t duration_ns_t;
 
 typedef struct clock clock_t;
 
+extern const char* STD_CLOCKSOURCE_NAMES[NUM_CPUS];
+extern const char* STD_TIMER_NAMES[NUM_CPUS];
 
-extern clock_t* const HRTIMER;
+clock_t* HRTIMER();
 
 
-void time_ctrl_init();
+void time_ctrl_init_cpu();
 
 
 /*

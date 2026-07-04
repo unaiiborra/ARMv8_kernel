@@ -237,11 +237,14 @@ noreturn void kernel_entry()
             kernel_early_init();
         else
             kernel_init();
+
+        smp_init();
     }
+    else {
+        printf("Hello from core %d\n\r", get_cpuid());
 
-    if (get_cpuid() != 0)
         loop asm volatile("wfi");
-
+    }
 
     task_t*   hello = task_new("hello world");
     uintptr_t entry;

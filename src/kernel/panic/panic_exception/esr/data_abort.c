@@ -5,9 +5,6 @@
 
 #include "esr.h"
 
-
-
-
 static const char* dfsc_to_string(uint32_t DSFC)
 {
     switch (DSFC) {

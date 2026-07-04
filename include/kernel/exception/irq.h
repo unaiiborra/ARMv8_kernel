@@ -35,7 +35,7 @@ void irq_register_driver(
     cpuid_t                target_cpu,
     uint8_t                priority);
 
-void irq_unregister(uint32_t irq_id);
+void irq_unregister(uint32_t irq_id, uint32_t target_cpu);
 
 // called from the exception vector
 void irq_dispatch();

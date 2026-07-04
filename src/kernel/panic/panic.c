@@ -21,7 +21,7 @@ typedef enum {
 
 static void default_info_print(panic_info* info)
 {
-    printf( "\n" ANSI_BG_RED "\n[PANIC CORE %d]\n", get_cpuid());
+    printf("\n\r" ANSI_BG_RED "\n\r[PANIC CORE %d]\n\r", get_cpuid());
 
     char* reason;
     switch (info->reason) {
@@ -32,17 +32,17 @@ static void default_info_print(panic_info* info)
             reason = "manual abort";
             break;
         default:
-            reason = "UNDEFINED PANIC REASON!\n";
+            reason = "UNDEFINED PANIC REASON!\n\r";
     }
 
-    printf( "reason:  %s\n", reason);
+    printf("reason:  %s\n\r", reason);
 
     printf(
-       
-        "mmu:     %s\n",
+
+        "mmu:     %s\n\r",
         mmu_is_active() ? "enabled" : "disabled");
 
-    printf("message: %s\n", info->message);
+    printf("message: %s\n\r", info->message);
 
 
     const char* enabled  = "enabled";
@@ -50,12 +50,12 @@ static void default_info_print(panic_info* info)
 #define ENABLED_STR(cond) cond ? enabled : disabled
 
     printf(
-     
-        "\nexception status:\n"
-        "\tfiq:    %s\n"
-        "\tirq:    %s\n"
-        "\tserror: %s\n"
-        "\tdebug:  %s\n",
+
+        "\n\rexception status:\n\r"
+        "\tfiq:    %s\n\r"
+        "\tirq:    %s\n\r"
+        "\tserror: %s\n\r"
+        "\tdebug:  %s\n\r",
 
         ENABLED_STR(info->exception_status.fiq),    //
         ENABLED_STR(info->exception_status.irq),    //
@@ -109,19 +109,19 @@ static void handle_manual_abort_panic(panic_info* info)
             lang_str = "undefined";
     }
 
-    printf( "language:%s\n", lang_str);
+    printf("language:%s\n\r", lang_str);
 
     /*
      *  file + line + col
      */
     panic_location location = info->info.manual_abort.location;
 
-    printf("file:   %s\n", location.file);
+    printf("file:   %s\n\r", location.file);
 
     if (location.line >= 0)
-        printf( "line:   %d\n", location.line);
+        printf("line:   %d\n\r", location.line);
     if (location.col >= 0)
-        printf( "col:    %d\n", location.col);
+        printf("col:    %d\n\r", location.col);
 }
 
 
@@ -129,29 +129,32 @@ static void handle_panic(panic_info* info, panic_recovery recovery)
 {
     arm_exceptions_disable_all();
 
-    print("\n\r");
+    cpulocked(IO_LOCK)
+    {
+        print("\n\r");
 
 
-    if (!info)
-        goto hang;
+        if (!info)
+            goto hang;
 
-    default_info_print(info);
+        default_info_print(info);
 
-    switch (info->reason) {
-        case PANIC_REASON_UNDEFINED:
-            recovery = PANIC_UNRECOVERABLE;
-            break;
-        case PANIC_REASON_EXCEPTION:
-            print( "\n[EXCEPTION INFO]\n");
-            handle_exception_panic(info);
-            break;
-        case PANIC_REASON_MANUAL_ABORT:
-            print( "\n[ABORT INFO]\n");
-            handle_manual_abort_panic(info);
-            break;
+        switch (info->reason) {
+            case PANIC_REASON_UNDEFINED:
+                recovery = PANIC_UNRECOVERABLE;
+                break;
+            case PANIC_REASON_EXCEPTION:
+                print("\n\r[EXCEPTION INFO]\n\r");
+                handle_exception_panic(info);
+                break;
+            case PANIC_REASON_MANUAL_ABORT:
+                print("\n\r[ABORT INFO]\n\r");
+                handle_manual_abort_panic(info);
+                break;
+        }
+
+        print(ANSI_CLEAR);
     }
-
-    print( ANSI_CLEAR);
 
     if (recovery == PANIC_UNRECOVERABLE)
         loop hang : asm volatile("wfe");
