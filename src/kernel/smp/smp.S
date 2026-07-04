@@ -9,38 +9,46 @@
     b _smc_call
 .endm
 
-// should enter with x0 having the context_id
-.global _smp_wakeup_entry
-_smp_wakeup_entry:
-    nop
-    msr daifset, #0xf
+
+.global _setup_secondary_core
+_setup_secondary_core:
+    mov x0, #(1 << 11)
+    msr SCTLR_EL1, x0
+
+    ldr x0, =__text_start
+    ldr x1, =__heap_start
+    and x0, x0, #~KERNEL_BASE
+    and x1, x1, #~KERNEL_BASE
+    bl _cache_flush_range
+
+    bl setup_secondary_core_el2
+
+    mov x0, #(3 << 20)    // FPEN = 0b11
+    msr CPACR_EL1, x0
+
+    adr x0, _el1_vector_table
+    orr x0, x0, #KERNEL_BASE
+    msr VBAR_EL1, x0
+
+    bl _setup_stack_el1
+    mrs x0, SP_EL1
+    orr x0, x0, #KERNEL_BASE
+    msr SP_EL1, x0
+
+    // aarch64 mode
+    mov x0, #(1 << 31)
+    msr HCR_EL2, x0
+
+    mov x0, #0x3c5
+    msr SPSR_EL2, x0
+
+    // Disable virtual timer for EL1
+    mov x0, #0
+    msr CNTVOFF_EL2, x0
+
+    adr x0, setup_secondary_core_el1
+    orr x0, x0, #0xFFFF800000000000
+    msr ELR_EL2, x0
+    isb
     
-    mrs x1, MPIDR_EL1
-    and x1, x1, #0xFF // core Aff0
-
-    ldr x4, =__NUM_CORES
-    cmp x1, x4
-    b.hi hang // if (coreid >= __NUM_CORES) hang
-
-    ldr x2, =__EL2_STACK_SIZE
-    ldr x3, =__stacks_el2_end
-    mov x4, #KERNEL_BASE
-
-    mul x1, x1, x2  // x1 = coreid * stack size
-    sub x1, x3, x1  // x1 = stack end - coreid * stack size
-    sub x1, x1, x4  // x1 = virtual_stack_pos - KERNEL_BASE
-
-    mov sp, x1
-
-    str x0, [sp, #-16]! // save context_id in the stack
-
-    bl _el2_init_vector
-
-    adr x0, smp_cpu_cfg
-    ldr x1, [sp], #16
-
-    bl _switch_to_el1
-
-hang:
-    wfe
-    b hang
+    eret

@@ -48,18 +48,18 @@ void kernel_init(void)
          fn++)
         (*fn)();
 
-    kernel_cpu_local_init();
-
     io_init(); // init print, printf...
+
+    kernel_cpu_local_init();
 
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");
     mm_dbg_print_mmu();
 #endif
 
-    time_ctrl_init_cpu(); // clock and timer ctrl init
-
     kernel_initialized = true;
+
+    arm_exceptions_enable_all();
 }
 
 
@@ -83,5 +83,5 @@ void kernel_cpu_local_init()
 
     irq_ops->init_cpu(handle, arm_get_cpu_affinity().aff0);
 
-    arm_exceptions_enable_all();
+    time_ctrl_init_cpu(); // clock and timer ctrl init
 }

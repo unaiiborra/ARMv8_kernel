@@ -6,11 +6,11 @@
 #include <kernel/panic.h>
 #include <lib/lock.h>
 #include <lib/mem.h>
+#include <lib/stdattribute.h>
 #include <lib/unit/mem.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "lib/stdattribute.h"
 
 
 /*

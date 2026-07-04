@@ -20,6 +20,7 @@ _setup_stack_el1:
     and x0, x0, #~KERNEL_BASE
     
     msr SP_EL1, x0
+    isb
     ret
 
 

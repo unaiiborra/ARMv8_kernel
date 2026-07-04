@@ -1,53 +1,37 @@
+#include <arm/mmu.h>
 #include <arm/smccc/psci.h>
 #include <kernel/mm.h>
+#include <kernel/mm/mmu.h>
 #include <kernel/panic.h>
 #include <kernel/smp.h>
+#include <kernel/time.h>
+#include <lib/unit/mem.h>
+#include <stdatomic.h>
 #include <stddef.h>
-#include <stdint.h>
 
-#include "arm/exceptions/exceptions.h"
-#include "arm/mmu.h"
-#include "arm/sysregs/sysregs.h"
-#include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/init.h"
-#include "kernel/io/stdio.h"
-#include "kernel/mm/mmu.h"
-#include "kernel/time.h"
-#include "lib/stdattribute.h"
-
-
-extern void _reset_stack_and_branch(void* stack_bottom, void* return_address);
-extern void _smp_wakeup_entry(size_t context_id);
-static void smp_cfg_end();
 
 #define PANIC_ENUM(enum_v) PANIC(#enum_v)
 
-#ifdef GDB
-// used as a breakpoint for forcing new threads detection
-volatile uint64_t smp_gdb_barrier_hang[NUM_CPUS];
+extern void _start(void);
 
-[[gnu::noinline]] void smp_gdb_thread_detect()
+static volatile atomic_bool initialized_cpus[NUM_CPUS];
+
+[[gnu::noinline]] static void smp_gdb_thread_detect()
 {
     asm volatile("nop");
 }
 
-
-#else
-#    define gdb_thread_detect()
-#endif
-
 void smp_init()
 {
-    cpuid_t self = get_cpuid();
-
-    for (size_t i = 0; i < NUM_CPUS; i++) {
-        if (i == self)
+    for (cpuid_t cpu = 0; cpu < NUM_CPUS; cpu++) {
+        if (cpu == get_cpuid())
             continue;
 
         psci_return_code code = psci_cpu_on(
-            (arm_cpu_affinity) {.aff0 = i},
-            as_kpa((void*)_smp_wakeup_entry),
-            i);
+            (arm_cpu_affinity) {.aff0 = cpu},
+            as_kpa((void*)_start),
+            cpu);
 
         switch (code) {
             case PSCI_SUCCESS:
@@ -57,13 +41,7 @@ void smp_init()
             case PSCI_INVALID_ADDRESS:
                 PANIC_ENUM(PSCI_INVALID_ADDRESS);
             case PSCI_ALREADY_ON:
-                dbg_printf(
-                    DEBUG_TRACE,
-                    "smp_init: attempted to wake core %d but it was "
-                    "already "
-                    "awake",
-                    i);
-                break;
+                PANIC_ENUM(PSCI_ALREADY_ON);
             case PSCI_ON_PENDING:
                 PANIC_ENUM(PSCI_ON_PENDING);
             case PSCI_INTERNAL_FAILURE:
@@ -75,80 +53,54 @@ void smp_init()
         }
     }
 
-#ifdef GDB
-    ksleep(5e6); // 5ms
+    ksleep(5e6);
+
+    atomic_store(&initialized_cpus[get_cpuid()], true);
+
+    while (true) {
+        cpuid_t cpu = 0;
+        for (; cpu < NUM_CPUS; cpu++) {
+            if (!atomic_load(&initialized_cpus[cpu]))
+                break;
+        }
+
+        if (cpu >= NUM_CPUS)
+            break;
+    }
+
     smp_gdb_thread_detect();
-#endif
 }
 
-safe_early static void* aloc_stack(size_t size)
+void setup_secondary_core_el2()
 {
-    raw_kmalloc_cfg stack_cfg = {
-        .fill_reserve = true,
-        .assign_pa    = true,
-        .kmap         = true,
-        .device_mem   = false,
-        .permanent    = true,
-        .init_zeroed  = true,
-    };
-
-    const size_t STACK_SIZE = size;
-
-    void* stack_top = raw_kmalloc(
-        div_ceil(STACK_SIZE, PAGE_SIZE),
-        "kernel stack region",
-        &stack_cfg,
-        NULL);
-
-    void* stack_bottom = (char*)stack_top + STACK_SIZE;
-
-    return stack_bottom;
-}
-
-safe_early static void init_devices()
-{
-    time_ctrl_init_cpu();
-
-    arm_exceptions_enable_all();
-}
-
-safe_early void smp_cpu_cfg(size_t context_id)
-{
-    (void)context_id;
-
-    // the entry happens with the mmu disabled
-    mmu_core_handle* ch = as_kpa(mm_mmu_core_handler_get_self());
-
-    bool res = mmu_core_handle_new(
-        ch,
-        as_kpa(MM_MMU_IDENTITY_LO_MAPPING),
+    bool result = mmu_core_handle_new(
+        as_kpa(mm_mmu_core_handler_get_self()),
+        as_kpa(MM_MMU_UNMAPPED_LO),
         as_kpa(MM_MMU_KERNEL_MAPPING),
         true,
         true,
         true,
         true,
         false);
-    ASSERT(res);
+    ASSERT(result);
 
-    mmu_core_activate(ch);
-
-    extern uint64_t _el1_vector_table[];
-    sysreg_write(VBAR_EL1, _el1_vector_table);
-
-    mm_reloc(as_kva((void*)smp_cfg_end));
+    mmu_activate_result cres = mmu_core_activate(
+        as_kpa(mm_mmu_core_handler_get_self()));
+    ASSERT(cres == MMU_ACTIVATE_OK);
 }
 
-extern void            kernel_entry();
-safe_early static void smp_cfg_end()
+void setup_secondary_core_el1()
 {
-    mmu_core_set_mapping(mm_mmu_core_handler_get_self(), MM_MMU_UNMAPPED_LO);
-    mmu_core_set_mapping(mm_mmu_core_handler_get_self(), MM_MMU_KERNEL_MAPPING);
+    extern noreturn void kernel_entry();
+    extern void          _reset_stack_and_branch(
+        void* stack_bottom,
+        void* return_address);
+
+    void* stack_bottom = ((char*)kmalloc(MEM_MiB(4))) + MEM_MiB(4);
 
     kernel_cpu_local_init();
+    arm_exceptions_enable_all();
 
-    init_devices();
-
-    ksleep(1e6);
-
-    _reset_stack_and_branch(aloc_stack(MEM_MiB(4)), kernel_entry);
+    atomic_store(&initialized_cpus[get_cpuid()], true);
+    _reset_stack_and_branch(stack_bottom, kernel_entry);
 }

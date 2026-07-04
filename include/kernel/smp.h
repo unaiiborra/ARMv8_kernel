@@ -14,14 +14,9 @@ typedef uint32_t cpuid_t;
 
 void smp_init();
 
-
-
-static inline cpuid_t get_cpuid()
-{
-    // TODO: allow for other affinities
-    cpuid_t cpuid = sysreg_read(mpidr_el1) & 0xFF;
-
-    DEBUG_ASSERT(cpuid < NUM_CPUS);
-
-    return cpuid;
-}
+#define get_cpuid()                                      \
+    ({                                                   \
+        cpuid_t __cpuid = sysreg_read(mpidr_el1) & 0xFF; \
+        DEBUG_ASSERT(__cpuid < NUM_CPUS);                \
+        __cpuid;                                         \
+    })
