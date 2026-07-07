@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/io/vfs_serial.h"
+
 static cpulock_t io_lock;
 cpulock_t* const IO_LOCK = &io_lock;
 
@@ -25,12 +27,17 @@ void io_init()
 
     io_lock = CPULOCK_INIT;
 
-    print(ANSI_CLS);
+    const char* cls = ANSI_CLS;
+    while (*cls) {
+        if (uart_ops->putc(uart_handle, *cls) >= 0)
+            cls++;
+    }
 }
 
 
 void print(const char* s)
 {
+#ifndef STDIO_KPRINT
     const device_t*     primary_uart = device_get_primary(DEVICE_CLASS_SERIAL);
     driver_handle_t     uart_handle  = device_get_driver_handle(primary_uart);
     const serial_ops_t* uart_ops     = get_serial_ops(primary_uart);
@@ -45,6 +52,12 @@ void print(const char* s)
         if (res >= 0)
             s++;
     }
+#else // irq driven kernel print
+    cpulocked_irqsave(&io_lock)
+    {
+        term_prints(vfs_serial_out_term_get(), s);
+    }
+#endif
 }
 
 

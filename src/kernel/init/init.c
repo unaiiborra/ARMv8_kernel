@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <target/imx8mp.h>
 
+#include "kernel/io/vfs_serial.h"
+
 
 
 extern kernel_initcall_t __kernel_initcalls_start[];
@@ -49,8 +51,10 @@ void kernel_init(void)
         (*fn)();
 
     io_init(); // init print, printf...
+    vfs_serial_init();
 
     kernel_cpu_local_init();
+
 
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");
@@ -62,12 +66,10 @@ void kernel_init(void)
     arm_exceptions_enable_all();
 }
 
-
 bool kernel_is_initialized()
 {
     return kernel_initialized;
 }
-
 
 void kernel_cpu_local_init()
 {
@@ -85,3 +87,4 @@ void kernel_cpu_local_init()
 
     time_ctrl_init_cpu(); // clock and timer ctrl init
 }
+

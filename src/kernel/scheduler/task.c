@@ -50,9 +50,7 @@ task_t* task_new(const char* name)
         .threads             = NULL,
     };
 
-    vfs_serial_bind_stdio(
-        &t->files,
-        device_get_primary(DEVICE_CLASS_SERIAL)->uid);
+    vfs_serial_bind_stdio(&t->files);
 
     return t;
 }
@@ -147,7 +145,7 @@ void terminate_task(task_t* task, uint32_t exit_code)
         atomic_store(&task->exit_code, exit_code);
 
     dbg_printf(
-        DEBUG_TRACE,
+        DEBUG_LOG,
         "[terminate_task] terminated task %s with code %d",
         task->name,
         exit_code);

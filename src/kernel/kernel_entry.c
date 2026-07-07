@@ -56,7 +56,7 @@ noreturn void kernel_entry()
         &entry_b);
 
     schedule_ready_thread(proc_a, entry_a);
-    // schedule_ready_thread(proc_b, entry_b);
+    schedule_ready_thread(proc_b, entry_b);
 
     smp_init();
 

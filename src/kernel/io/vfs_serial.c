@@ -22,6 +22,10 @@ static constexpr file_descriptor_t FD_STDIN  = 0;
 static constexpr file_descriptor_t FD_STDOUT = 1;
 static constexpr file_descriptor_t FD_STDERR = 2;
 
+static uint64_t          serial_dev_uid;
+static vfs_serial_data_t out_data;
+static vfs_serial_data_t in_data;
+
 static vfs_result_t stdin_read(void* ctx, uint8_t* buf, uint32_t len);
 static vfs_result_t stdoutput_write(void* ctx, const uint8_t* buf, uint32_t len);
 static void handle_term_notify(vfs_serial_data_t* device_data, bool finished);
@@ -165,46 +169,56 @@ static vfs_result_t stdoutput_write(void* ctx, const uint8_t* buf, uint32_t len)
     return (vfs_result_t)len;
 }
 
-void vfs_serial_bind_stdio(fd_table_t* table, uint64_t device_uid)
+void vfs_serial_init()
 {
-    const device_t* serial = device_get_by_uid(DEVICE_CLASS_SERIAL, device_uid);
+    uint64_t device_uid = device_get_primary(DEVICE_CLASS_SERIAL)->uid;
+
+    out_data = (vfs_serial_data_t) {
+        .dev_uid        = device_uid,
+        .notify_enabled = false,
+        .lock           = SPINLOCK_INIT,
+    };
+    term_new(&out_data.term, stdout_stderr_putc, (void*)device_uid);
+
+    in_data = (vfs_serial_data_t) {
+        .dev_uid        = device_uid,
+        .notify_enabled = false,
+        .lock           = SPINLOCK_INIT,
+    };
+    term_new(&in_data.term, stdin_putc, (void*)device_uid);
+
+    serial_dev_uid = device_uid;
+}
+
+void vfs_serial_bind_stdio(fd_table_t* table)
+{
+    const device_t* serial = device_get_by_uid(
+        DEVICE_CLASS_SERIAL,
+        serial_dev_uid);
     ASSERT(serial != NULL);
     DEBUG_ASSERT(serial->class_id == DEVICE_CLASS_SERIAL);
-
-    // stdout y stderr share lock and buffer
-    vfs_serial_data_t* out_data = kmalloc(sizeof(vfs_serial_data_t));
-    vfs_serial_data_t* in_data  = kmalloc(sizeof(vfs_serial_data_t));
-
-    *out_data = (vfs_serial_data_t) {
-        .dev_uid        = device_uid,
-        .notify_enabled = false,
-        .lock           = SPINLOCK_INIT,
-    };
-    term_new(&out_data->term, stdout_stderr_putc, (void*)device_uid);
-
-    *in_data = (vfs_serial_data_t) {
-        .dev_uid        = device_uid,
-        .notify_enabled = false,
-        .lock           = SPINLOCK_INIT,
-    };
-    term_new(&in_data->term, stdin_putc, (void*)device_uid);
 
     irqflags_t irqflags = irqsave();
 
     vfs_result_t res;
-    res = vfs_bind(table, FD_STDIN, &stdin_ops, in_data);
+    res = vfs_bind(table, FD_STDIN, &stdin_ops, &in_data);
     ASSERT(res == VFS_OK);
-    res = vfs_bind(table, FD_STDOUT, &stdout_stderr_ops, out_data);
+    res = vfs_bind(table, FD_STDOUT, &stdout_stderr_ops, &out_data);
     ASSERT(res == VFS_OK);
-    res = vfs_bind(table, FD_STDERR, &stdout_stderr_ops, out_data);
+    res = vfs_bind(table, FD_STDERR, &stdout_stderr_ops, &out_data);
     ASSERT(res == VFS_OK);
 
     // register irqs for serial rx -> stdin
     const serial_ops_t* serial_ops = get_serial_ops(serial);
     driver_handle_t     dhandle    = device_get_driver_handle(serial);
 
-    int32_t rx_res = serial_ops->irq_notify_rx(dhandle, 1, on_rx_ready, in_data);
+    int32_t rx_res = serial_ops->irq_notify_rx(dhandle, 1, on_rx_ready, &in_data);
     ASSERT(rx_res >= 0);
 
     irqrestore(irqflags);
+}
+
+term_handle* vfs_serial_out_term_get()
+{
+    return &out_data.term;
 }

@@ -3,6 +3,7 @@
 #include <lib/lock.h>
 
 #include "../sysc_handlers.h"
+#include "kernel/io/stdio.h"
 #include "kernel/mm.h"
 
 int64_t syscall64_write(
@@ -20,7 +21,7 @@ int64_t syscall64_write(
         return VFS_ERR_INVAL;
 
     task_t*        task      = get_current_thread()->owner;
-    scoped_kfree_t write_buf = kzalloc(count);
+    scoped_kfree_t write_buf = kzalloc(count + 1);
 
     uregion_access_e uaccess;
     spinlocked_irqsave(&task->memory_lock)

@@ -25,9 +25,9 @@ void print(const char* s);
 #    define DEBUG_TRACE_PREFIX              DEBUG_ANSI_FG_COLOR "\n\r(dbg) "
 #    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_TRACE_PREFIX s ANSI_RESET
 
-#    define __dbg_print_DEBUG_LOG(s) \
-        print(IO_STDOUT, DEBUG_TRACE_ANSI_WRAP_STRING(s))
-#    define __dbg_printf_DEBUG_LOG(s, ...) printf(IO_STDOUT, s, __VA_ARGS__)
+#    define __dbg_print_DEBUG_LOG(s) print(DEBUG_TRACE_ANSI_WRAP_STRING(s))
+#    define __dbg_printf_DEBUG_LOG(s, ...) \
+        printf(DEBUG_TRACE_ANSI_WRAP_STRING(s), __VA_ARGS__)
 #    if DEBUG == DEBUG_LOG
 #        define __dbg_print_DEBUG_TRACE(s)
 #        define __dbg_printf_DEBUG_TRACE(s, ...)

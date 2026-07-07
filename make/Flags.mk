@@ -12,6 +12,10 @@ ifdef SCHEDULER_NUM_RUNQUEUES
 	DEFINES += -DSCHEDULER_NUM_RUNQUEUES=$(SCHEDULER_NUM_RUNQUEUES)
 endif
 
+ifeq ($(STDIO_KPRINT),1)
+	DEFINES += -DSTDIO_KPRINT=1
+endif
+
 MARCH       ?= armv8-a
 MCPU        ?= cortex-a53+simd
 RS_TARGET	?= aarch64-unknown-none
