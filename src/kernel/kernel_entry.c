@@ -13,7 +13,6 @@
 #include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
-#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>

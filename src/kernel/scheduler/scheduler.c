@@ -678,8 +678,6 @@ static thread_t* runqueue_schedule()
         thread_node_t* selected_node = resume_from;
 
         while (true) {
-            // select next thread in the queue, unless we already have a
-            // freshly computed candidate to examine (see above/below)
             if (!skip_advance)
                 selected_node = selected_node->next;
             skip_advance = false;
@@ -695,9 +693,6 @@ static thread_t* runqueue_schedule()
                 "no threads of a dead task should be in the runqueue");
 
             if (unlikely(owner_state == TASK_DYING)) {
-                // same reasoning as above: capture the successor before
-                // removing this node, since unqueue_thread() may reinsert a
-                // stolen thread into this runqueue via load balancing
                 thread_node_t* next = selected_node->next;
 
                 atomic_store(&selected_node->th.state, THREAD_DEAD);
@@ -729,8 +724,6 @@ static thread_t* runqueue_schedule()
                 } break;
 
                 case THREAD_DEAD: {
-                    // capture the successor before removing this node, for
-                    // the same reason explained above
                     thread_node_t* next = selected_node->next;
 
                     // we own the lock and are the runqueue core so its safe
