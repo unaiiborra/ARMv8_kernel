@@ -37,10 +37,7 @@ int64_t syscall64_kill(
         deleted = (old_state != THREAD_DEAD);
 
         if (deleted) {
-            dbg_sysc_print(
-                SYSC_KILL,
-                "SYSC_KILL_OK thread %d",
-                threads[i]->th_uid);
+            dbg_sysc_print(SYSC_KILL, "SYSC_KILL_OK thread %d", thread->th_uid);
 
             return SYSC_KILL_OK;
         }
@@ -48,7 +45,7 @@ int64_t syscall64_kill(
             dbg_sysc_print(
                 SYSC_KILL,
                 "SYSC_KILL_NOT_FOUND (already deleted thread %d (%d))",
-                threads[i]->th_uid);
+                thread->th_uid);
 
             return SYSC_KILL_NOT_FOUND;
         }

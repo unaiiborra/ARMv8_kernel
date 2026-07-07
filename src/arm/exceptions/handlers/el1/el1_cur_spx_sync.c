@@ -36,12 +36,14 @@ void el1_cur_spx_sync_handler(arm_ctx_t*)
         else
             unknown_esr_count[cpuid]++;
 
-        if (unknown_esr_count[cpuid] % 100000 == 0)
-            printf(
+        if (unknown_esr_count[cpuid] % 100000 == 0) {
+            dbg_printf(
+                DEBUG_TRACE,
                 "[CORE %d] unknown esr: %x -> %l\n\r",
                 get_cpuid(),
                 last_unknown_esr[cpuid],
                 unknown_esr_count[cpuid]);
+        }
 
         if (likely(unknown_esr_count[cpuid] < MAX_UNKNOWN_ESR))
             return;

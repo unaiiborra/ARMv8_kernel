@@ -65,25 +65,26 @@ typedef struct {
 {
     int expected;
 
-    sevl();
-
     do {
-        do {
-            wfe();
-        } while (atomic_load_explicit(&lock->flag, memory_order_relaxed) != 0);
+        uint32_t val;
+
+        __asm__ volatile("sevl             \n"
+                         "1: ldaxr %w0, %1 \n"
+                         "   cbz   %w0, 2f \n"
+                         "   wfe           \n"
+                         "   b     1b      \n"
+                         "2:               \n"
+                         : "=&r"(val), "+Q"(lock->flag)
+                         :
+                         : "memory");
 
         expected = 0;
-    } while (!atomic_compare_exchange_weak_explicit(
-        &lock->flag,
-        &expected,
-        1,
-        memory_order_acquire,
-        memory_order_relaxed));
+    } while (!atomic_compare_exchange_strong(&lock->flag, &expected, 1));
 }
 
 [[gnu::always_inline]] static inline void spinlock_release(spinlock_t* lock)
 {
-    atomic_store_explicit(&lock->flag, 0, memory_order_release);
+    atomic_store(&lock->flag, 0);
     sev();
 }
 
@@ -169,12 +170,19 @@ static inline void cpulock_acquire(cpulock_t* lock)
 
     int expected;
 
-    sevl();
-
     do {
-        do {
-            wfe();
-        } while (atomic_load_explicit(&lock->flag, memory_order_relaxed) != -1);
+        int32_t val;
+
+        __asm__ volatile("sevl               \n"
+                         "1: ldaxr %w0, %1   \n"
+                         "   cmn   %w0, #1   \n"
+                         "   b.eq  2f        \n"
+                         "   wfe             \n"
+                         "   b     1b        \n"
+                         "2:                 \n"
+                         : "=&r"(val), "+Q"(lock->flag)
+                         :
+                         : "cc", "memory");
 
         expected = -1;
     } while (!atomic_compare_exchange_weak_explicit(

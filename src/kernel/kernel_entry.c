@@ -13,22 +13,14 @@
 #include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
 #include <lib/string.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
 
-#include "arm/smccc/psci.h"
-#include "kernel/io/vfs_serial.h"
-#include "kernel/mm/cache_malloc.h"
 #include "kernel/mm/elf.h"
-#include "kernel/mm/page_malloc.h"
-#include "kernel/mm/vmalloc.h"
 #include "kernel/scheduler.h"
 #include "kernel/task.h"
-#include "kernel/time.h"
-#include "lib/lock.h"
-#include "lib/mem.h"
-#include "lib/performance_monitor.h"
 
 
 noreturn void kernel_entry()
@@ -38,26 +30,40 @@ noreturn void kernel_entry()
             kernel_early_init();
         else
             kernel_init();
-
-        smp_init();
     }
     else {
         printf("Hello from core %d\n\r", get_cpuid());
+        scheduler_loop_cpu_enter();
+        printf("\n\rExited %d!\n\r", get_cpuid());
 
         loop asm volatile("wfi");
     }
 
-    task_t*   hello = task_new("hello world");
-    uintptr_t entry;
-    elf_load(
-        hello,
-        EMBEDDED_BINARY(hello_elf),
-        EMBEDDED_BINARY_SIZE(hello_elf),
-        &entry);
+    task_t* proc_a = task_new("Process A");
+    task_t* proc_b = task_new("Process B");
 
-    schedule_ready_thread(hello, entry);
+    uintptr_t entry_a, entry_b;
+
+    elf_load(
+        proc_a,
+        EMBEDDED_BINARY(pa_elf),
+        EMBEDDED_BINARY_SIZE(pa_elf),
+        &entry_a);
+
+    elf_load(
+        proc_b,
+        EMBEDDED_BINARY(pb_elf),
+        EMBEDDED_BINARY_SIZE(pb_elf),
+        &entry_b);
+
+    schedule_ready_thread(proc_a, entry_a);
+    // schedule_ready_thread(proc_b, entry_b);
+
+    smp_init();
 
     scheduler_loop_cpu_enter();
+
+    printf("\n\rExited %d!\n\r", get_cpuid());
 
     loop asm volatile("wfi");
 }
