@@ -20,3 +20,4 @@ dotenvy = "0.15.7"
 
 [features]
 allocator_logs = []
+default = ["allocator_logs"]

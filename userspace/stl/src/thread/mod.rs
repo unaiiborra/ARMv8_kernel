@@ -1,7 +1,10 @@
-use core::ffi::c_void;
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    ffi::c_void,
+};
 
 use crate::{
-    alloc::{alloc, free},
+    alloc::STL_ALLOCATOR,
     syscall::{StartFn, SyscallKillError, SyscallSpawnError, syscall_kill, syscall_spawn},
 };
 
@@ -29,7 +32,7 @@ impl ThreadArgs {
 #[inline]
 pub fn thread_create(entry: StartFn, arg: u64) -> Result<Thid, ThreadCreateError> {
     let arg = unsafe {
-        let arguments = alloc(size_of::<ThreadArgs>()) as *mut ThreadArgs;
+        let arguments = STL_ALLOCATOR.alloc(Layout::new::<ThreadArgs>()) as *mut ThreadArgs;
 
         *arguments = ThreadArgs {
             arg,
@@ -40,7 +43,9 @@ pub fn thread_create(entry: StartFn, arg: u64) -> Result<Thid, ThreadCreateError
     };
 
     syscall_spawn(__stl_thread_start, arg).map_err(|e| {
-        unsafe { free(arg as *mut c_void) };
+        unsafe {
+            STL_ALLOCATOR.dealloc(arg as *mut u8, Layout::new::<ThreadArgs>());
+        };
         e
     })
 }
@@ -55,7 +60,7 @@ unsafe extern "C" fn __stl_setup_thread_entry(thid: u64, arguments_ptr: *mut Thr
     unsafe {
         let (arg, start_fn) = (*arguments_ptr).unpack();
 
-        free(arguments_ptr as *mut c_void);
+        STL_ALLOCATOR.dealloc(arguments_ptr as *mut u8, Layout::new::<ThreadArgs>());
 
         start_fn(thid, arg);
     };

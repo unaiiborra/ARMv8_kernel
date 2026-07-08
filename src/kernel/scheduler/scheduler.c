@@ -289,8 +289,9 @@ void scheduler_loop_cpu_enter()
 
     thread_t* th = NULL;
 
-    atomic_store(&enter_ready_cores[cpuid], true);
-
+    arm_exceptions_disable_all();
+    
+    atomic_store(&enter_ready_cores[cpuid], true);    
     while (true) {
         size_t i = 0;
         for (; i < NUM_RUNQUEUES; i++)

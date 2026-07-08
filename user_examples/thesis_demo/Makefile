@@ -19,6 +19,7 @@ CXXFLAGS += -ffreestanding -Wall -Wextra \
 CFLAGS   += -ffreestanding -Wall -Wextra \
             -Istl_include \
             -I$(INCLUDE)
+ASFLAGS  ?= -Istl_include -I$(INCLUDE)
 
 LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib
 
@@ -42,9 +43,11 @@ OBJ_DIR ?= _obj
 
 C_SRC    := $(wildcard $(SRC_DIR)/*.c)
 CPP_SRC  := $(wildcard $(SRC_DIR)/*.cpp)
+S_SRC    := $(wildcard $(SRC_DIR)/*.S)
 C_OBJS   := $(patsubst $(SRC_DIR)/%.c,  $(OBJ_DIR)/%.o, $(C_SRC))
 CPP_OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o, $(CPP_SRC))
-ALL_OBJS := $(C_OBJS) $(CPP_OBJS)
+S_OBJS   := $(patsubst $(SRC_DIR)/%.S,$(OBJ_DIR)/%.o, $(S_SRC))
+ALL_OBJS := $(C_OBJS) $(CPP_OBJS) $(S_OBJS)
 
 all: $(TARGET)
 
@@ -62,6 +65,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
+	@mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) -c $< -o $@
+	
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 	cargo clean

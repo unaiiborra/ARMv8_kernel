@@ -30,12 +30,13 @@ noreturn void kernel_entry()
             kernel_init();
 
         smp_init();
+
+        dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
     }
     else {
-        printf("Hello from core %d\n\r", get_cpuid());
+        dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
         scheduler_loop_cpu_enter();
-
-        printf("\n\rExited %d!\n\r", get_cpuid());
+        dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
 
         loop asm volatile("wfi");
     }
@@ -47,22 +48,22 @@ noreturn void kernel_entry()
 
     elf_load(
         proc_a,
-        EMBEDDED_BINARY(logs_elf),
-        EMBEDDED_BINARY_SIZE(logs_elf),
+        EMBEDDED_BINARY(demo_a_elf),
+        EMBEDDED_BINARY_SIZE(demo_a_elf),
         &entry_a);
 
     elf_load(
         proc_b,
-        EMBEDDED_BINARY(tdb_elf),
-        EMBEDDED_BINARY_SIZE(tdb_elf),
+        EMBEDDED_BINARY(demo_b_elf),
+        EMBEDDED_BINARY_SIZE(demo_b_elf),
         &entry_b);
 
     schedule_ready_thread(proc_a, entry_a);
-    // schedule_ready_thread(proc_b, entry_b);
+    schedule_ready_thread(proc_b, entry_b);
 
     scheduler_loop_cpu_enter();
 
-    printf("\n\rExited %d!\n\r", get_cpuid());
+    dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
 
     loop asm volatile("wfi");
 }

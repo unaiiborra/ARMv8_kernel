@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use crate::stdio::STDERR_FD;
 use crate::stdio::buffer_writer::StaticBufferWriter;
-use crate::stdlib::exit;
+use crate::stdlib::{exit, yield_cpu};
 use core::fmt::Write;
 
 static PANIC_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
@@ -12,8 +12,9 @@ static mut PANIC_MESSAGE_BYTES: [u8; 4096] = [0u8; 4096];
 #[panic_handler]
 fn stl_panic(info: &PanicInfo) -> ! {
     if PANIC_IN_PROGRESS.swap(true, Ordering::SeqCst) {
-        exit(-1);
+        yield_cpu();
     }
+
     let array_ref = unsafe { &mut *&raw mut PANIC_MESSAGE_BYTES };
     let mut buffer = StaticBufferWriter::new(&mut array_ref[..]);
 
@@ -36,6 +37,7 @@ fn stl_panic(info: &PanicInfo) -> ! {
     }
 
     let _ = write!(buffer, "=============\n\r");
+
     let _ = buffer.write_fd(STDERR_FD);
 
     exit(-1)

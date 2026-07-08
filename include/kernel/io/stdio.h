@@ -22,7 +22,7 @@ void print(const char* s);
 
 #ifdef DEBUG
 #    define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
-#    define DEBUG_TRACE_PREFIX              DEBUG_ANSI_FG_COLOR "\n\r(dbg) "
+#    define DEBUG_TRACE_PREFIX              DEBUG_ANSI_FG_COLOR "(dbg) "
 #    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_TRACE_PREFIX s ANSI_RESET
 
 #    define __dbg_print_DEBUG_LOG(s) print(DEBUG_TRACE_ANSI_WRAP_STRING(s))

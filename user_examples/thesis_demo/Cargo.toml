@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 # set the path to the corresponding userspace/stl folder
-stl = { path = "../../userspace/stl" }
+stl = { path = "../../userspace/stl", features = ["allocator_logs"] }
 
 [lib]
 name = "app"

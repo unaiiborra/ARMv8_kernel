@@ -23,7 +23,7 @@ _start:
     sub x0, x2, x0              // x0 = stack end - coreid * stack size
     and x0, x0, #~KERNEL_BASE   // x0 = virtual_stack_pos & ~KERNEL_BASE
     mov sp, x0
-    
+
     mov x0, #0
     msr sp_el0, x0
 

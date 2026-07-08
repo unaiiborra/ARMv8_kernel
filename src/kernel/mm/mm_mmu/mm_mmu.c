@@ -94,6 +94,15 @@ safe_early void mm_mmu_early_init()
         NULL);
 
     mmu_mapping_set_allocator(&UNMAPPED_LO, unmapped_lo_allocator);
+
+    uint64_t tmp;
+    __asm__ volatile("mrs %0, S3_1_c15_c2_1  \n"
+                     "orr %0, %0, #(1 << 6)  \n"
+                     "msr S3_1_c15_c2_1, %0  \n"
+                     "isb                    \n"
+                     : "=&r"(tmp)
+                     :
+                     : "memory");
 }
 
 
