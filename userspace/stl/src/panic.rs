@@ -1,60 +1,42 @@
 use core::panic::PanicInfo;
+use core::sync::atomic::{AtomicBool, Ordering};
 
-use crate::printf;
-use crate::{stdio::print, stdlib::exit};
+use crate::stdio::STDERR_FD;
+use crate::stdio::buffer_writer::StaticBufferWriter;
+use crate::stdlib::exit;
+use core::fmt::Write;
 
-use core::fmt::{self, Write};
-
-struct PanicWriter {
-    buf: [u8; 4096],
-    pos: usize,
-}
-
-impl PanicWriter {
-    const fn new() -> Self {
-        Self {
-            buf: [0u8; 4096],
-            pos: 0,
-        }
-    }
-}
-
-impl Write for PanicWriter {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        let bytes = s.as_bytes();
-        let remaining = self.buf.len() - self.pos;
-        let to_write = bytes.len().min(remaining);
-        self.buf[self.pos..self.pos + to_write].copy_from_slice(&bytes[..to_write]);
-        self.pos += to_write;
-        Ok(())
-    }
-}
+static PANIC_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
+static mut PANIC_MESSAGE_BYTES: [u8; 4096] = [0u8; 4096];
 
 #[panic_handler]
 fn stl_panic(info: &PanicInfo) -> ! {
-    print("\n\r=== PANIC ===\n\r");
+    if PANIC_IN_PROGRESS.swap(true, Ordering::SeqCst) {
+        exit(-1);
+    }
+    let array_ref = unsafe { &mut *&raw mut PANIC_MESSAGE_BYTES };
+    let mut buffer = StaticBufferWriter::new(&mut array_ref[..]);
+
+    let _ = write!(buffer, "\n\r=== PANIC ===\n\r");
 
     if let Some(location) = info.location() {
-        printf!(
+        let _ = write!(
+            buffer,
             "[location] {}:{}:{}\n\r",
             location.file(),
             location.line(),
             location.column()
         );
     } else {
-        print("[location] unknown\n\r");
+        let _ = write!(buffer, "[location] unknown\n\r");
     }
 
     if let Some(msg) = info.message().as_str() {
-        printf!("[message]  {}\n\r", msg);
-    } else {
-        let mut writer = PanicWriter::new();
-        let _ = write!(writer, "{}", info.message());
-        let msg = core::str::from_utf8(&writer.buf[..writer.pos]).unwrap_or("<utf8 error>");
-        printf!("[message]  {}\n\r", msg);
+        let _ = write!(buffer, "[message]  {}\n\r", msg);
     }
 
-    print("=============\n\r");
+    let _ = write!(buffer, "=============\n\r");
+    let _ = buffer.write_fd(STDERR_FD);
 
     exit(-1)
 }

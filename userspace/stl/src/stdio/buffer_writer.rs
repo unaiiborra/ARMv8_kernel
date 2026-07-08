@@ -2,7 +2,7 @@ use crate::{
     alloc::vec::Vec,
     vfs::{FileDescriptor, VfsError},
 };
-use core::fmt::Write;
+use core::{cmp::min, fmt::Write};
 
 pub struct BufferWriter(Vec<u8>);
 impl BufferWriter {
@@ -76,15 +76,17 @@ impl<'a> StaticBufferWriter<'a> {
 impl<'a> Write for StaticBufferWriter<'a> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         let bytes = s.as_bytes();
-        let remaining = self.buf.len() - self.len;
+        let start = self.len;
 
-        if bytes.len() > remaining {
-            return Err(core::fmt::Error);
+        if start >= self.buf.len() {
+            return Ok(());
         }
 
-        let start = self.len;
-        let end = start + bytes.len();
-        self.buf[start..end].copy_from_slice(bytes);
+        let available = self.buf.len() - start;
+        let write_len = min(bytes.len(), available);
+        let end = start + write_len;
+
+        self.buf[start..end].copy_from_slice(&bytes[..write_len]);
         self.len = end;
 
         Ok(())

@@ -47,8 +47,8 @@ noreturn void kernel_entry()
 
     elf_load(
         proc_a,
-        EMBEDDED_BINARY(tda_elf),
-        EMBEDDED_BINARY_SIZE(tda_elf),
+        EMBEDDED_BINARY(logs_elf),
+        EMBEDDED_BINARY_SIZE(logs_elf),
         &entry_a);
 
     elf_load(
@@ -58,7 +58,7 @@ noreturn void kernel_entry()
         &entry_b);
 
     schedule_ready_thread(proc_a, entry_a);
-    schedule_ready_thread(proc_b, entry_b);
+    // schedule_ready_thread(proc_b, entry_b);
 
     scheduler_loop_cpu_enter();
 
