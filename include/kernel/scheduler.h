@@ -15,6 +15,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+int rq_is_locked(cpuid_t rq);
+
 void scheduler_loop_cpu_enter();
 
 void scheduler_ectx_store(arm_ctx_t* ectx);

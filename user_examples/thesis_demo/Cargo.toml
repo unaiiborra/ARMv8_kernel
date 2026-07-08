@@ -1,0 +1,23 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# set the path to the corresponding userspace/stl folder
+stl = { path = "../../userspace/stl" }
+
+[lib]
+name = "app"
+crate-type = ["staticlib"]
+test = false
+doctest = false
+bench = false
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+debug = false

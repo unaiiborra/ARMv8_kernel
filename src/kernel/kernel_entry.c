@@ -21,7 +21,6 @@
 #include "kernel/scheduler.h"
 #include "kernel/task.h"
 
-
 noreturn void kernel_entry()
 {
     if (get_cpuid() == 0) {
@@ -29,10 +28,13 @@ noreturn void kernel_entry()
             kernel_early_init();
         else
             kernel_init();
+
+        smp_init();
     }
     else {
         printf("Hello from core %d\n\r", get_cpuid());
         scheduler_loop_cpu_enter();
+
         printf("\n\rExited %d!\n\r", get_cpuid());
 
         loop asm volatile("wfi");
@@ -45,20 +47,18 @@ noreturn void kernel_entry()
 
     elf_load(
         proc_a,
-        EMBEDDED_BINARY(pa_elf),
-        EMBEDDED_BINARY_SIZE(pa_elf),
+        EMBEDDED_BINARY(tda_elf),
+        EMBEDDED_BINARY_SIZE(tda_elf),
         &entry_a);
 
     elf_load(
         proc_b,
-        EMBEDDED_BINARY(pb_elf),
-        EMBEDDED_BINARY_SIZE(pb_elf),
+        EMBEDDED_BINARY(tdb_elf),
+        EMBEDDED_BINARY_SIZE(tdb_elf),
         &entry_b);
 
     schedule_ready_thread(proc_a, entry_a);
     schedule_ready_thread(proc_b, entry_b);
-
-    smp_init();
 
     scheduler_loop_cpu_enter();
 

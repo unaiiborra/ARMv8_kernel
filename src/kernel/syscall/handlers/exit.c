@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "../sysc_handlers.h"
+#include "kernel/smp.h"
 
 int64_t syscall64_exit(
     sysarg_t        exit_code,
@@ -15,6 +16,8 @@ int64_t syscall64_exit(
 {
     dbg_sysc_print(SYSC_EXIT, "exit_code=%d", exit_code);
     terminate_task(get_current_thread()->owner, exit_code);
+
+    schedule(get_cpuid());
 
     return 0;
 }

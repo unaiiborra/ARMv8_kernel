@@ -15,8 +15,6 @@
 
 #include "kernel/io/vfs_serial.h"
 
-
-
 extern kernel_initcall_t __kernel_initcalls_start[];
 extern kernel_initcall_t __kernel_initcalls_end[];
 extern kernel_initcall_t __kernel_cpu_initcalls_start[];
@@ -54,7 +52,6 @@ void kernel_init(void)
     vfs_serial_init();
 
     kernel_cpu_local_init();
-
 
 #ifdef DEBUG_DUMP
     term_prints("Identity mapping mmu: \n\r");

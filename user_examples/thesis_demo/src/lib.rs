@@ -1,26 +1,28 @@
 #![no_std]
 
-use core::sync::atomic::AtomicU64;
+extern crate stl;
 
+use core::fmt::Write;
+use core::sync::atomic::AtomicU64;
 use stl::{
-    lock::Spinlock,
-    printf,
+    stdio::{STDOUT_FD, buffer_writer::StaticBufferWriter, print},
     stdlib::yield_cpu,
     thread::{thread_create, thread_kill},
 };
 
-extern crate stl;
-
 const THREAD_COUNT: usize = 200;
-static LOCK: Spinlock<i32> = Spinlock::new(0);
 static FINISHED: AtomicU64 = AtomicU64::new(0);
 
 #[unsafe(no_mangle)]
-unsafe extern "C" fn secondary_entry(thid: u64, _arg: u64) {
-    LOCK.locked(|_| printf!("Hello from process A thread {}!\n\r", thid));
+unsafe extern "C" fn secondary_entry(thid: u64, arg: u64) {
+    let mut arr = [0u8; 512];
+    let mut buf = StaticBufferWriter::new(&mut arr);
+
+    write!(buf, "Hello from process B thread {} ({})!\n\r", thid, arg).expect("Formatting failed");
+
+    buf.flush(STDOUT_FD).expect("STDOUT failed!");
 
     FINISHED.fetch_add(1, core::sync::atomic::Ordering::Release);
-
     thread_kill(thid).expect("could not kill self thread");
 }
 
@@ -34,7 +36,7 @@ extern "C" fn main() -> i32 {
         yield_cpu();
     }
 
-    printf!("Process A finished OK!\n\r");
+    print("Process B finished OK!\n\r");
 
     return 0;
 }

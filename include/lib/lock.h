@@ -150,8 +150,8 @@ static inline bool spinlock_trylock_irqsave(
 /* ---- Cpulock (CPU recursive lock) ---- */
 
 typedef struct {
-    atomic_int flag;
-    int        count;
+    atomic_int  flag;
+    atomic_uint count;
 } cpulock_t;
 
 #define CPULOCK_INIT (cpulock_t) {.flag = -1, .count = 0}
@@ -164,7 +164,7 @@ static inline void cpulock_acquire(cpulock_t* lock)
     if (unlikely(
             atomic_load_explicit(&lock->flag, memory_order_relaxed) ==
             (int)cpuid)) {
-        lock->count++;
+        atomic_fetch_add(&lock->count, 1);
         return;
     }
 
@@ -192,13 +192,13 @@ static inline void cpulock_acquire(cpulock_t* lock)
         memory_order_acquire,
         memory_order_relaxed));
 
-    lock->count = 1;
+    atomic_fetch_add(&lock->count, 1);
 }
 
 [[gnu::always_inline]]
 static inline void cpulock_release(cpulock_t* lock)
 {
-    lock->count--;
+    atomic_fetch_sub(&lock->count, 1);
 
     if (lock->count == 0) {
         atomic_store_explicit(&lock->flag, -1, memory_order_release);

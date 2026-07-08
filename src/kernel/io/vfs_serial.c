@@ -6,7 +6,6 @@
 #include "kernel/devices/device.h"
 #include "kernel/devices/driver_ops/serial.h"
 #include "kernel/io/term.h"
-#include "kernel/mm.h"
 #include "kernel/panic.h"
 #include "lib/lock.h"
 #include "lib/stdattribute.h"

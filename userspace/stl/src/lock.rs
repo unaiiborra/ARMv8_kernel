@@ -2,8 +2,6 @@ use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use crate::syscall::syscall_yield;
-
 pub struct Spinlock<T> {
     data: UnsafeCell<T>,
     locked: AtomicBool,
@@ -35,7 +33,7 @@ impl<T> Spinlock<T> {
             }
 
             while self.locked.load(Ordering::Relaxed) {
-                syscall_yield();
+                unsafe { core::arch::asm!("nop") };
             }
         }
     }

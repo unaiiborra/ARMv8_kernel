@@ -1,7 +1,9 @@
-use core::fmt::{self, Write};
+pub mod buffer_writer;
 
 use crate::alloc::*;
+use crate::stdio::buffer_writer::BufferWriter;
 use crate::vfs::{FileDescriptor, VfsError};
+use core::fmt::{self, Write};
 
 pub const STDIN_FD: FileDescriptor = FileDescriptor::new(0);
 pub const STDOUT_FD: FileDescriptor = FileDescriptor::new(1);
@@ -14,48 +16,25 @@ pub fn read(buf: &mut [u8]) -> Result<&mut [u8], VfsError> {
     Ok(&mut buf[0..count])
 }
 
-// Writes
-#[inline(always)]
-fn out_write_str(fd: &FileDescriptor, s: &str) -> fmt::Result {
-    let written_count = fd.write(s.as_bytes()).map_err(|_| fmt::Error)?;
-
-    if written_count != s.as_bytes().len() {
-        Err(fmt::Error)
-    } else {
-        Ok(())
-    }
-}
-
-struct Stdout;
-impl Write for Stdout {
-    #[inline(always)]
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        out_write_str(&STDOUT_FD, s)
-    }
-}
-
-struct Stderr;
-impl Write for Stderr {
-    #[inline(always)]
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        out_write_str(&STDERR_FD, s)
-    }
-}
-
+// Write
 pub fn print(msg: &str) {
-    Stdout.write_str(msg).expect("Stdout error");
+    STDOUT_FD.write(msg.as_bytes()).expect("Stdout error");
 }
 
 pub fn print_err(msg: &str) {
-    Stderr.write_str(msg).expect("Stderr error");
+    STDERR_FD.write(msg.as_bytes()).expect("Stderr error");
 }
 
 pub fn printf(args: fmt::Arguments) {
-    Stdout.write_fmt(args).expect("Formatting error")
+    let mut buffer = BufferWriter::new();
+    buffer.write_fmt(args).expect("Formatting error");
+    buffer.write_fd(STDOUT_FD).expect("Stdout error");
 }
 
 pub fn printf_err(args: fmt::Arguments) {
-    Stderr.write_fmt(args).expect("Formatting error")
+    let mut buffer = BufferWriter::new();
+    buffer.write_fmt(args).expect("Formatting error");
+    buffer.write_fd(STDERR_FD).expect("Stderr error");
 }
 
 #[macro_export]

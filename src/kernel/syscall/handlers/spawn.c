@@ -7,6 +7,10 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
+#include "arm/exceptions/exceptions.h"
+#include "kernel/io/stdio.h"
+#include "kernel/smp.h"
+#include "kernel/time.h"
 
 
 
@@ -21,8 +25,8 @@ typedef enum {
 
 
 int64_t syscall64_spawn(
-    sysarg_t                  fn,
-    sysarg_t                  arg1,
+    sysarg_t        fn,
+    sysarg_t        arg1,
     unused_sysarg_t a1,
     unused_sysarg_t a3,
     unused_sysarg_t a4,
