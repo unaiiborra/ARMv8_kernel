@@ -268,7 +268,7 @@ void irq_dispatch()
         memory_order_acquire);
 
     if (unlikely(status != IRQ_REGISTERED)) {
-        dbg_printf(DEBUG_TRACE, "irqid %d arrived but not registered!", irq_id);
+        dbg_printf(DEBUG_TRACE, "irqid %d arrived but not registered!\n\r", irq_id);
 
         op_res = ops->irq_eoi(handle, irq_id);
         DEBUG_ASSERT(op_res >= 0);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kernel/smp.h>
 #include <lib/ansi.h>
 #include <lib/lock.h>
 
@@ -21,21 +22,37 @@ void print(const char* s);
 #define dbg_printf(lv, s, ...) __dbg_printf_##lv(s, __VA_ARGS__)
 
 #ifdef DEBUG
-#    define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
-#    define DEBUG_TRACE_PREFIX              DEBUG_ANSI_FG_COLOR "(dbg) "
-#    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_TRACE_PREFIX s ANSI_RESET
+extern cpulock_t* const DEBUG_TRACE_LOCK;
 
-#    define __dbg_print_DEBUG_LOG(s) print(DEBUG_TRACE_ANSI_WRAP_STRING(s))
-#    define __dbg_printf_DEBUG_LOG(s, ...) \
-        printf(DEBUG_TRACE_ANSI_WRAP_STRING(s), __VA_ARGS__)
+#    define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
+#    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_ANSI_FG_COLOR s ANSI_RESET
+
+#    define __dbg_print_DEBUG_LOG(s)                                  \
+        do {                                                          \
+            cpulocked(DEBUG_TRACE_LOCK)                               \
+            {                                                         \
+                printf(                                               \
+                    DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
+                    get_cpuid());                                     \
+            }                                                         \
+        } while (0)
+#    define __dbg_printf_DEBUG_LOG(s, ...)                            \
+        do {                                                          \
+            cpulocked(DEBUG_TRACE_LOCK)                               \
+            {                                                         \
+                printf(                                               \
+                    DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
+                    get_cpuid(),                                      \
+                    __VA_ARGS__);                                     \
+            }                                                         \
+        } while (0)
 #    if DEBUG == DEBUG_LOG
 #        define __dbg_print_DEBUG_TRACE(s)
 #        define __dbg_printf_DEBUG_TRACE(s, ...)
 #    elif DEBUG == DEBUG_TRACE
-#        define __dbg_print_DEBUG_TRACE(s) \
-            print(DEBUG_TRACE_ANSI_WRAP_STRING(s))
+#        define __dbg_print_DEBUG_TRACE(s) __dbg_print_DEBUG_LOG(s)
 #        define __dbg_printf_DEBUG_TRACE(s, ...) \
-            printf(DEBUG_TRACE_ANSI_WRAP_STRING(s), __VA_ARGS__)
+            __dbg_printf_DEBUG_LOG(s, __VA_ARGS__)
 #    endif
 #else
 #    define __dbg_print_DEBUG_LOG(s)

@@ -156,6 +156,10 @@ static void handle_panic(panic_info* info, panic_recovery recovery)
         print(ANSI_CLEAR);
     }
 
+#ifdef IRQ_DRIVEN_KPRINT
+    arm_exceptions_enable(false, true, false, false);
+#endif
+
     if (recovery == PANIC_UNRECOVERABLE)
         loop hang : asm volatile("wfe");
 }

@@ -60,9 +60,6 @@
 #define ANSI_FG_RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
 #define ANSI_BG_RGB(r, g, b) "\033[48;2;" #r ";" #g ";" #b "m"
 
-
-
-
 #define ANSI_CLEAR "\x1b[0m"
 #define ANSI_CLS   "\x1b[2J"
 #define ANSI_HOME  "\x1b[H"

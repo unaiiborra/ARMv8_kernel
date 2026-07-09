@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/io/stdio.h"
 #include "lib/lock.h"
 #include "sysc_handlers.h"
 
@@ -34,7 +35,6 @@ void sysc64_dispatch()
         size_t syscall_id = gpr[SYSC64_SYSCNUM_REG];
 
         if (syscall_id >= SYSC_COUNT) {
-            sysc64_set_result(gpr, SYSC64_RES_UNKNOWN);
             return;
         }
 

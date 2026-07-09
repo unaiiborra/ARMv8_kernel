@@ -15,13 +15,24 @@
 #include "lib/lock.h"
 #include "lib/stdattribute.h"
 
+#define fault_trace(v)                                                       \
+    dbg_printf(                                                              \
+        DEBUG_TRACE,                                                         \
+        "[FAULT] [Process: %s] [Thread: %l] [Fault: " #v "] [Addr: %p]\n\r", \
+        get_current_thread()->owner->name,                                   \
+        get_current_thread()->th_uid,                                        \
+        get_fault_address())
 
-#define case_print(v)                        \
-    dbg_printf(                              \
-        DEBUG_TRACE,                         \
-        "[page_fault_handler] " #v " at %p", \
-        get_fault_address());
-
+#define translation_print(result)                                             \
+    dbg_printf(                                                               \
+        DEBUG_TRACE,                                                          \
+        "[FAULT] [Process: %s] [Thread: %l] [Translation Fault] [Level: %d] " \
+        "[Addr: %p] [Result: %s]\n\r",                                        \
+        get_current_thread()->owner->name,                                    \
+        get_current_thread()->th_uid,                                         \
+        level,                                                                \
+        fault_address,                                                        \
+        result)
 
 typedef enum dfsc {
     // https://developer.arm.com/documentation/ddi0601/2021-03/AArch64-Registers/ESR-EL1--Exception-Syndrome-Register--EL1-?lang=en#fieldset_0-25_25
@@ -144,9 +155,11 @@ static void translation_fault(maybe_unused int32_t level, data_abort_iss* iss)
 
             switch (uaccess) {
                 case UREGION_ACCESS_OK:
+                    translation_print("OK");
                     return;
 
                 case UREGION_ACCESS_NOT_RESERVED:
+                    translation_print("NOT_RESERVED");
                     break; // terminate task
 
                 case UREGION_ACCESS_NOT_COMMITTED:
@@ -162,6 +175,7 @@ static void translation_fault(maybe_unused int32_t level, data_abort_iss* iss)
             }
         }
 
+        translation_print("TERMINATING");
         // unreserved region access TODO: SIGNAL
         terminate_task(get_current_thread()->owner, 2);
     }
@@ -185,196 +199,191 @@ void page_fault_handler()
     switch ((dfsc_t)dabt_iss.DFSC) {
         /* ── Address size faults ─────────────────────────────────────────── */
         case DFSC_ADDR_SIZE_L0: {
-            case_print(DFSC_ADDR_SIZE_L0);
+            fault_trace(DFSC_ADDR_SIZE_L0);
             terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L1: {
-            case_print(DFSC_ADDR_SIZE_L1);
+            fault_trace(DFSC_ADDR_SIZE_L1);
             terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L2: {
-            case_print(DFSC_ADDR_SIZE_L2);
+            fault_trace(DFSC_ADDR_SIZE_L2);
             terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_L3: {
-            case_print(DFSC_ADDR_SIZE_L3);
+            fault_trace(DFSC_ADDR_SIZE_L3);
             terminate_task(get_current_thread()->owner, 1);
         } break;
         case DFSC_ADDR_SIZE_Lm1: {
-            case_print(DFSC_ADDR_SIZE_Lm1);
+            fault_trace(DFSC_ADDR_SIZE_Lm1);
             terminate_task(get_current_thread()->owner, 1);
         } break;
 
         /* ── Translation faults
          * ──────────────────────────────────────────── */
         case DFSC_TRANSLATION_Lm1: {
-            case_print(DFSC_TRANSLATION_Lm1);
             translation_fault(-1, &dabt_iss);
         } break;
         case DFSC_TRANSLATION_L0: {
-            case_print(DFSC_TRANSLATION_L0);
             translation_fault(0, &dabt_iss);
         } break;
         case DFSC_TRANSLATION_L1: {
-            case_print(DFSC_TRANSLATION_L1);
             translation_fault(1, &dabt_iss);
         } break;
         case DFSC_TRANSLATION_L2: {
-            case_print(DFSC_TRANSLATION_L2);
             translation_fault(2, &dabt_iss);
         } break;
         case DFSC_TRANSLATION_L3: {
-            case_print(DFSC_TRANSLATION_L3);
             translation_fault(3, &dabt_iss);
         } break;
 
         /* ── Access flag faults
          * ──────────────────────────────────────────── */
         case DFSC_ACCESS_FLAG_L0: {
-            case_print(DFSC_ACCESS_FLAG_L0);
+            fault_trace(DFSC_ACCESS_FLAG_L0);
             PANIC("Access flag faults not implemented!");
         } break;
         case DFSC_ACCESS_FLAG_L1: {
-            case_print(DFSC_ACCESS_FLAG_L1);
+            fault_trace(DFSC_ACCESS_FLAG_L1);
             PANIC("Access flag faults not implemented!");
         } break;
         case DFSC_ACCESS_FLAG_L2: {
-            case_print(DFSC_ACCESS_FLAG_L2);
+            fault_trace(DFSC_ACCESS_FLAG_L2);
             PANIC("Access flag faults not implemented!");
         } break;
         case DFSC_ACCESS_FLAG_L3: {
-            case_print(DFSC_ACCESS_FLAG_L3);
+            fault_trace(DFSC_ACCESS_FLAG_L3);
             PANIC("Access flag faults not implemented!");
         } break;
 
         /* ── Permission faults ───────────────────────────────────────────── */
         case DFSC_PERMISSION_L0: {
-            case_print(DFSC_PERMISSION_L0);
+            fault_trace(DFSC_PERMISSION_L0);
             terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L1: {
-            case_print(DFSC_PERMISSION_L1);
+            fault_trace(DFSC_PERMISSION_L1);
             terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L2: {
-            case_print(DFSC_PERMISSION_L2);
+            fault_trace(DFSC_PERMISSION_L2);
             terminate_task(get_current_thread()->owner, 3);
         } break;
         case DFSC_PERMISSION_L3: {
-            case_print(DFSC_PERMISSION_L3);
+            fault_trace(DFSC_PERMISSION_L3);
             terminate_task(get_current_thread()->owner, 3);
         } break;
 
             /* ── Synchronous external aborts
              * ─────────────────────────────────── */
         case DFSC_SYNC_EXT_ABORT: {
-            case_print(DFSC_SYNC_EXT_ABORT);
+            fault_trace(DFSC_SYNC_EXT_ABORT);
             PANIC("Synchronous external abort");
         } break;
         case DFSC_SYNC_TAG_CHECK: {
-            case_print(DFSC_SYNC_TAG_CHECK);
+            fault_trace(DFSC_SYNC_TAG_CHECK);
             PANIC("Synchronous Tag Check fault");
         } break;
         case DFSC_SYNC_EXT_ABORT_TTW_Lm1: {
-            case_print(DFSC_SYNC_EXT_ABORT_TTW_Lm1);
+            fault_trace(DFSC_SYNC_EXT_ABORT_TTW_Lm1);
             PANIC("Synchronous external abort on TTW, level -1");
         } break;
         case DFSC_SYNC_EXT_ABORT_TTW_L0: {
-            case_print(DFSC_SYNC_EXT_ABORT_TTW_L0);
+            fault_trace(DFSC_SYNC_EXT_ABORT_TTW_L0);
             PANIC("Synchronous external abort on TTW, level 0");
         } break;
         case DFSC_SYNC_EXT_ABORT_TTW_L1: {
-            case_print(DFSC_SYNC_EXT_ABORT_TTW_L1);
+            fault_trace(DFSC_SYNC_EXT_ABORT_TTW_L1);
             PANIC("Synchronous external abort on TTW, level 1");
         } break;
         case DFSC_SYNC_EXT_ABORT_TTW_L2: {
-            case_print(DFSC_SYNC_EXT_ABORT_TTW_L2);
+            fault_trace(DFSC_SYNC_EXT_ABORT_TTW_L2);
             PANIC("Synchronous external abort on TTW, level 2");
         } break;
         case DFSC_SYNC_EXT_ABORT_TTW_L3: {
-            case_print(DFSC_SYNC_EXT_ABORT_TTW_L3);
+            fault_trace(DFSC_SYNC_EXT_ABORT_TTW_L3);
             PANIC("Synchronous external abort on TTW, level 3");
         } break;
 
         /* ── Parity / ECC errors ─────────────────────────────────────────── */
         case DFSC_SYNC_PARITY: {
-            case_print(DFSC_SYNC_PARITY);
+            fault_trace(DFSC_SYNC_PARITY);
             PANIC("Synchronous parity/ECC error");
         } break;
         case DFSC_SYNC_PARITY_TTW_Lm1: {
-            case_print(DFSC_SYNC_PARITY_TTW_Lm1);
+            fault_trace(DFSC_SYNC_PARITY_TTW_Lm1);
             PANIC("Synchronous parity/ECC error on TTW, level -1");
         } break;
         case DFSC_SYNC_PARITY_TTW_L0: {
-            case_print(DFSC_SYNC_PARITY_TTW_L0);
+            fault_trace(DFSC_SYNC_PARITY_TTW_L0);
             PANIC("Synchronous parity/ECC error on TTW, level 0");
         } break;
         case DFSC_SYNC_PARITY_TTW_L1: {
-            case_print(DFSC_SYNC_PARITY_TTW_L1);
+            fault_trace(DFSC_SYNC_PARITY_TTW_L1);
             PANIC("Synchronous parity/ECC error on TTW, level 1");
         } break;
         case DFSC_SYNC_PARITY_TTW_L2: {
-            case_print(DFSC_SYNC_PARITY_TTW_L2);
+            fault_trace(DFSC_SYNC_PARITY_TTW_L2);
             PANIC("Synchronous parity/ECC error on TTW, level 2");
         } break;
         case DFSC_SYNC_PARITY_TTW_L3: {
-            case_print(DFSC_SYNC_PARITY_TTW_L3);
+            fault_trace(DFSC_SYNC_PARITY_TTW_L3);
             PANIC("Synchronous parity/ECC error on TTW, level 3");
         } break;
 
         /* ── Alignment ───────────────────────────────────────────────────── */
         case DFSC_ALIGNMENT: {
-            case_print(DFSC_ALIGNMENT);
+            fault_trace(DFSC_ALIGNMENT);
             PANIC("Alignment fault");
         } break;
 
         /* ── Granule Protection Faults ───────────────────────────────────── */
         case DFSC_GPF_TTW_Lm1: {
-            case_print(DFSC_GPF_TTW_Lm1);
+            fault_trace(DFSC_GPF_TTW_Lm1);
             PANIC("Granule Protection Fault on TTW, level -1");
         } break;
         case DFSC_GPF_TTW_L0: {
-            case_print(DFSC_GPF_TTW_L0);
+            fault_trace(DFSC_GPF_TTW_L0);
             PANIC("Granule Protection Fault on TTW, level 0");
         } break;
         case DFSC_GPF_TTW_L1: {
-            case_print(DFSC_GPF_TTW_L1);
+            fault_trace(DFSC_GPF_TTW_L1);
             PANIC("Granule Protection Fault on TTW, level 1");
         } break;
         case DFSC_GPF_TTW_L2: {
-            case_print(DFSC_GPF_TTW_L2);
+            fault_trace(DFSC_GPF_TTW_L2);
             PANIC("Granule Protection Fault on TTW, level 2");
         } break;
         case DFSC_GPF_TTW_L3: {
-            case_print(DFSC_GPF_TTW_L3);
+            fault_trace(DFSC_GPF_TTW_L3);
             PANIC("Granule Protection Fault on TTW, level 3");
         } break;
         case DFSC_GPF: {
-            case_print(DFSC_GPF);
+            fault_trace(DFSC_GPF);
             PANIC("Granule Protection Fault");
         } break;
 
         /* ── Misc ────────────────────────────────────────────────────────── */
         case DFSC_TLB_CONFLICT: {
-            case_print(DFSC_TLB_CONFLICT);
+            fault_trace(DFSC_TLB_CONFLICT);
             PANIC("TLB conflict abort");
         } break;
         case DFSC_UNSUPPORTED_ATOMIC_HW: {
-            case_print(DFSC_UNSUPPORTED_ATOMIC_HW);
+            fault_trace(DFSC_UNSUPPORTED_ATOMIC_HW);
             PANIC("Unsupported atomic hardware update");
         } break;
         case DFSC_IMPDEF_LOCKDOWN: {
-            case_print(DFSC_IMPDEF_LOCKDOWN);
+            fault_trace(DFSC_IMPDEF_LOCKDOWN);
             PANIC("IMPLEMENTATION DEFINED fault: Lockdown");
         } break;
         case DFSC_IMPDEF_EXCL_ATOMIC: {
-            case_print(DFSC_IMPDEF_EXCL_ATOMIC);
+            fault_trace(DFSC_IMPDEF_EXCL_ATOMIC);
             PANIC("IMPLEMENTATION DEFINED fault: Unsupported Exclusive/Atomic");
         } break;
 
 
         default: {
-            dbg_printf(DEBUG_TRACE, "DFSC unknown: %d\n", dabt_iss.DFSC);
+            dbg_printf(DEBUG_TRACE, "DFSC unknown: %d\n\r", dabt_iss.DFSC);
         } break;
     }
 }

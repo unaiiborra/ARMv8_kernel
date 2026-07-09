@@ -195,7 +195,7 @@ bool timer_cancel_event(timer_event_t event)
             setup_head_timer(clock);
     }
 
-    dbg_printf(DEBUG_TRACE, "timer: canceled event %d", event.event_id);
+    dbg_printf(DEBUG_TRACE, "timer: canceled event %d\n\r", event.event_id);
 
     return true;
 }

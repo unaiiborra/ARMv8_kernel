@@ -51,7 +51,7 @@ bool mmu_core_set_mapping(mmu_core_handle* const ch, mmu_mapping* t)
         return true; // mapping already set, early return
 
     if (!mmu_mapping_is_valid(t)) {
-        dbg_print(DEBUG_TRACE, "mmu_core_set_mapping: !mmu_mapping_is_valid(t)");
+        dbg_print(DEBUG_TRACE, "mmu_core_set_mapping: !mmu_mapping_is_valid(t)\n\r");
         return false;
     }
 

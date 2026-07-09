@@ -128,7 +128,7 @@ bool task_try_delete_thread_ref(task_t* task, struct thread* th)
 
         dbg_printf(
             DEBUG_TRACE,
-            "[free_task] freed task %s with code %d",
+            "[free_task] freed task %s with code %d\n\r",
             task->name,
             atomic_load(&task->exit_code));
     }

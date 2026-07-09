@@ -129,10 +129,10 @@ static int32_t gicv3_irq_ack(driver_handle_t handle)
     uint32_t irq = (uint32_t)(_GICV3_ARM_ICC_IAR1_EL1_read() & 0xFFFFFF);
 
     if (irq >= 1020) {
-        dbg_printf(
-            DEBUG_TRACE,
-            "[GICv3] spurious irq %d, returning code -1",
-            irq);
+        // dbg_printf(
+        //     DEBUG_TRACE,
+        //     "[GICv3] spurious irq %d, returning code -1\n\r",
+        //     irq);
         return -1;
     }
 

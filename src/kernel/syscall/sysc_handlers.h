@@ -12,16 +12,17 @@ typedef const uint64_t sysarg_t;
 #define unused_sysarg_t __attribute__((unused)) sysarg_t
 
 #if DEBUG == 2
-#    define dbg_sysc_print(sysc, msg, ...)                            \
-        do {                                                          \
-            maybe_unused thread_t* __cur_th = get_current_thread(); \
-            dbg_printf(                                               \
-                DEBUG_TRACE,                                          \
-                "[utask: %s thread %d] (" #sysc ") " msg,             \
-                __cur_th->owner->name,                                \
-                __cur_th->th_uid,                                     \
-                ##__VA_ARGS__);                                       \
+#    define dbg_sysc_print(sysc, msg, ...)                                 \
+        do {                                                               \
+            maybe_unused thread_t* __cur_th = get_current_thread();        \
+            dbg_printf(                                                    \
+                DEBUG_TRACE,                                               \
+                "[SYSC: " #sysc "][Process: %s] [Thread: %l] " msg "\n\r", \
+                __cur_th->owner->name,                                     \
+                __cur_th->th_uid,                                          \
+                ##__VA_ARGS__);                                            \
         } while (0)
+
 #else
 #    define dbg_sysc_print(sysc, msg, ...)
 #endif

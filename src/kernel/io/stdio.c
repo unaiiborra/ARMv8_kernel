@@ -13,6 +13,11 @@
 static cpulock_t io_lock;
 cpulock_t* const IO_LOCK = &io_lock;
 
+#ifdef DEBUG
+static cpulock_t debug_trace_lock;
+cpulock_t* const DEBUG_TRACE_LOCK = &debug_trace_lock;
+#endif
+
 void io_init()
 {
     const device_t*     primary_uart = device_get_primary(DEVICE_CLASS_SERIAL);
@@ -24,6 +29,9 @@ void io_init()
     uart_ops->irq_enable(uart_handle);
 
     io_lock = CPULOCK_INIT;
+#ifdef DEBUG
+    debug_trace_lock = CPULOCK_INIT;
+#endif
 
     const char* cls = ANSI_CLS ANSI_HOME;
     while (*cls) {

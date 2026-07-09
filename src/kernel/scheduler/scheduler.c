@@ -25,6 +25,61 @@
 
 #include "task.h"
 
+#define SCHED_TAG "[SCHED]"
+
+#define sched_print(event, ...)                                                \
+    dbg_printf(                                                                \
+        DEBUG_TRACE,                                                           \
+        SCHED_TAG " [CPU: %d] [" event "]" __VA_OPT__(" " __VA_ARGS__) "\n\r", \
+        get_cpuid())
+
+#define sched_print_created(th, rq)                        \
+    dbg_printf(                                            \
+        DEBUG_TRACE,                                       \
+        SCHED_TAG " [CPU: %d] [Process: %s] [Thread: %l] " \
+                  "[Created] [Runqueue: %d]\n\r",          \
+        get_cpuid(),                                       \
+        (th)->owner->name,                                 \
+        (th)->th_uid,                                      \
+        (rq))
+
+#define sched_print_switch(from_th, to_th)                             \
+    dbg_printf(                                                        \
+        DEBUG_TRACE,                                                   \
+        SCHED_TAG " [CPU: %d] [Switch] [From: %s/%l] [To: %s/%l]\n\r", \
+        get_cpuid(),                                                   \
+        (from_th)->owner->name,                                        \
+        (from_th)->th_uid,                                             \
+        (to_th)->owner->name,                                          \
+        (to_th)->th_uid)
+
+#define sched_print_freed(th)                              \
+    dbg_printf(                                            \
+        DEBUG_TRACE,                                       \
+        SCHED_TAG " [CPU: %d] [Process: %s] [Thread: %l] " \
+                  "[Freed] [Type: %s]\n\r",                \
+        get_cpuid(),                                       \
+        (th)->owner->name,                                 \
+        (th)->th_uid,                                      \
+        ((th)->ctx.spsr & 0b1100) == 0 ? "utask" : "ktask")
+
+#define sched_print_balance(task, from_cpu, to_cpu, th)              \
+    dbg_printf(                                                      \
+        DEBUG_TRACE,                                                 \
+        SCHED_TAG " [CPU: %d] [Process: %s] [Balance] [Thread: %l] " \
+                  "[From CPU: %d] [To CPU: %d]\n\r",                 \
+        get_cpuid(),                                                 \
+        (task)->name,                                                \
+        (th)->th_uid,                                                \
+        (from_cpu),                                                  \
+        (to_cpu))
+
+#define sched_print_core_state(state)                       \
+    dbg_printf(                                             \
+        DEBUG_TRACE,                                        \
+        SCHED_TAG " [CPU: %d] [Core state: " state "]\n\r", \
+        get_cpuid())
+
 #ifndef SCHEDULER_NUM_RUNQUEUES
 constexpr size_t NUM_RUNQUEUES = NUM_CPUS;
 #else
@@ -220,8 +275,10 @@ static thread_t* wait_until_ready()
     DEBUG_ASSERT(cpulock_is_locked(&runqueue[cpuid].lock));
 
     while (!curr) {
-        if (atomic_load(&total_threads) == 0)
+        if (atomic_load(&total_threads) == 0) {
+            sched_print_core_state("EXIT_NO_THREADS_REMAINING");
             return NULL;
+        }
 
         curr = runqueue_pick_ready(cpuid);
 
@@ -279,19 +336,17 @@ void scheduler_loop_cpu_enter()
     cpuid_t cpuid = get_cpuid();
 
     if (cpuid > NUM_RUNQUEUES) {
-        dbg_printf(
-            DEBUG_TRACE,
-            "[CORE %d] exited runqueue due to explicit NUM_RUNQUEUES=%d\n\r",
-            cpuid,
-            (uint32_t)NUM_RUNQUEUES);
+        sched_print_core_state("EXIT_NUM_RUNQUEUES_EXCEEDED");
         return;
     }
 
     thread_t* th = NULL;
 
     arm_exceptions_disable_all();
-    
-    atomic_store(&enter_ready_cores[cpuid], true);    
+
+    sched_print_core_state("ENTER");
+
+    atomic_store(&enter_ready_cores[cpuid], true);
     while (true) {
         size_t i = 0;
         for (; i < NUM_RUNQUEUES; i++)
@@ -476,6 +531,7 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready)
         // 3. Add reference to the owner (already adds +1 to the
         // threads_per_cpu)
         task_add_thread_ref(node->th.owner, &node->th, runqueue_idx);
+        sched_print_created(&node->th, runqueue_idx);
     }
 
     // 4. Insert to the runqueue
@@ -572,6 +628,8 @@ static bool try_balance_task(task_t* task, cpuid_t runqueue_idx)
     // insert the stolen node to the self runqueue, locked from the caller
     runqueue_insert_node(victim_node, runqueue_idx);
 
+    sched_print_balance(task, victim_cpu, runqueue_idx, &victim_node->th);
+
     task->threads_per_cpu[runqueue_idx]++;
     task->threads_per_cpu[victim_cpu]--;
 
@@ -646,12 +704,14 @@ static void free_threads(kvec(thread*) * to_free)
 
         dbg_printf(
             DEBUG_TRACE,
-            "[%s: %s] thread %d freed",
+            "[%s: %s] thread %d freed\n\r",
             (fnode->th.ctx.spsr & 0b1100) == 0 ? "utask" : "ktask",
             fnode->th.owner->name,
             fnode->th.th_uid);
 
         if (fnode) {
+            sched_print_freed(&fnode->th);
+
             kfree(fnode);
         }
     }
@@ -801,6 +861,8 @@ static thread_t* runqueue_schedule()
             event_preemptive_scheduling,
             NULL,
             atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000);
+
+        sched_print_switch(curr, &selected_node->th);
 
         set_current_thread(&selected_node->th);
         return &selected_node->th;

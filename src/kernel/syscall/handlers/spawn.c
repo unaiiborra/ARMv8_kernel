@@ -8,11 +8,6 @@
 
 #include "../sysc_handlers.h"
 #include "arm/exceptions/exceptions.h"
-#include "kernel/io/stdio.h"
-#include "kernel/smp.h"
-#include "kernel/time.h"
-
-
 
 typedef enum {
     // spawned thid >= 0,
@@ -48,7 +43,6 @@ int64_t syscall64_spawn(
 
         if (unlikely((uregion_get_flags(region) & UREGION_F_EXEC) == 0)) {
             dbg_sysc_print(SYSC_SPAWN, "SYSC_SPAWN_RES_NOEXEC");
-
             return SYSC_SPAWN_RES_NOEXEC;
         }
     }
@@ -62,6 +56,7 @@ int64_t syscall64_spawn(
 
     thread_promote_to_ready(new_th);
 
+    dbg_sysc_print(SYSC_SPAWN, "Spawned thread %l", thid);
 
     return thid;
 }

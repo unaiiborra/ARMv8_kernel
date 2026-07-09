@@ -2,19 +2,12 @@
 #include <stdint.h>
 
 #include "../sysc_handlers.h"
-#include "arm/mmu.h"
-#include "kernel/io/stdio.h"
 #include "kernel/mm.h"
-#include "kernel/mm/mmu.h"
-#include "kernel/mm/page_malloc.h"
 #include "kernel/mm/uregion.h"
-#include "kernel/mm/vmalloc.h"
-#include "kernel/panic.h"
 #include "kernel/task.h"
 #include "lib/align.h"
 #include "lib/branch.h"
 #include "lib/lock.h"
-#include "lib/mem.h"
 
 
 typedef enum {
@@ -24,8 +17,8 @@ typedef enum {
 } sysc_munmap_res;
 
 int64_t syscall64_munmap(
-    sysarg_t                  addr,
-    sysarg_t                  lenght,
+    sysarg_t        addr,
+    sysarg_t        lenght,
     unused_sysarg_t a2,
     unused_sysarg_t a3,
     unused_sysarg_t a4,
