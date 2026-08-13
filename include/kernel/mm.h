@@ -179,7 +179,8 @@ void  kfree(void* ptr);
 
 static inline __attribute__((always_inline)) void __defer_kfree(void** ptr)
 {
-    kfree(*ptr);
+    if (ptr && *ptr)
+        kfree(*ptr);
 }
 #    define scoped_kfree_t deferT(void*, __defer_kfree)
 

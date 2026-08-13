@@ -3,6 +3,7 @@
 #include <lib/lock.h>
 
 #include "../sysc_handlers.h"
+#include "arm/exceptions/exceptions.h"
 #include "kernel/mm.h"
 #include "lib/stdattribute.h"
 
@@ -14,8 +15,9 @@ int64_t syscall64_write(
     unused_sysarg_t a4,
     unused_sysarg_t a5)
 {
-    vfs_result_t       result  = VFS_OK;
-    maybe_unused char* message = NULL;
+    vfs_result_t       result    = VFS_OK;
+    maybe_unused char* message   = NULL;
+    scoped_kfree_t     write_buf = NULL;
 
     if ((int64_t)fd < 0 || fd > INT32_MAX) {
         result = VFS_ERR_BADF;
@@ -27,9 +29,9 @@ int64_t syscall64_write(
         goto end;
     }
 
-    task_t*        task      = get_current_thread()->owner;
-    scoped_kfree_t write_buf = kzalloc(count + 1);
-    message                  = write_buf;
+    task_t* task = get_current_thread()->owner;
+    write_buf    = kzalloc(count + 1);
+    message      = write_buf;
 
     uregion_access_e uaccess;
     spinlocked_irqsave(&task->memory_lock)
