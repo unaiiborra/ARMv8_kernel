@@ -4,6 +4,8 @@ A custom operating system kernel for ARMv8-A architecture, running on real hardw
 
 Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**. A port to the **Raspberry Pi 5** and **Raspberry Pi Zero 2 W** is in planned.
 
+**[Read the full technical report (PDF)](https://github.com/unaiiborra/ARMv8_kernel/blob/assets/Design%20and%20implementation%20of%20a%20multithreaded%20Armv8-A%20operating%20system%20kernel.pdf)** — design rationale, implementation details, and measured performance (context switch, syscall, and allocator latency).
+
 ---
 
 ## Demo
