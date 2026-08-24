@@ -1,6 +1,6 @@
-# ARMv8 Kernel (AArch64)
+# Armv8 Kernel (AArch64)
 
-A custom operating system kernel for ARMv8-A architecture, running on real hardware. The project explores the core components of a modern OS: virtual memory, userspace execution, hardware drivers, and process management. Built from scratch in C and ARMv8 assembly, with some components written in Rust.
+A custom operating system kernel for Armv8-A architecture, running on real hardware. The project explores the core components of a modern OS: virtual memory, userspace execution, hardware drivers, and process management. Built from scratch in C and Armv8 assembly, with some components written in Rust.
 
 Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**. A port to the **Raspberry Pi 5** and **Raspberry Pi Zero 2 W** is in planned.
 
@@ -12,7 +12,7 @@ Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**
 
 Two userspace processes are launched, each spawning 200 threads. Every thread prints `Hello from process N thread M`, all captured over UART from the i.MX 8M Plus board. The kernel is then reloaded with the same programs, this time compiled with debug logging enabled, showing syscalls, scheduling decisions, and page faults from lazy allocation in real time.
 
-![Kernel demo: multithreaded processes and debug logging over UART](https://raw.githubusercontent.com/unaiiborra/ARMv8_kernel/13176181a3be57de1992d1009a4bb13fdf786b5d/demos/kernel_demo_showcase.gif)
+![Kernel demo: multithreaded processes and debug logging over UART](https://raw.githubusercontent.com/unaiiborra/Armv8_kernel/13176181a3be57de1992d1009a4bb13fdf786b5d/demos/kernel_demo_showcase.gif)
 
 [Watch in full quality on YouTube](https://youtu.be/VkPvFTDt5h0)
 
@@ -20,7 +20,7 @@ Two userspace processes are launched, each spawning 200 threads. Every thread pr
 
 ### Memory Management
 
-- ARMv8 translation table implementation (MMU) with 4 KiB granularity (other granularities are supported by the MMU module but untested)
+- Armv8 translation table implementation (MMU) with 4 KiB granularity (other granularities are supported by the MMU module but untested)
 - Kernel/user address space separation
 - Kernel relocation to high virtual addresses
 - Physical and virtual memory page allocators (`page allocator` and `vmalloc`)
@@ -56,7 +56,7 @@ Two userspace processes are launched, each spawning 200 threads. Every thread pr
 
 ```
 src/
-├── arm/           # Low-level ARMv8 code: MMU, cache, exceptions, sysregs, TF-A/SMCCC
+├── arm/           # Low-level Armv8 code: MMU, cache, exceptions, sysregs, TF-A/SMCCC
 ├── boot/          # Early boot: stack setup, BSS clearing, EL2 to EL1 transition
 ├── drivers/       # Hardware drivers (UART, GICv3, ARM timer, TMU)
 ├── kernel/        # Core kernel subsystems (see below)
