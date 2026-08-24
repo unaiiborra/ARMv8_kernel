@@ -6,7 +6,7 @@ compile_commands.json
 .env
 kernel.map
 /documentation
-target/
+/target/
 _obj/
 out.elf.txt
 .vscode/

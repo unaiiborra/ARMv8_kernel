@@ -1,6 +1,6 @@
-# Armv8 Kernel (AArch64)
+# Armv8-A Kernel (AArch64)
 
-A custom operating system kernel for Armv8-A architecture, running on real hardware. The project explores the core components of a modern OS: virtual memory, userspace execution, hardware drivers, and process management. Built from scratch in C and Armv8 assembly, with some components written in Rust.
+A custom operating system kernel for Armv8-A architecture, running on real hardware. The project explores the core components of a modern OS: virtual memory, userspace execution, hardware drivers, and process management. Built from scratch in C and Armv8-A assembly, with some components written in Rust.
 
 Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**. A port to the **Raspberry Pi 5** and **Raspberry Pi Zero 2 W** is in planned.
 
