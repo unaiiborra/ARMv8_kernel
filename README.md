@@ -9,7 +9,7 @@ The **kernel source code** lives on the
 
 ### TFM (Master's Thesis)
 
-Full report of the project.1
+Full report of the project
 
 [Design and implementation of a multithreaded Armv8-A operating system kernel.pdf](Design%20and%20implementation%20of%20a%20multithreaded%20Armv8-A%20operating%20system%20kernel.pdf)
 
