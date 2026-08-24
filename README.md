@@ -6,6 +6,14 @@ Currently running on the **NXP i.MX8M Plus (FRDM i.MX 8M Plus, ARM Cortex-A53)**
 
 ---
 
+## Demo
+
+Two userspace processes are launched, each spawning 200 threads. Every thread prints `Hello from process N thread M`, all captured over UART from the i.MX 8M Plus board. The kernel is then reloaded with the same programs, this time compiled with debug logging enabled, showing syscalls, scheduling decisions, and page faults from lazy allocation in real time.
+
+![Kernel demo: multithreaded processes and debug logging over UART](https://raw.githubusercontent.com/unaiiborra/ARMv8_kernel/13176181a3be57de1992d1009a4bb13fdf786b5d/demos/kernel_demo_showcase.gif)
+
+[Watch in full quality on YouTube](https://youtu.be/VkPvFTDt5h0)
+
 ## Features
 
 ### Memory Management
@@ -164,49 +172,48 @@ A minimal C and Rust standard library (`userspace/stl/`) and a program template 
 Available STL headers: `stdio.h`, `stdlib.h`, `syscall.h`, `stdthread.h`.
 
 ### Embedding a userspace binary
- 
+
 Since no filesystem is implemented yet, userspace binaries are embedded directly into the kernel binary at link time. Place your compiled ELF (or any binary) in the directory defined by `EMBEDDED_BINARIES_PATH` in your `.env`:
- 
+
 ```dotenv
 EMBEDDED_BINARIES_PATH = embedded
 ```
- 
+
 The build system will automatically discover all the files in that directory and embed them as raw bytes in the `.rodata` section.
- 
+
 To access an embedded binary from kernel code, include the header and use the provided macros:
- 
+
 ```c
 #include <kernel/embedded_binary.h>
- 
+
 // File: embedded/my_program.elf
 // Macro name: replace '.' and '-' with '_' → my_program_elf
- 
+
 elf_load(task, EMBEDDED_BINARY(my_program_elf), EMBEDDED_BINARY_SIZE(my_program_elf), &entry);
 ```
- 
+
 The macro name is derived from the filename with `.` and `-` replaced by `_`:
- 
-| File | Macro name |
-|---|---|
+
+| File                       | Macro name        |
+| -------------------------- | ----------------- |
 | `embedded/hello_world.elf` | `hello_world_elf` |
-| `embedded/firmware.bin` | `firmware_bin` |
- 
+| `embedded/firmware.bin`    | `firmware_bin`    |
+
 Available macros:
- 
+
 ```c
 EMBEDDED_BINARY(name)       // const void*    — pointer to the start of the binary
 EMBEDDED_BINARY_START(name) // const uint8_t* — same as above
 EMBEDDED_BINARY_END(name)   // const uint8_t* — pointer past the last byte
 EMBEDDED_BINARY_SIZE(name)  // size_t         — size in bytes (end - start)
 ```
- 
+
 This replaces the previous workflow of manually running `bin_to_array.py` and adding generated C arrays to the build. This also will be replaced once a proper filesystem is implemented.
- 
 
 ## Roadmap
 
 - [ ] Complete kernel thread support (scheduler currently handles user threads only)
-- [X] Full preemptive multithreading
+- [x] Full preemptive multithreading
 - [ ] FAT32 filesystem to replace binary embedding with proper file loading
 - [ ] Port to Raspberry Pi 5
 - [ ] Port to Raspberry Pi Zero 2 W
