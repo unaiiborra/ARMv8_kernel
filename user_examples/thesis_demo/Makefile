@@ -21,7 +21,7 @@ CFLAGS   += -ffreestanding -Wall -Wextra \
             -I$(INCLUDE)
 ASFLAGS  ?= -Istl_include -I$(INCLUDE)
 
-LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib
+LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib -Wl,--gc-sections
 
 ifeq ($(PROFILE), release)
     RS_PROFILE   := --release
@@ -68,7 +68,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
 	@mkdir -p $(dir $@)
 	$(CC) $(ASFLAGS) -c $< -o $@
-	
+
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 	cargo clean

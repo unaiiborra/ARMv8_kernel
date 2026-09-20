@@ -20,7 +20,7 @@ CFLAGS   += -ffreestanding -Wall -Wextra \
             -Istl_include \
             -I$(INCLUDE)
 
-LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib
+LDFLAGS  ?= -T $(LINKER_SCRIPT) -nostdlib -Wl,--gc-sections
 
 ifeq ($(PROFILE), release)
     RS_PROFILE   := --release
@@ -32,7 +32,6 @@ else ifeq ($(PROFILE), debug)
     RS_LIB       := target/$(RS_TARGET)/debug/libapp.a
     CFLAGS       += -O0 -g -DDEBUG=1 -DTESTING=1
     CXXFLAGS     += -O0 -g -DDEBUG=1 -DTESTING=1
-    LDFLAGS      += -g
 else
     $(error Unknown PROFILE '$(PROFILE)'. Use release or debug)
 endif

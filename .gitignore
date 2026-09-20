@@ -11,3 +11,4 @@ _obj/
 out.elf.txt
 .vscode/
 bin/
+target

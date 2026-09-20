@@ -2,8 +2,8 @@
 
 extern crate stl;
 
+use core::fmt::Write;
 use core::sync::atomic::AtomicU64;
-use core::{fmt::Write, sync::atomic::AtomicBool};
 use stl::{
     stdio::{STDOUT_FD, buffer_writer::StaticBufferWriter, print},
     stdlib::yield_cpu,
