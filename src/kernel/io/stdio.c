@@ -1,5 +1,5 @@
-#include <drivers/imx8mp_uart.h>
 #include <kernel/devices/device.h>
+#include <kernel/devices/driver_ops/serial.h>
 #include <kernel/io/stdio.h>
 #include <kernel/io/term.h>
 #include <kernel/io/vfs_serial.h>
@@ -14,7 +14,7 @@ static cpulock_t io_lock;
 cpulock_t* const IO_LOCK = &io_lock;
 
 #ifdef DEBUG
-static cpulock_t debug_trace_lock;
+static cpulock_t debug_trace_lock = CPULOCK_INIT;
 cpulock_t* const DEBUG_TRACE_LOCK = &debug_trace_lock;
 #endif
 
@@ -27,11 +27,6 @@ void io_init()
     uart_ops->init(uart_handle);
     uart_ops->set_baud(uart_handle, 115200, 12000000);
     uart_ops->irq_enable(uart_handle);
-
-    io_lock = CPULOCK_INIT;
-#ifdef DEBUG
-    debug_trace_lock = CPULOCK_INIT;
-#endif
 
     const char* cls = ANSI_CLS ANSI_HOME;
     while (*cls) {
@@ -65,11 +60,6 @@ void print(const char* s)
 #endif
 }
 
-static void putfmt(char c, void* string)
-{
-    kvec_push(string, &c);
-}
-
 void printf(const char* s, ...)
 {
     va_list va;
@@ -77,7 +67,7 @@ void printf(const char* s, ...)
 
     scoped_kvec(char) string = kvec_new(char);
 
-    str_fmt_print(putfmt, &string, s, va);
+    fmt_string(&string, s, va);
 
     print(kvec_data(&string));
 

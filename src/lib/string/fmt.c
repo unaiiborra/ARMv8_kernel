@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/data_structures/kvec.h"
+
 
 char uint8_t_to_ascii_char(uint8_t n)
 {
@@ -201,7 +203,7 @@ static inline void puts_(str_fmt_putc putc, void* args, const char* s)
         putc(*s++, args);
 }
 
-void str_fmt_print(str_fmt_putc putc, void* args, const char* f, va_list ap)
+void fmt_raw(str_fmt_putc putc, void* args, const char* f, va_list ap)
 {
     char buf[1024];
 
@@ -296,4 +298,21 @@ void str_fmt_print(str_fmt_putc putc, void* args, const char* f, va_list ap)
                 break;
         }
     }
+}
+
+static void fmt_string_putc(char c, void* arg)
+{
+    kvec(char)* string = arg;
+    kvec_push(string, &c);
+}
+
+kvec(char) * fmt_string(kvec(char) * string, const char* fmt, va_list ap)
+{
+    ASSERT(kvec_len(string) == 0, "Provided string must be empty");
+    fmt_raw(fmt_string_putc, string, fmt, ap);
+
+    char null = '\0';
+    kvec_push(string, &null);
+
+    return string;
 }

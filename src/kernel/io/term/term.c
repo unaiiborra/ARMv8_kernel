@@ -1,8 +1,8 @@
 #include "kernel/io/term.h"
 
-#include <lib/data_structures/kvec.h>
 #include <kernel/mm.h>
 #include <lib/branch.h>
+#include <lib/data_structures/kvec.h>
 #include <lib/lock.h>
 #include <lib/stdattribute.h>
 #include <lib/stdmacros.h>
@@ -124,20 +124,11 @@ size_t term_remove_head(term_handle* h, char* buf, size_t count)
     return popped;
 }
 
-static void putfmt(char c, void* args)
-{
-    kvec(char)* string = args;
-
-    kvec_push(string, &c);
-}
-
-
 bool term_outf(term_handle* h, const char* s, va_list ap)
 {
     // format the string
     defer(kvec_delete) kvec(char) string = kvec_new(char);
-    str_fmt_print(putfmt, &string, s, ap);
-
+    fmt_string(&string, s, ap);
     return term_prints(h, kvec_data(&string));
 }
 

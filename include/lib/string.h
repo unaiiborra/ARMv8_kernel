@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "lib/data_structures/kvec.h"
+
 
 typedef enum {
     STDINT_INT8,
@@ -83,4 +85,7 @@ void test_stdint_to_ascii(int64_t test_v, uint64_t buf_size);
 
 
 typedef void (*str_fmt_putc)(char c, void* args);
-void str_fmt_print(str_fmt_putc putc, void* args, const char* s, va_list ap);
+void fmt_raw(str_fmt_putc putc, void* args, const char* s, va_list ap);
+
+// formats a string into a kvec, ensures null termination
+kvec(char) * fmt_string(kvec(char) * string, const char* fmt, va_list ap);
