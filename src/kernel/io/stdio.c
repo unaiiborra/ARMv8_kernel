@@ -10,12 +10,12 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-static cpulock_t io_lock;
-cpulock_t* const IO_LOCK = &io_lock;
+static spinlock_t io_lock = SPINLOCK_INIT;
+spinlock_t* const IO_LOCK = &io_lock;
 
 #ifdef DEBUG
-static cpulock_t debug_trace_lock = CPULOCK_INIT;
-cpulock_t* const DEBUG_TRACE_LOCK = &debug_trace_lock;
+static spinlock_t debug_trace_lock = SPINLOCK_INIT;
+spinlock_t* const DEBUG_TRACE_LOCK = &debug_trace_lock;
 #endif
 
 void io_init()
@@ -38,7 +38,7 @@ void io_init()
 void print(const char* s)
 {
 #ifdef IRQ_DRIVEN_KPRINT // irq driven kernel print
-    cpulocked_irqsave(&io_lock)
+    spinlocked_irqsave(&io_lock)
     {
         term_prints(vfs_serial_out_term_get(), s);
     }

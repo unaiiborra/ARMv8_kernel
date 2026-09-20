@@ -129,7 +129,7 @@ static void handle_panic(panic_info* info, panic_recovery recovery)
 {
     arm_exceptions_disable_all();
 
-    cpulocked(IO_LOCK)
+    spinlocked_irqsave(IO_LOCK)
     {
         print("\n\r");
 

@@ -4,7 +4,7 @@
 #include <lib/ansi.h>
 #include <lib/lock.h>
 
-extern cpulock_t* const IO_LOCK;
+extern spinlock_t* const IO_LOCK;
 
 void io_init();
 
@@ -22,14 +22,14 @@ void print(const char* s);
 #define dbg_printf(lv, s, ...) __dbg_printf_##lv(s, __VA_ARGS__)
 
 #ifdef DEBUG
-extern cpulock_t* const DEBUG_TRACE_LOCK;
+extern spinlock_t* const DEBUG_TRACE_LOCK;
 
 #    define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
 #    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_ANSI_FG_COLOR s ANSI_RESET
 
 #    define __dbg_print_DEBUG_LOG(s)                                  \
         do {                                                          \
-            cpulocked(DEBUG_TRACE_LOCK)                               \
+            spinlocked_irqsave(DEBUG_TRACE_LOCK)                      \
             {                                                         \
                 printf(                                               \
                     DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
@@ -38,7 +38,7 @@ extern cpulock_t* const DEBUG_TRACE_LOCK;
         } while (0)
 #    define __dbg_printf_DEBUG_LOG(s, ...)                            \
         do {                                                          \
-            cpulocked(DEBUG_TRACE_LOCK)                               \
+            spinlocked_irqsave(DEBUG_TRACE_LOCK)                      \
             {                                                         \
                 printf(                                               \
                     DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
