@@ -30,10 +30,10 @@ $(OBJ_DIR)/_binary_%.o: $(EMBEDDED_BINARIES_PATH)/%
 $(OBJ_DIR)/__%.o: $(SRC_DIR)/%.S
 	mkdir -p $(dir $@)
 	$(ASM) $(ASM_FLAGS) -c $< -o $@
-	
+
 
 # C files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c .env
 	mkdir -p $(dir $@)
 	$(CC) $(C_FLAGS) -c $< -o $@
 
@@ -64,7 +64,7 @@ $(TARGET): $(OBJ_DIR)/rslib.a $(OBJ) $(EMBED_OBJS)
 $(BIN): $(TARGET)
 	mkdir -p $(dir $@)
 	$(OBJCOPY) -O binary $(TARGET) $(BIN)
-	
+
 
 
 clean:
