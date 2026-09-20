@@ -34,17 +34,13 @@ unsafe extern "C" fn secondary_entry(thid: u64, arg: u64) {
 extern "C" fn main() -> i32 {
     for i in 1..=THREAD_COUNT {
         syscall_spawn(_secondary_entry, i as u64).unwrap();
-
-        if i % 4 == 0 {
-            yield_cpu();
-        }
     }
 
     while FINISHED.load(core::sync::atomic::Ordering::Relaxed) != THREAD_COUNT as u64 {
         yield_cpu();
     }
 
-    print("Process A finished OK!\n\r");
+    print("Process B finished OK!\n\r");
 
     return 0;
 }
