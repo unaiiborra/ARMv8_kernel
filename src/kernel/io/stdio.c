@@ -47,7 +47,7 @@ void print(const char* s)
     driver_handle_t     uart_handle  = device_get_driver_handle(primary_uart);
     const serial_ops_t* uart_ops     = get_serial_ops(primary_uart);
 
-    cpulocked_irqsave(&io_lock) while (true)
+    spinlocked_irqsave(&io_lock) while (true)
     {
         if (*s == '\0')
             break;
