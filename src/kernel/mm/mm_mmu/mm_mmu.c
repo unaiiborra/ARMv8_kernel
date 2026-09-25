@@ -14,108 +14,99 @@
 #include "../init/mem_regions/early_kalloc.h"
 #include "../malloc/reserve_malloc/reserve_malloc.h"
 
-
-static void*       mm_mmu_default_allocator(size_t bytes);
+static void *mm_mmu_default_allocator(size_t bytes);
 static mmu_mapping KERNEL_MAPPING;
 static mmu_mapping UNMAPPED_LO;
 
-mmu_mapping* const       MM_MMU_KERNEL_MAPPING     = &KERNEL_MAPPING;
-mmu_mapping* const       MM_MMU_UNMAPPED_LO        = &UNMAPPED_LO;
-const mmu_allocator      MM_STD_MMU_ALLOCATOR      = mm_mmu_default_allocator;
+mmu_mapping *const MM_MMU_KERNEL_MAPPING = &KERNEL_MAPPING;
+mmu_mapping *const MM_MMU_UNMAPPED_LO = &UNMAPPED_LO;
+const mmu_allocator MM_STD_MMU_ALLOCATOR = mm_mmu_default_allocator;
 const mmu_allocator_free MM_STD_MMU_ALLOCATOR_FREE = raw_kfree;
 
-
 typedef struct {
-    // for avoiding false sharing
-    _Alignas(64) mmu_core_handle handle;
+	// for avoiding false sharing
+	_Alignas(64) mmu_core_handle handle;
 } local_mmu_core_handle;
 
 static local_mmu_core_handle handles[NUM_CPUS];
 
-
-static void* mm_mmu_default_allocator(size_t bytes)
+static void *mm_mmu_default_allocator(size_t bytes)
 {
-    (void)bytes;
-    DEBUG_ASSERT(bytes == PAGE_SIZE);
+	(void)bytes;
+	DEBUG_ASSERT(bytes == PAGE_SIZE);
 
-    pv_ptr pv = reserve_malloc("mmu table");
+	pv_ptr pv = reserve_malloc("mmu table");
 
-    memzero64((void*)pv.va, bytes);
+	memzero64((void *)pv.va, bytes);
 
-    DEBUG_ASSERT(pv.pa % PAGE_SIZE == 0);
+	DEBUG_ASSERT(pv.pa % PAGE_SIZE == 0);
 
-    return (void*)pv.va;
+	return (void *)pv.va;
 }
-
 
 mmu_mapping mm_mmu_mapping_new(mmu_tbl_rng rng)
 {
-    return mmu_mapping_new(
-        rng,
-        MMU_GRANULARITY_4KB,
-        KERNEL_ADDR_BITS,
-        KERNEL_BASE,
-        mm_mmu_default_allocator,
-        raw_kfree);
+	return mmu_mapping_new(
+		rng,
+		MMU_GRANULARITY_4KB,
+		KERNEL_ADDR_BITS,
+		KERNEL_BASE,
+		mm_mmu_default_allocator,
+		raw_kfree
+	);
 }
 
-
-static void* unmapped_lo_allocator_first_tbl(size_t _)
+static void *unmapped_lo_allocator_first_tbl(size_t _)
 {
-    (void)_;
-    pv_ptr pv = early_kalloc(
-        MMU_GRANULARITY_4KB,
-        "MM_MMU_UNMAPPED_LO table",
-        true,
-        false);
+	(void)_;
+	pv_ptr pv = early_kalloc(MMU_GRANULARITY_4KB, "MM_MMU_UNMAPPED_LO table", true, false);
 
-    memzero64(
-        (void*)pv.pa, // memzero from pa because mmu is not enabled yet
-        _);
+	memzero64(
+		(void *)pv.pa, // memzero from pa because mmu is not enabled yet
+		_
+	);
 
-    return (void*)pv.va;
+	return (void *)pv.va;
 }
 
-
-static void* unmapped_lo_allocator(size_t)
+static void *unmapped_lo_allocator(size_t)
 {
-    PANIC("MM_MMU_UNMAPPED_LO should allways stay unmapped");
+	PANIC("MM_MMU_UNMAPPED_LO should allways stay unmapped");
 }
-
 
 safe_early void mm_mmu_early_init()
 {
-    UNMAPPED_LO = mmu_mapping_new(
-        MMU_LO,
-        MMU_GRANULARITY_4KB,
-        48,
-        KERNEL_BASE,
-        unmapped_lo_allocator_first_tbl,
-        NULL);
+	UNMAPPED_LO = mmu_mapping_new(
+		MMU_LO,
+		MMU_GRANULARITY_4KB,
+		48,
+		KERNEL_BASE,
+		unmapped_lo_allocator_first_tbl,
+		NULL
+	);
 
-    mmu_mapping_set_allocator(&UNMAPPED_LO, unmapped_lo_allocator);
+	mmu_mapping_set_allocator(&UNMAPPED_LO, unmapped_lo_allocator);
 
-    uint64_t tmp;
-    __asm__ volatile("mrs %0, S3_1_c15_c2_1  \n"
-                     "orr %0, %0, #(1 << 6)  \n"
-                     "msr S3_1_c15_c2_1, %0  \n"
-                     "isb                    \n"
-                     : "=&r"(tmp)
-                     :
-                     : "memory");
+	uint64_t tmp;
+	__asm__ volatile("mrs %0, S3_1_c15_c2_1  \n"
+			 "orr %0, %0, #(1 << 6)  \n"
+			 "msr S3_1_c15_c2_1, %0  \n"
+			 "isb                    \n"
+			 : "=&r"(tmp)
+			 :
+			 : "memory");
 }
 
-
-mmu_core_handle* mm_mmu_core_handler_get(cpuid_t cpuid)
+mmu_core_handle *mm_mmu_core_handler_get(cpuid_t cpuid)
 {
-    if (cpuid >= NUM_CPUS)
-        return NULL;
+	if (cpuid >= NUM_CPUS) {
+		return NULL;
+	}
 
-    return &handles[cpuid].handle;
+	return &handles[cpuid].handle;
 }
 
-
-mmu_core_handle* mm_mmu_core_handler_get_self()
+mmu_core_handle *mm_mmu_core_handler_get_self()
 {
-    return &handles[get_cpuid()].handle;
+	return &handles[get_cpuid()].handle;
 }

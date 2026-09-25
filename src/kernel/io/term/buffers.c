@@ -12,141 +12,137 @@
 
 #include "lib/branch.h"
 
-
-static inline void alloc_tail(term_buffer_handle* h, size_t size)
+static inline void alloc_tail(term_buffer_handle *h, size_t size)
 {
-    DEBUG_ASSERT(size >= PAGE_SIZE);
-    DEBUG_ASSERT(size % PAGE_SIZE == 0);
+	DEBUG_ASSERT(size >= PAGE_SIZE);
+	DEBUG_ASSERT(size % PAGE_SIZE == 0);
 
-    term_buffer* new_tail = kmalloc(size);
+	term_buffer *new_tail = kmalloc(size);
 
-    *new_tail = (term_buffer) {
-        .buf_size = size - sizeof(term_buffer),
-        .next     = NULL,
-        .head     = 0,
-        .tail     = 0,
-    };
+	*new_tail = (term_buffer){
+		.buf_size = size - sizeof(term_buffer),
+		.next = NULL,
+		.head = 0,
+		.tail = 0,
+	};
 
-    if (!h->tail_buf) {
-        h->head_buf = new_tail;
-        h->tail_buf = new_tail;
-    }
-    else {
-        h->tail_buf->next = new_tail;
-        h->tail_buf       = new_tail;
-    }
+	if (!h->tail_buf) {
+		h->head_buf = new_tail;
+		h->tail_buf = new_tail;
+	} else {
+		h->tail_buf->next = new_tail;
+		h->tail_buf = new_tail;
+	}
 
-    h->allocated_size += size;
+	h->allocated_size += size;
 }
 
-
-static inline void free_head(term_buffer_handle* h, term_buffer* head)
+static inline void free_head(term_buffer_handle *h, term_buffer *head)
 {
-    DEBUG_ASSERT(head);
+	DEBUG_ASSERT(head);
 
-    h->allocated_size -= head->buf_size + sizeof(term_buffer);
-    h->head_buf = h->head_buf->next;
+	h->allocated_size -= head->buf_size + sizeof(term_buffer);
+	h->head_buf = h->head_buf->next;
 
-    if (h->head_buf == NULL) {
-        h->tail_buf = NULL;
+	if (h->head_buf == NULL) {
+		h->tail_buf = NULL;
 
-        DEBUG_ASSERT(h->allocated_size == 0 && h->size == 0);
-    }
+		DEBUG_ASSERT(h->allocated_size == 0 && h->size == 0);
+	}
 
-    raw_kfree(head);
+	raw_kfree(head);
 }
 
-
-size_t term_buffer_push(term_buffer_handle* h, char c)
+size_t term_buffer_push(term_buffer_handle *h, char c)
 {
-    DEBUG_ASSERT(h);
+	DEBUG_ASSERT(h);
 
+	if (!h->tail_buf || h->tail_buf->tail >= h->tail_buf->buf_size) {
+		size_t buf_size = max(PAGE_SIZE, h->allocated_size);
 
-    if (!h->tail_buf || h->tail_buf->tail >= h->tail_buf->buf_size) {
-        size_t buf_size = max(PAGE_SIZE, h->allocated_size);
+		alloc_tail(h, buf_size);
+	}
 
-        alloc_tail(h, buf_size);
-    }
+	term_buffer *tail_buf = h->tail_buf;
 
+	tail_buf->buf[tail_buf->tail++] = c;
 
-    term_buffer* tail_buf = h->tail_buf;
-
-    tail_buf->buf[tail_buf->tail++] = c;
-
-    return ++h->size;
+	return ++h->size;
 }
 
-
-size_t term_buffer_peek(term_buffer_handle* h, char* out)
+size_t term_buffer_peek(term_buffer_handle *h, char *out)
 {
-    if (unlikely(h->size == 0)) {
-        DEBUG_ASSERT(!h->head_buf && !h->tail_buf);
-        return 0;
-    }
+	if (unlikely(h->size == 0)) {
+		DEBUG_ASSERT(!h->head_buf && !h->tail_buf);
+		return 0;
+	}
 
-    term_buffer* head_buf = h->head_buf;
+	term_buffer *head_buf = h->head_buf;
 
-    DEBUG_ASSERT(head_buf->head < head_buf->tail);
+	DEBUG_ASSERT(head_buf->head < head_buf->tail);
 
-    *out = head_buf->buf[head_buf->head];
+	*out = head_buf->buf[head_buf->head];
 
-    return h->size;
+	return h->size;
 }
 
-bool term_buffer_pop(term_buffer_handle* h, char* out)
+bool term_buffer_pop(term_buffer_handle *h, char *out)
 {
-    DEBUG_ASSERT(h);
+	DEBUG_ASSERT(h);
 
-    if (unlikely(h->size == 0)) {
-        DEBUG_ASSERT(!h->head_buf && !h->tail_buf);
-        return false;
-    }
+	if (unlikely(h->size == 0)) {
+		DEBUG_ASSERT(!h->head_buf && !h->tail_buf);
+		return false;
+	}
 
-    term_buffer* head_buf = h->head_buf;
+	term_buffer *head_buf = h->head_buf;
 
-    if (likely(out))
-        *out = head_buf->buf[head_buf->head];
+	if (likely(out)) {
+		*out = head_buf->buf[head_buf->head];
+	}
 
-    h->size--;
-    head_buf->head++;
+	h->size--;
+	head_buf->head++;
 
-    if (head_buf->head == head_buf->tail)
-        free_head(h, head_buf);
+	if (head_buf->head == head_buf->tail) {
+		free_head(h, head_buf);
+	}
 
-    return true;
+	return true;
 }
 
-
-size_t term_buffer_pop_n(term_buffer_handle* h, size_t n, char* out)
+size_t term_buffer_pop_n(term_buffer_handle *h, size_t n, char *out)
 {
-    DEBUG_ASSERT(h);
-    size_t       popped = 0;
-    term_buffer* head_buf;
+	DEBUG_ASSERT(h);
+	size_t popped = 0;
+	term_buffer *head_buf;
 
-    while (popped < n && h->size > 0) {
-        head_buf = h->head_buf; // must be updated each iteration because it
-                                // changes when free_head is called
+	while (popped < n && h->size > 0) {
+		head_buf = h->head_buf; // must be updated each iteration because it
+					// changes when free_head is called
 
-        // bytes remaining in the buffer
-        size_t available = head_buf->tail - head_buf->head;
-        size_t take      = min(available, n - popped);
+		// bytes remaining in the buffer
+		size_t available = head_buf->tail - head_buf->head;
+		size_t take = min(available, n - popped);
 
-        if (out)
-            memcpy(out + popped, head_buf->buf + head_buf->head, take);
+		if (out) {
+			memcpy(out + popped, head_buf->buf + head_buf->head, take);
+		}
 
-        head_buf->head += take;
-        h->size -= take;
-        popped += take;
+		head_buf->head += take;
+		h->size -= take;
+		popped += take;
 
-        if (head_buf->head == head_buf->tail)
-            free_head(h, head_buf);
-    }
+		if (head_buf->head == head_buf->tail) {
+			free_head(h, head_buf);
+		}
+	}
 
-    return popped;
+	return popped;
 }
 
-size_t term_buffer_remove_from_head(term_buffer_handle* h)
+size_t term_buffer_remove_from_head(term_buffer_handle *h)
 {
-    term_buffer_pop(h, NULL);
-    return h->size;
+	term_buffer_pop(h, NULL);
+	return h->size;
 }

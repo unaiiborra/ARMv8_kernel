@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, UBMR, UBMR_VALUE_STRUCT_NAME, UART_UBMR_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UBMR, UBMR_VALUE_STRUCT_NAME, UART_UBMR_OFFSET);
 
 // Helper
-#define UBMR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        UBMR,                                  \
-        bf_name,                               \
-        UBMR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        UBMR,                                  \
-        bf_name,                               \
-        UBMR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define UBMR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UBMR,                                                                              \
+		bf_name,                                                                           \
+		UBMR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UBMR,                                                                              \
+		bf_name,                                                                           \
+		UBMR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define MOD_SHIFT 0
 #define MOD_MASK  (0xFFFF << MOD_SHIFT)

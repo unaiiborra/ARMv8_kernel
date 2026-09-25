@@ -11,26 +11,19 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(TCALIV_M40_VALUE_STRUCT_NAME);
 
-MMIO_DECLARE_REG32_READER(
-    TMU,
-    TCALIV_M40,
-    TCALIV_M40_VALUE_STRUCT_NAME,
-    TMU_TCALIV_M40_OFFSET);
-MMIO_DECLARE_REG32_WRITER(
-    TMU,
-    TCALIV_M40,
-    TCALIV_M40_VALUE_STRUCT_NAME,
-    TMU_TCALIV_M40_OFFSET);
+MMIO_DECLARE_REG32_READER(TMU, TCALIV_M40, TCALIV_M40_VALUE_STRUCT_NAME, TMU_TCALIV_M40_OFFSET);
+MMIO_DECLARE_REG32_WRITER(TMU, TCALIV_M40, TCALIV_M40_VALUE_STRUCT_NAME, TMU_TCALIV_M40_OFFSET);
 
 // Helper
-#define TCALIV_M40_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(                    \
-        TCALIV_M40,                                  \
-        bf_name,                                     \
-        TCALIV_M40_VALUE_STRUCT_NAME,                \
-        T,                                           \
-        bf_name##_SHIFT,                             \
-        bf_name##_MASK);
+#define TCALIV_M40_DECLARE_BIT_FIELD_FNS(bf_name, T)                                               \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TCALIV_M40,                                                                        \
+		bf_name,                                                                           \
+		TCALIV_M40_VALUE_STRUCT_NAME,                                                      \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define SNSR_M40C_1_SHIFT 16
 #define SNSR_M40C_1_MASK  (0x0FFFu << SNSR_M40C_1_SHIFT)

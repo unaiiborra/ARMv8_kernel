@@ -4,6 +4,5 @@
 
 #include "../../init/mem_regions/early_kalloc.h"
 
-
 void vmalloc_init();
-vuintptr_t vmalloc_update_memregs(const early_memreg* mregs, size_t n);
+vuintptr_t vmalloc_update_memregs(const early_memreg *mregs, size_t n);

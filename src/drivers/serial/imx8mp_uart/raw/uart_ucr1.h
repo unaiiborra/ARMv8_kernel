@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, UCR1, UCR1_VALUE_STRUCT_NAME, UART_UCR1_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UCR1, UCR1_VALUE_STRUCT_NAME, UART_UCR1_OFFSET);
 
 // Helper
-#define UCR1_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        UCR1,                                  \
-        bf_name,                               \
-        UCR1_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        UCR1,                                  \
-        bf_name,                               \
-        UCR1_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define UCR1_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UCR1,                                                                              \
+		bf_name,                                                                           \
+		UCR1_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UCR1,                                                                              \
+		bf_name,                                                                           \
+		UCR1_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // UARTEN
 #define UARTEN_SHIFT 0
@@ -94,10 +96,10 @@ UCR1_DECLARE_BIT_FIELD_FNS(RRDYEN, bool);
 #define ICD_MASK  (0b11 << ICD_SHIFT)
 
 typedef enum {
-    UART_UCR1_ICD_IDLE_4_FRAMES  = 0b00,
-    UART_UCR1_ICD_IDLE_8_FRAMES  = 0b01,
-    UART_UCR1_ICD_IDLE_16_FRAMES = 0b10,
-    UART_UCR1_ICD_IDLE_32_FRAMES = 0b11,
+	UART_UCR1_ICD_IDLE_4_FRAMES = 0b00,
+	UART_UCR1_ICD_IDLE_8_FRAMES = 0b01,
+	UART_UCR1_ICD_IDLE_16_FRAMES = 0b10,
+	UART_UCR1_ICD_IDLE_32_FRAMES = 0b11,
 } UART_UCR1_ICD;
 
 UCR1_DECLARE_BIT_FIELD_FNS(ICD, UART_UCR1_ICD);

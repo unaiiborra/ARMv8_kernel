@@ -18,21 +18,23 @@ MMIO_DECLARE_REG32_READER(TMU, TIDR, TIDR_VALUE_STRUCT_NAME, TMU_TIDR_OFFSET);
 MMIO_DECLARE_REG32_WRITER(TMU, TIDR, TIDR_VALUE_STRUCT_NAME, TMU_TIDR_OFFSET);
 
 // Helper
-#define TIDR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(              \
-        TIDR,                                  \
-        bf_name,                               \
-        TIDR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    TMU_DECLARE_BIT_FIELD_SETTER(              \
-        TIDR,                                  \
-        bf_name,                               \
-        TIDR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define TIDR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TIDR,                                                                              \
+		bf_name,                                                                           \
+		TIDR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	TMU_DECLARE_BIT_FIELD_SETTER(                                                              \
+		TIDR,                                                                              \
+		bf_name,                                                                           \
+		TIDR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define ITTE1_SHIFT 31
 #define ITTE1_MASK  (0b1u << ITTE1_SHIFT)

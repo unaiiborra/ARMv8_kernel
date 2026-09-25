@@ -9,732 +9,746 @@
 #define always_inline __attribute((always_inline)) static inline
 
 typedef enum {
-    BLACK,
-    RED,
+	BLACK,
+	RED,
 } color_e;
 
 typedef struct rbtnode {
-    struct rbtnode *left, *right;
-    uint64_t        packed;
-    union {
-        uint64_t key_unsigned;
-        int64_t  key_signed;
-        uint8_t  T[];
-    };
+	struct rbtnode *left, *right;
+	uint64_t packed;
+	union {
+		uint64_t key_unsigned;
+		int64_t key_signed;
+		uint8_t T[];
+	};
 } rbtnode_t;
 
 _Static_assert(sizeof(rb_header_t) == 24, "rb_header_t size mismatch");
 
-
-
-always_inline color_e get_color(rbtnode_t* node)
+always_inline color_e get_color(rbtnode_t *node)
 {
-    return node->packed & 1;
+	return node->packed & 1;
 }
 
-always_inline rbtnode_t* get_parent(rbtnode_t* node)
+always_inline rbtnode_t *get_parent(rbtnode_t *node)
 {
-    return (rbtnode_t*)(node->packed & ~UINT64_C(1));
+	return (rbtnode_t *)(node->packed & ~UINT64_C(1));
 }
 
-always_inline bool is_black(rbtnode_t* node)
+always_inline bool is_black(rbtnode_t *node)
 {
-    return (node->packed & 1) == 0;
+	return (node->packed & 1) == 0;
 }
 
-always_inline bool is_red(rbtnode_t* node)
+always_inline bool is_red(rbtnode_t *node)
 {
-    return (node->packed & 1) == 1;
+	return (node->packed & 1) == 1;
 }
 
-void set_color(rbtnode_t* node, color_e color)
+void set_color(rbtnode_t *node, color_e color)
 {
-    (color == 0) ? (node->packed &= ~UINT64_C(1))
-                 : (node->packed |= UINT64_C(1));
+	(color == 0) ? (node->packed &= ~UINT64_C(1)) : (node->packed |= UINT64_C(1));
 }
 
-always_inline void set_parent(rbtnode_t* node, rbtnode_t* parent)
+always_inline void set_parent(rbtnode_t *node, rbtnode_t *parent)
 {
-    node->packed &= UINT64_C(1);
-    node->packed |= (((uint64_t)parent) & ~UINT64_C(1));
+	node->packed &= UINT64_C(1);
+	node->packed |= (((uint64_t)parent) & ~UINT64_C(1));
 }
 
-always_inline void set_parent_color(
-    rbtnode_t* node,
-    rbtnode_t* parent,
-    color_e    color)
+always_inline void set_parent_color(rbtnode_t *node, rbtnode_t *parent, color_e color)
 {
-    node->packed = ((uint64_t)parent & ~UINT64_C(1)) | (uint64_t)color;
+	node->packed = ((uint64_t)parent & ~UINT64_C(1)) | (uint64_t)color;
 }
 
-always_inline void rotate_set_parents(
-    rbtnode_t* old,
-    rbtnode_t* new,
-    rbtree_t*  root,
-    color_e    color)
+always_inline void rotate_set_parents(rbtnode_t *old, rbtnode_t *new, rbtree_t *root, color_e color)
 {
-    rbtnode_t* parent = get_parent(old);
+	rbtnode_t *parent = get_parent(old);
 
-    set_parent(new, get_parent(old));
-    set_color(new, get_color(old));
+	set_parent(new, get_parent(old));
+	set_color(new, get_color(old));
 
-    set_parent_color(old, new, color);
+	set_parent_color(old, new, color);
 
-    if (parent) {
-        if (parent->left == old)
-            parent->left = new;
-        else
-            parent->right = new;
-    }
-    else {
-        root->root = new;
-    }
+	if (parent) {
+		if (parent->left == old) {
+			parent->left = new;
+		} else {
+			parent->right = new;
+		}
+	} else {
+		root->root = new;
+	}
 }
 
-void* rbt_find_i64(const rbtree_t* tree, int64_t key)
+void *rbt_find_i64(const rbtree_t *tree, int64_t key)
 {
-    rbtnode_t* node = tree->root;
+	rbtnode_t *node = tree->root;
 
-    while (node && node->key_signed != key)
-        node = key < node->key_signed ? node->left : node->right;
+	while (node && node->key_signed != key) {
+		node = key < node->key_signed ? node->left : node->right;
+	}
 
-    return node;
+	return node;
 }
 
-void* rbt_find_u64(const rbtree_t* tree, uint64_t key)
+void *rbt_find_u64(const rbtree_t *tree, uint64_t key)
 {
-    rbtnode_t* node = tree->root;
+	rbtnode_t *node = tree->root;
 
-    while (node && node->key_unsigned != key)
-        node = key < node->key_unsigned ? node->left : node->right;
+	while (node && node->key_unsigned != key) {
+		node = key < node->key_unsigned ? node->left : node->right;
+	}
 
-    return node;
+	return node;
 }
 
-rbt_find_result_e rbt_find(
-    const rbtree_t* tree,
-    rbt_condition_t cond,
-    void*           cmp_ctx,
-    void**          node_out)
+rbt_find_result_e
+rbt_find(const rbtree_t *tree, rbt_condition_t cond, void *cmp_ctx, void **node_out)
 {
-    rbtnode_t* node_b = tree->root;
+	rbtnode_t *node_b = tree->root;
 
-    while (node_b) {
-        int32_t cmp = cond(cmp_ctx, node_b);
+	while (node_b) {
+		int32_t cmp = cond(cmp_ctx, node_b);
 
-        if (cmp == RBT_EQUALS) {
-            if (node_out)
-                *node_out = node_b;
+		if (cmp == RBT_EQUALS) {
+			if (node_out) {
+				*node_out = node_b;
+			}
 
-            return RBT_FIND_OK;
-        }
+			return RBT_FIND_OK;
+		}
 
-        if (cmp == RBT_LESS_THAN)
-            node_b = node_b->left;
+		if (cmp == RBT_LESS_THAN) {
+			node_b = node_b->left;
+		}
 
-        else if (cmp == RBT_GREATER_THAN)
-            node_b = node_b->right;
+		else if (cmp == RBT_GREATER_THAN) {
+			node_b = node_b->right;
+		}
 
-        else {
-            if (node_out)
-                *node_out = node_b;
+		else {
+			if (node_out) {
+				*node_out = node_b;
+			}
 
-            return cmp;
-        }
-    }
+			return cmp;
+		}
+	}
 
-    return RBT_FIND_NOT_FOUND;
+	return RBT_FIND_NOT_FOUND;
 }
 
 typedef enum : int32_t {
-    COND_OK,
-    COND_REBALANCE,
-    COND_EQUALS = RBT_EQUALS,
-    // any other code is custom defined by the caller at rbt_condition_t
+	COND_OK,
+	COND_REBALANCE,
+	COND_EQUALS = RBT_EQUALS,
+	// any other code is custom defined by the caller at rbt_condition_t
 } bst_insert_res_e;
 
+always_inline bst_insert_res_e bst_insert_unsigned(rbtree_t *tree, rbtnode_t *node)
+{
+	rbtnode_t *parent = NULL;
+	rbtnode_t *cur = tree->root;
+
+	while (cur) {
+		parent = cur;
+
+		if (node->key_unsigned == cur->key_unsigned) {
+			return COND_EQUALS;
+		}
+
+		if (node->key_unsigned < cur->key_unsigned) {
+			cur = cur->left;
+		} else {
+			cur = cur->right;
+		}
+	}
+
+	node->left = NULL;
+	node->right = NULL;
+	set_parent_color(node, parent, RED);
+
+	if (!parent) {
+		tree->root = node;
+		set_color(node, BLACK);
+
+		return COND_OK;
+	}
+
+	if (node->key_unsigned < parent->key_unsigned) {
+		parent->left = node;
+	} else {
+		parent->right = node;
+	}
+
+	return COND_REBALANCE;
+}
+
+always_inline bst_insert_res_e bst_insert_signed(rbtree_t *tree, rbtnode_t *node)
+{
+	rbtnode_t *parent = NULL;
+	rbtnode_t *cur = tree->root;
+
+	while (cur) {
+		parent = cur;
+
+		if (node->key_signed == cur->key_signed) {
+			return COND_EQUALS;
+		}
+
+		if (node->key_signed < cur->key_signed) {
+			cur = cur->left;
+		} else {
+			cur = cur->right;
+		}
+	}
+
+	node->left = NULL;
+	node->right = NULL;
+	set_parent_color(node, parent, RED);
+
+	if (!parent) {
+		tree->root = node;
+		set_color(node, BLACK);
+
+		return COND_OK;
+	}
+
+	if (node->key_signed < parent->key_signed) {
+		parent->left = node;
+	} else {
+		parent->right = node;
+	}
+
+	return COND_REBALANCE;
+}
+
 always_inline bst_insert_res_e
-bst_insert_unsigned(rbtree_t* tree, rbtnode_t* node)
+bst_insert_conditional(rbtree_t *tree, rbtnode_t *node, rbt_condition_t cond)
 {
-    rbtnode_t* parent = NULL;
-    rbtnode_t* cur    = tree->root;
+	int32_t cmp;
+	rbtnode_t *parent = NULL;
+	rbtnode_t *cur = tree->root;
 
-    while (cur) {
-        parent = cur;
+	while (cur) {
+		parent = cur;
 
-        if (node->key_unsigned == cur->key_unsigned)
-            return COND_EQUALS;
+		cmp = cond(node, cur);
 
-        if (node->key_unsigned < cur->key_unsigned)
-            cur = cur->left;
-        else
-            cur = cur->right;
-    }
+		if (cmp == RBT_EQUALS) {
+			return COND_EQUALS;
+		}
 
-    node->left  = NULL;
-    node->right = NULL;
-    set_parent_color(node, parent, RED);
+		if (cmp == RBT_LESS_THAN) {
+			cur = cur->left;
+		} else {
+			cur = cur->right;
+		}
+	}
 
-    if (!parent) {
-        tree->root = node;
-        set_color(node, BLACK);
+	node->left = NULL;
+	node->right = NULL;
+	set_parent_color(node, parent, RED);
 
-        return COND_OK;
-    }
+	if (!parent) {
+		tree->root = node;
+		set_color(node, BLACK);
 
-    if (node->key_unsigned < parent->key_unsigned)
-        parent->left = node;
-    else
-        parent->right = node;
+		return COND_OK;
+	}
 
-    return COND_REBALANCE;
+	if (cmp == RBT_LESS_THAN) {
+		parent->left = node;
+	} else {
+		parent->right = node;
+	}
+
+	return COND_REBALANCE;
 }
 
-always_inline bst_insert_res_e bst_insert_signed(rbtree_t* tree, rbtnode_t* node)
+static void insert_rebalance(rbtree_t *tree, rbtnode_t *node)
 {
-    rbtnode_t* parent = NULL;
-    rbtnode_t* cur    = tree->root;
+	rbtnode_t *parent, *gparent, *tmp;
 
-    while (cur) {
-        parent = cur;
+	parent = get_parent(node);
 
-        if (node->key_signed == cur->key_signed)
-            return COND_EQUALS;
+	while (true) {
+		if (!parent) {
+			set_parent_color(node, NULL, BLACK);
+			break;
+		}
 
-        if (node->key_signed < cur->key_signed)
-            cur = cur->left;
-        else
-            cur = cur->right;
-    }
+		if (is_black(parent)) {
+			break;
+		}
 
-    node->left  = NULL;
-    node->right = NULL;
-    set_parent_color(node, parent, RED);
+		gparent = get_parent(parent);
 
-    if (!parent) {
-        tree->root = node;
-        set_color(node, BLACK);
+		tmp = gparent->right;
+		if (parent != tmp) {
+			if (tmp && is_red(tmp)) {
+				set_parent_color(tmp, gparent, BLACK);
+				set_parent_color(parent, gparent, BLACK);
+				node = gparent;
+				parent = get_parent(node);
+				set_parent_color(node, parent, RED);
+				continue;
+			}
 
-        return COND_OK;
-    }
+			tmp = parent->right;
+			if (node == tmp) {
+				tmp = node->left;
+				parent->right = tmp;
+				node->left = parent;
 
-    if (node->key_signed < parent->key_signed)
-        parent->left = node;
-    else
-        parent->right = node;
+				if (tmp) {
+					set_parent_color(tmp, parent, BLACK);
+				}
 
-    return COND_REBALANCE;
+				set_parent_color(parent, node, RED);
+
+				parent = node;
+				tmp = node->right;
+			}
+
+			gparent->left = tmp;
+			parent->right = gparent;
+
+			if (tmp) {
+				set_parent_color(tmp, gparent, BLACK);
+			}
+
+			rotate_set_parents(gparent, parent, tree, RED);
+			break;
+		} else {
+			tmp = gparent->left;
+
+			if (tmp && is_red(tmp)) {
+				set_parent_color(tmp, gparent, BLACK);
+				set_parent_color(parent, gparent, BLACK);
+				node = gparent;
+				parent = get_parent(node);
+				set_parent_color(node, parent, RED);
+				continue;
+			}
+
+			tmp = parent->left;
+			if (node == tmp) {
+				tmp = node->right;
+				parent->left = tmp;
+				node->right = parent;
+
+				if (tmp) {
+					set_parent_color(tmp, parent, BLACK);
+				}
+
+				set_parent_color(parent, node, RED);
+				parent = node;
+				tmp = node->left;
+			}
+
+			gparent->right = tmp;
+			parent->left = gparent;
+
+			if (tmp) {
+				set_parent_color(tmp, gparent, BLACK);
+			}
+
+			rotate_set_parents(gparent, parent, tree, RED);
+			break;
+		}
+	}
 }
 
-always_inline bst_insert_res_e
-bst_insert_conditional(rbtree_t* tree, rbtnode_t* node, rbt_condition_t cond)
+static void erase_color(rbtree_t *tree, rbtnode_t *parent)
 {
-    int32_t    cmp;
-    rbtnode_t* parent = NULL;
-    rbtnode_t* cur    = tree->root;
+	rbtnode_t *node = NULL, *sibling, *tmp1, *tmp2;
 
-    while (cur) {
-        parent = cur;
+	while (true) {
+		sibling = parent->right;
+		if (node != sibling) {
+			if (is_red(sibling)) {
+				tmp1 = sibling->left;
+				parent->right = tmp1;
+				sibling->left = parent;
+				set_parent_color(tmp1, parent, BLACK);
+				rotate_set_parents(parent, sibling, tree, RED);
+				sibling = tmp1;
+			}
+			tmp1 = sibling->right;
+			if (!tmp1 || is_black(tmp1)) {
+				tmp2 = sibling->left;
+				if (!tmp2 || is_black(tmp2)) {
+					set_parent_color(sibling, parent, RED);
+					if (is_red(parent)) {
+						set_color(parent, BLACK);
+					} else {
+						node = parent;
+						parent = get_parent(node);
 
-        cmp = cond(node, cur);
+						if (parent) {
+							continue;
+						}
+					}
+					break;
+				}
 
-        if (cmp == RBT_EQUALS)
-            return COND_EQUALS;
+				tmp1 = tmp2->right;
+				sibling->left = tmp1;
+				tmp2->right = sibling;
+				parent->right = tmp2;
+				if (tmp1) {
+					set_parent_color(tmp1, sibling, BLACK);
+				}
+				tmp1 = sibling;
+				sibling = tmp2;
+			}
 
-        if (cmp == RBT_LESS_THAN)
-            cur = cur->left;
-        else
-            cur = cur->right;
-    }
+			tmp2 = sibling->left;
+			parent->right = tmp2;
+			sibling->left = parent;
+			set_parent_color(tmp1, sibling, BLACK);
+			if (tmp2) {
+				set_parent(tmp2, parent);
+			}
 
-    node->left  = NULL;
-    node->right = NULL;
-    set_parent_color(node, parent, RED);
+			rotate_set_parents(parent, sibling, tree, BLACK);
+			break;
+		} else {
+			sibling = parent->left;
+			if (is_red(sibling)) {
+				/* Case 1 - right rotate at parent */
+				tmp1 = sibling->right;
+				parent->left = tmp1;
+				sibling->right = parent;
+				set_parent_color(tmp1, parent, BLACK);
+				rotate_set_parents(parent, sibling, tree, RED);
+				sibling = tmp1;
+			}
+			tmp1 = sibling->left;
+			if (!tmp1 || is_black(tmp1)) {
+				tmp2 = sibling->right;
+				if (!tmp2 || is_black(tmp2)) {
+					/* Case 2 - sibling color flip */
+					set_parent_color(sibling, parent, RED);
 
-    if (!parent) {
-        tree->root = node;
-        set_color(node, BLACK);
+					if (is_red(parent)) {
+						set_color(parent, BLACK);
+					}
 
-        return COND_OK;
-    }
+					else {
+						node = parent;
+						parent = get_parent(node);
 
-    if (cmp == RBT_LESS_THAN)
-        parent->left = node;
-    else
-        parent->right = node;
+						if (parent) {
+							continue;
+						}
+					}
+					break;
+				}
+				tmp1 = tmp2->left;
+				sibling->right = tmp1;
+				tmp2->left = sibling;
+				parent->left = tmp2;
+				if (tmp1) {
+					set_parent_color(tmp1, sibling, BLACK);
+				}
+				tmp1 = sibling;
+				sibling = tmp2;
+			}
 
-    return COND_REBALANCE;
+			tmp2 = sibling->right;
+			parent->left = tmp2;
+			sibling->right = parent;
+			set_parent_color(tmp1, sibling, BLACK);
+
+			if (tmp2) {
+				set_parent(tmp2, parent);
+			}
+
+			rotate_set_parents(parent, sibling, tree, BLACK);
+			break;
+		}
+	}
 }
 
-static void insert_rebalance(rbtree_t* tree, rbtnode_t* node)
+static rbtnode_t *inorder_successor(rbtnode_t *node)
 {
-    rbtnode_t *parent, *gparent, *tmp;
+	if (node->right) {
+		node = node->right;
+		while (node->left) {
+			node = node->left;
+		}
+		return node;
+	}
 
-    parent = get_parent(node);
+	rbtnode_t *parent = get_parent(node);
 
-    while (true) {
-        if (!parent) {
-            set_parent_color(node, NULL, BLACK);
-            break;
-        }
+	while (parent && node == parent->right) {
+		node = parent;
+		parent = get_parent(parent);
+	}
 
-        if (is_black(parent))
-            break;
-
-        gparent = get_parent(parent);
-
-        tmp = gparent->right;
-        if (parent != tmp) {
-            if (tmp && is_red(tmp)) {
-                set_parent_color(tmp, gparent, BLACK);
-                set_parent_color(parent, gparent, BLACK);
-                node   = gparent;
-                parent = get_parent(node);
-                set_parent_color(node, parent, RED);
-                continue;
-            }
-
-            tmp = parent->right;
-            if (node == tmp) {
-                tmp           = node->left;
-                parent->right = tmp;
-                node->left    = parent;
-
-                if (tmp)
-                    set_parent_color(tmp, parent, BLACK);
-
-                set_parent_color(parent, node, RED);
-
-                parent = node;
-                tmp    = node->right;
-            }
-
-            gparent->left = tmp;
-            parent->right = gparent;
-
-            if (tmp) {
-                set_parent_color(tmp, gparent, BLACK);
-            }
-
-            rotate_set_parents(gparent, parent, tree, RED);
-            break;
-        }
-        else {
-            tmp = gparent->left;
-
-            if (tmp && is_red(tmp)) {
-                set_parent_color(tmp, gparent, BLACK);
-                set_parent_color(parent, gparent, BLACK);
-                node   = gparent;
-                parent = get_parent(node);
-                set_parent_color(node, parent, RED);
-                continue;
-            }
-
-            tmp = parent->left;
-            if (node == tmp) {
-                tmp          = node->right;
-                parent->left = tmp;
-                node->right  = parent;
-
-                if (tmp)
-                    set_parent_color(tmp, parent, BLACK);
-
-                set_parent_color(parent, node, RED);
-                parent = node;
-                tmp    = node->left;
-            }
-
-            gparent->right = tmp;
-            parent->left   = gparent;
-
-            if (tmp)
-                set_parent_color(tmp, gparent, BLACK);
-
-            rotate_set_parents(gparent, parent, tree, RED);
-            break;
-        }
-    }
+	return parent;
 }
 
-static void erase_color(rbtree_t* tree, rbtnode_t* parent)
+static rbtnode_t *inorder_predecessor(rbtnode_t *node)
 {
-    rbtnode_t *node = NULL, *sibling, *tmp1, *tmp2;
+	if (node->left) {
+		node = node->left;
 
-    while (true) {
-        sibling = parent->right;
-        if (node != sibling) {
-            if (is_red(sibling)) {
-                tmp1          = sibling->left;
-                parent->right = tmp1;
-                sibling->left = parent;
-                set_parent_color(tmp1, parent, BLACK);
-                rotate_set_parents(parent, sibling, tree, RED);
-                sibling = tmp1;
-            }
-            tmp1 = sibling->right;
-            if (!tmp1 || is_black(tmp1)) {
-                tmp2 = sibling->left;
-                if (!tmp2 || is_black(tmp2)) {
-                    set_parent_color(sibling, parent, RED);
-                    if (is_red(parent))
-                        set_color(parent, BLACK);
-                    else {
-                        node   = parent;
-                        parent = get_parent(node);
+		while (node->right) {
+			node = node->right;
+		}
 
-                        if (parent)
-                            continue;
-                    }
-                    break;
-                }
+		return node;
+	}
 
-                tmp1          = tmp2->right;
-                sibling->left = tmp1;
-                tmp2->right   = sibling;
-                parent->right = tmp2;
-                if (tmp1)
-                    set_parent_color(tmp1, sibling, BLACK);
-                tmp1    = sibling;
-                sibling = tmp2;
-            }
+	rbtnode_t *parent = get_parent(node);
 
-            tmp2          = sibling->left;
-            parent->right = tmp2;
-            sibling->left = parent;
-            set_parent_color(tmp1, sibling, BLACK);
-            if (tmp2)
-                set_parent(tmp2, parent);
+	while (parent && node == parent->left) {
+		node = parent;
+		parent = get_parent(parent);
+	}
 
-            rotate_set_parents(parent, sibling, tree, BLACK);
-            break;
-        }
-        else {
-            sibling = parent->left;
-            if (is_red(sibling)) {
-                /* Case 1 - right rotate at parent */
-                tmp1           = sibling->right;
-                parent->left   = tmp1;
-                sibling->right = parent;
-                set_parent_color(tmp1, parent, BLACK);
-                rotate_set_parents(parent, sibling, tree, RED);
-                sibling = tmp1;
-            }
-            tmp1 = sibling->left;
-            if (!tmp1 || is_black(tmp1)) {
-                tmp2 = sibling->right;
-                if (!tmp2 || is_black(tmp2)) {
-                    /* Case 2 - sibling color flip */
-                    set_parent_color(sibling, parent, RED);
-
-                    if (is_red(parent))
-                        set_color(parent, BLACK);
-
-                    else {
-                        node   = parent;
-                        parent = get_parent(node);
-
-                        if (parent)
-                            continue;
-                    }
-                    break;
-                }
-                tmp1           = tmp2->left;
-                sibling->right = tmp1;
-                tmp2->left     = sibling;
-                parent->left   = tmp2;
-                if (tmp1)
-                    set_parent_color(tmp1, sibling, BLACK);
-                tmp1    = sibling;
-                sibling = tmp2;
-            }
-
-            tmp2           = sibling->right;
-            parent->left   = tmp2;
-            sibling->right = parent;
-            set_parent_color(tmp1, sibling, BLACK);
-
-            if (tmp2)
-                set_parent(tmp2, parent);
-
-            rotate_set_parents(parent, sibling, tree, BLACK);
-            break;
-        }
-    }
+	return parent;
 }
 
-static rbtnode_t* inorder_successor(rbtnode_t* node)
+rbt_insert_result_e rbt_insert_i64(rbtree_t *tree, void *node)
 {
-    if (node->right) {
-        node = node->right;
-        while (node->left)
-            node = node->left;
-        return node;
-    }
+	ASSERT(tree && node, "invalid params!");
 
-    rbtnode_t* parent = get_parent(node);
+	bst_insert_res_e insert_result = bst_insert_signed(tree, node);
 
-    while (parent && node == parent->right) {
-        node   = parent;
-        parent = get_parent(parent);
-    }
+	switch (expect(insert_result, COND_OK)) {
+	case COND_OK:
+		return RBT_INSERT_OK;
 
-    return parent;
+	case COND_REBALANCE:
+		insert_rebalance(tree, node);
+		return RBT_INSERT_OK;
+
+	case COND_EQUALS:
+		return RBT_INSERT_EXISTS;
+	}
+
+	PANIC("rbt_insert_i64 does not support custom result codes");
 }
 
-static rbtnode_t* inorder_predecessor(rbtnode_t* node)
+rbt_insert_result_e rbt_insert_u64(rbtree_t *tree, void *node)
 {
-    if (node->left) {
-        node = node->left;
+	ASSERT(tree && node, "invalid params!");
 
-        while (node->right)
-            node = node->right;
+	bst_insert_res_e insert_result = bst_insert_unsigned(tree, node);
 
-        return node;
-    }
+	switch (expect(insert_result, COND_OK)) {
+	case COND_OK:
+		return RBT_INSERT_OK;
 
-    rbtnode_t* parent = get_parent(node);
+	case COND_REBALANCE:
+		insert_rebalance(tree, node);
+		return RBT_INSERT_OK;
 
-    while (parent && node == parent->left) {
-        node   = parent;
-        parent = get_parent(parent);
-    }
+	case COND_EQUALS:
+		return RBT_INSERT_EXISTS;
+	}
 
-    return parent;
+	PANIC("rbt_insert_i64 does not support custom result codes");
 }
 
-rbt_insert_result_e rbt_insert_i64(rbtree_t* tree, void* node)
+rbt_insert_result_e rbt_insert(rbtree_t *tree, void *node, rbt_condition_t cond)
 {
-    ASSERT(tree && node, "invalid params!");
+	ASSERT(tree && node && cond, "invalid params!");
 
-    bst_insert_res_e insert_result = bst_insert_signed(tree, node);
+	int32_t insert_result = bst_insert_conditional(tree, node, cond);
 
-    switch (expect(insert_result, COND_OK)) {
-        case COND_OK:
-            return RBT_INSERT_OK;
+	switch (insert_result) {
+	case COND_OK:
+		return RBT_INSERT_OK;
 
-        case COND_REBALANCE:
-            insert_rebalance(tree, node);
-            return RBT_INSERT_OK;
+	case COND_REBALANCE:
+		insert_rebalance(tree, node);
+		return RBT_INSERT_OK;
 
-        case COND_EQUALS:
-            return RBT_INSERT_EXISTS;
-    }
+	case COND_EQUALS:
+		return RBT_INSERT_EXISTS;
+	}
 
-    PANIC("rbt_insert_i64 does not support custom result codes");
+	return insert_result; // custom code result
 }
 
-rbt_insert_result_e rbt_insert_u64(rbtree_t* tree, void* node)
+void *rbt_rightmost(const rbtree_t *tree)
 {
-    ASSERT(tree && node, "invalid params!");
+	rbtnode_t *node = tree->root;
 
-    bst_insert_res_e insert_result = bst_insert_unsigned(tree, node);
+	while (node && node->right) {
+		node = node->right;
+	}
 
-    switch (expect(insert_result, COND_OK)) {
-        case COND_OK:
-            return RBT_INSERT_OK;
-
-        case COND_REBALANCE:
-            insert_rebalance(tree, node);
-            return RBT_INSERT_OK;
-
-        case COND_EQUALS:
-            return RBT_INSERT_EXISTS;
-    }
-
-    PANIC("rbt_insert_i64 does not support custom result codes");
+	return node;
 }
 
-rbt_insert_result_e rbt_insert(rbtree_t* tree, void* node, rbt_condition_t cond)
+void *rbt_leftmost(const rbtree_t *tree)
 {
-    ASSERT(tree && node && cond, "invalid params!");
+	rbtnode_t *node = tree->root;
 
-    int32_t insert_result = bst_insert_conditional(tree, node, cond);
+	while (node && node->left) {
+		node = node->left;
+	}
 
-    switch (insert_result) {
-        case COND_OK:
-            return RBT_INSERT_OK;
-
-        case COND_REBALANCE:
-            insert_rebalance(tree, node);
-            return RBT_INSERT_OK;
-
-        case COND_EQUALS:
-            return RBT_INSERT_EXISTS;
-    }
-
-    return insert_result; // custom code result
+	return node;
 }
 
-void* rbt_rightmost(const rbtree_t* tree)
+void rbt_for_each(const rbtree_t *tree, rbt_visit_t visit, void *ctx)
 {
-    rbtnode_t* node = tree->root;
+	rbtnode_t *node = rbt_leftmost(tree);
+	while (node) {
+		if (!visit(node, ctx)) {
+			return;
+		}
 
-    while (node && node->right)
-        node = node->right;
-
-    return node;
+		node = inorder_successor(node);
+	}
 }
 
-void* rbt_leftmost(const rbtree_t* tree)
+void rbt_for_each_rev(const rbtree_t *tree, rbt_visit_t visit, void *ctx)
 {
-    rbtnode_t* node = tree->root;
+	rbtnode_t *node = rbt_rightmost(tree);
+	while (node) {
+		if (!visit(node, ctx)) {
+			return;
+		}
 
-    while (node && node->left)
-        node = node->left;
-
-    return node;
+		node = inorder_predecessor(node);
+	}
 }
 
-void rbt_for_each(const rbtree_t* tree, rbt_visit_t visit, void* ctx)
+void *rbt_remove(rbtree_t *tree, void *n)
 {
-    rbtnode_t* node = rbt_leftmost(tree);
-    while (node) {
-        if (!visit(node, ctx))
-            return;
+	rbtnode_t *node = n;
 
-        node = inorder_successor(node);
-    }
+	rbtnode_t *child = node->right;
+	rbtnode_t *tmp = node->left;
+	rbtnode_t *parent, *rebalance;
+
+	if (!tmp) {
+		parent = get_parent(node);
+
+		if (parent) {
+			if (parent->left == node) {
+				parent->left = child;
+			} else {
+				parent->right = child;
+			}
+		} else {
+			tree->root = child;
+		}
+
+		if (child) {
+			set_parent_color(child, parent, get_color(node));
+
+			rebalance = NULL;
+		} else {
+			rebalance = (is_black(node)) ? parent : NULL;
+		}
+	} else if (!child) {
+		parent = get_parent(node);
+		set_parent_color(tmp, parent, get_color(node));
+
+		if (parent) {
+			if (parent->left == node) {
+				parent->left = tmp;
+			} else {
+				parent->right = tmp;
+			}
+		} else {
+			tree->root = tmp;
+		}
+
+		rebalance = NULL;
+	} else {
+		rbtnode_t *successor = child;
+		rbtnode_t *child2;
+
+		tmp = child->left;
+		if (!tmp) {
+			parent = successor;
+			child2 = successor->right;
+		} else {
+			do {
+				parent = successor;
+				successor = tmp;
+				tmp = tmp->left;
+			} while (tmp);
+
+			child2 = successor->right;
+			parent->left = child2;
+			successor->right = child;
+			set_parent(child, successor);
+		}
+
+		successor->left = node->left;
+		set_parent(node->left, successor);
+
+		rbtnode_t *node_parent = get_parent(node);
+		if (node_parent) {
+			if (node_parent->left == node) {
+				node_parent->left = successor;
+			} else {
+				node_parent->right = successor;
+			}
+		} else {
+			tree->root = successor;
+		}
+
+		if (child2) {
+			set_parent_color(child2, parent, BLACK);
+			rebalance = NULL;
+		} else {
+			rebalance = (is_black(successor)) ? parent : NULL;
+		}
+
+		set_parent_color(successor, node_parent, get_color(node));
+	}
+
+	if (rebalance) {
+		erase_color(tree, rebalance);
+	}
+
+	return node;
 }
 
-void rbt_for_each_rev(const rbtree_t* tree, rbt_visit_t visit, void* ctx)
+void rbt_destroy(rbtree_t *tree, rbt_free_t free_fn, void *ctx)
 {
-    rbtnode_t* node = rbt_rightmost(tree);
-    while (node) {
-        if (!visit(node, ctx))
-            return;
+	if (!tree || !free_fn || !tree->root) {
+		return;
+	}
 
-        node = inorder_predecessor(node);
-    }
-}
+	rbtnode_t *node = tree->root;
+	while (node) {
+		if (node->left) {
+			node = node->left;
+			continue;
+		}
 
-void* rbt_remove(rbtree_t* tree, void* n)
-{
-    rbtnode_t* node = n;
+		if (node->right) {
+			node = node->right;
+			continue;
+		}
 
-    rbtnode_t* child = node->right;
-    rbtnode_t* tmp   = node->left;
-    rbtnode_t *parent, *rebalance;
+		rbtnode_t *parent = get_parent(node);
+		if (likely(parent)) {
+			if (parent->left == node) {
+				parent->left = NULL;
+			} else {
+				parent->right = NULL;
+			}
+		}
 
-    if (!tmp) {
-        parent = get_parent(node);
+		free_fn(node, ctx);
+		node = parent;
+	}
 
-        if (parent) {
-            if (parent->left == node)
-                parent->left = child;
-            else
-                parent->right = child;
-        }
-        else {
-            tree->root = child;
-        }
-
-        if (child) {
-            set_parent_color(child, parent, get_color(node));
-
-            rebalance = NULL;
-        }
-        else {
-            rebalance = (is_black(node)) ? parent : NULL;
-        }
-    }
-    else if (!child) {
-        parent = get_parent(node);
-        set_parent_color(tmp, parent, get_color(node));
-
-        if (parent) {
-            if (parent->left == node)
-                parent->left = tmp;
-            else
-                parent->right = tmp;
-        }
-        else {
-            tree->root = tmp;
-        }
-
-        rebalance = NULL;
-    }
-    else {
-        rbtnode_t* successor = child;
-        rbtnode_t* child2;
-
-        tmp = child->left;
-        if (!tmp) {
-            parent = successor;
-            child2 = successor->right;
-        }
-        else {
-            do {
-                parent    = successor;
-                successor = tmp;
-                tmp       = tmp->left;
-            } while (tmp);
-
-            child2           = successor->right;
-            parent->left     = child2;
-            successor->right = child;
-            set_parent(child, successor);
-        }
-
-        successor->left = node->left;
-        set_parent(node->left, successor);
-
-        rbtnode_t* node_parent = get_parent(node);
-        if (node_parent) {
-            if (node_parent->left == node)
-                node_parent->left = successor;
-            else
-                node_parent->right = successor;
-        }
-        else {
-            tree->root = successor;
-        }
-
-        if (child2) {
-            set_parent_color(child2, parent, BLACK);
-            rebalance = NULL;
-        }
-        else {
-            rebalance = (is_black(successor)) ? parent : NULL;
-        }
-
-        set_parent_color(successor, node_parent, get_color(node));
-    }
-
-    if (rebalance)
-        erase_color(tree, rebalance);
-
-    return node;
-}
-
-void rbt_destroy(rbtree_t* tree, rbt_free_t free_fn, void* ctx)
-{
-    if (!tree || !free_fn || !tree->root)
-        return;
-
-    rbtnode_t* node = tree->root;
-    while (node) {
-        if (node->left) {
-            node = node->left;
-            continue;
-        }
-
-        if (node->right) {
-            node = node->right;
-            continue;
-        }
-
-        rbtnode_t* parent = get_parent(node);
-        if (likely(parent)) {
-            if (parent->left == node)
-                parent->left = NULL;
-            else
-                parent->right = NULL;
-        }
-
-        free_fn(node, ctx);
-        node = parent;
-    }
-
-    tree->root = NULL;
+	tree->root = NULL;
 }

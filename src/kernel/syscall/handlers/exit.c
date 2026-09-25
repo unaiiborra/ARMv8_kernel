@@ -7,17 +7,18 @@
 #include "kernel/smp.h"
 
 int64_t syscall64_exit(
-    sysarg_t        exit_code,
-    unused_sysarg_t a1,
-    unused_sysarg_t a2,
-    unused_sysarg_t a3,
-    unused_sysarg_t a4,
-    unused_sysarg_t a5)
+	sysarg_t exit_code,
+	unused_sysarg_t a1,
+	unused_sysarg_t a2,
+	unused_sysarg_t a3,
+	unused_sysarg_t a4,
+	unused_sysarg_t a5
+)
 {
-    dbg_sysc_print(SYSC_EXIT, "exit_code=%d", exit_code);
-    terminate_task(get_current_thread()->owner, exit_code);
+	dbg_sysc_print(SYSC_EXIT, "exit_code=%d", exit_code);
+	terminate_task(get_current_thread()->owner, exit_code);
 
-    schedule(get_cpuid());
+	schedule(get_cpuid());
 
-    return 0;
+	return 0;
 }

@@ -5,5 +5,4 @@
 #include <lib/lock.h>
 #include <lib/stdbitfield.h>
 
-
-extern const thermal_sensor_ops_t* const IMX8MP_THERMAL_MONITORING_UNIT_OPS;
+extern const thermal_sensor_ops_t *const IMX8MP_THERMAL_MONITORING_UNIT_OPS;

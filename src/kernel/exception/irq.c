@@ -20,284 +20,260 @@
 #include "lib/string.h"
 
 #ifndef MAX_IRQS
-#    pragma message("TODO: MAX_IRQS should be defined globally")
-#    define MAX_IRQS IMX8MP_IRQ_SIZE
+#pragma message("TODO: MAX_IRQS should be defined globally")
+#define MAX_IRQS IMX8MP_IRQ_SIZE
 #endif
 
-
 typedef enum {
-    IRQ_UNREGISTERED,
-    IRQ_REGISTERING,
-    IRQ_REGISTERED,
+	IRQ_UNREGISTERED,
+	IRQ_REGISTERING,
+	IRQ_REGISTERED,
 } irq_register_status;
 
 typedef enum {
-    STD_HANDLER,
-    DRIVER_HANDLER,
+	STD_HANDLER,
+	DRIVER_HANDLER,
 } irq_handler_type_t;
 
 typedef struct {
-    irq_handler_type_t handler_type;
-    atomic_int         register_status;
-    irq_handler_t      handler;
-    void*              ctx;
+	irq_handler_type_t handler_type;
+	atomic_int register_status;
+	irq_handler_t handler;
+	void *ctx;
 } irq_entry_t;
 
 typedef struct {
-    char*          driver_name;
-    device_class_t driver_class;
-    void*          driver_ops;
+	char *driver_name;
+	device_class_t driver_class;
+	void *driver_ops;
 } driver_ctx_t;
 
 static irq_entry_t local_irq_table[NUM_CPUS][32] = {0};
-static irq_entry_t shared_irq_table[MAX_IRQS]    = {0};
+static irq_entry_t shared_irq_table[MAX_IRQS] = {0};
 
-[[gnu::always_inline]] static inline const device_t* irq_dev()
+[[gnu::always_inline]] static inline const device_t *irq_dev()
 {
-    return device_get_primary(DEVICE_CLASS_IRQ_CTRL);
+	return device_get_primary(DEVICE_CLASS_IRQ_CTRL);
 }
 
-[[gnu::always_inline]] static inline driver_handle_t irq_driver_handle(
-    const device_t* dev)
+[[gnu::always_inline]] static inline driver_handle_t irq_driver_handle(const device_t *dev)
 {
-    return device_get_driver_handle(dev);
+	return device_get_driver_handle(dev);
 }
 
-[[gnu::always_inline]] static inline irq_entry_t* get_entry(
-    uint32_t irq_id,
-    cpuid_t  target_cpu)
+[[gnu::always_inline]] static inline irq_entry_t *get_entry(uint32_t irq_id, cpuid_t target_cpu)
 {
-    return (irq_id < 32) ? &local_irq_table[target_cpu][irq_id]
-                         : &shared_irq_table[irq_id];
+	return (irq_id < 32) ? &local_irq_table[target_cpu][irq_id] : &shared_irq_table[irq_id];
 }
 
 static void irq_ctrl_config(
-    uint32_t               irq_id,
-    irq_ctrl_ops_trigger_t trigger,
-    cpuid_t                target_cpu,
-    uint8_t                priority)
+	uint32_t irq_id,
+	irq_ctrl_ops_trigger_t trigger,
+	cpuid_t target_cpu,
+	uint8_t priority
+)
 {
-    const device_t*       dev = irq_dev();
-    const irq_ctrl_ops_t* ops = get_irq_ctrl_ops(dev);
-    driver_handle_t       h   = irq_driver_handle(dev);
+	const device_t *dev = irq_dev();
+	const irq_ctrl_ops_t *ops = get_irq_ctrl_ops(dev);
+	driver_handle_t h = irq_driver_handle(dev);
 
-    maybe_unused int32_t op_res[4] = {0};
+	maybe_unused int32_t op_res[4] = {0};
 
-    op_res[0] = ops->irq_set_priority(h, irq_id, priority);
-    op_res[1] = ops->irq_set_trigger(h, irq_id, trigger);
+	op_res[0] = ops->irq_set_priority(h, irq_id, priority);
+	op_res[1] = ops->irq_set_trigger(h, irq_id, trigger);
 
-    if (irq_id >= 32)
-        op_res[2] = ops->irq_set_target(h, irq_id, target_cpu);
+	if (irq_id >= 32) {
+		op_res[2] = ops->irq_set_target(h, irq_id, target_cpu);
+	}
 
-    op_res[3] = ops->irq_enable_id(h, irq_id);
+	op_res[3] = ops->irq_enable_id(h, irq_id);
 
 #ifdef DEBUG
-    for (size_t i = 0; i < 4; i++)
-        DEBUG_ASSERT(op_res[i] >= 0);
+	for (size_t i = 0; i < 4; i++) {
+		DEBUG_ASSERT(op_res[i] >= 0);
+	}
 #endif
 }
 
 static void irq_register_type(
-    irq_handler_type_t type,
-    uint32_t           irq_id,
-    cpuid_t            target_cpu,
-    void*              handler,
-    void*              ctx)
+	irq_handler_type_t type,
+	uint32_t irq_id,
+	cpuid_t target_cpu,
+	void *handler,
+	void *ctx
+)
 {
-    ASSERT(irq_id < MAX_IRQS);
-    ASSERT(handler != NULL);
-    ASSERT(irq_id >= 32 || target_cpu == get_cpuid());
+	ASSERT(irq_id < MAX_IRQS);
+	ASSERT(handler != NULL);
+	ASSERT(irq_id >= 32 || target_cpu == get_cpuid());
 
-    irq_entry_t* irq = get_entry(irq_id, target_cpu);
+	irq_entry_t *irq = get_entry(irq_id, target_cpu);
 
-    int  expected = IRQ_UNREGISTERED;
-    bool ok       = atomic_compare_exchange_strong(
-        &irq->register_status,
-        &expected,
-        IRQ_REGISTERING);
+	int expected = IRQ_UNREGISTERED;
+	bool ok = atomic_compare_exchange_strong(&irq->register_status, &expected, IRQ_REGISTERING);
 
-    ASSERT(ok, "irq_register_driver: double register");
+	ASSERT(ok, "irq_register_driver: double register");
 
-    irq->handler.any  = handler;
-    irq->ctx          = ctx;
-    irq->handler_type = type;
+	irq->handler.any = handler;
+	irq->ctx = ctx;
+	irq->handler_type = type;
 
-    atomic_store_explicit(
-        &irq->register_status,
-        IRQ_REGISTERED,
-        memory_order_release);
+	atomic_store_explicit(&irq->register_status, IRQ_REGISTERED, memory_order_release);
 }
-
 
 void irq_ctrl_init()
 {
-    device_register(
-        "gic-v3",
-        DEVICE_CLASS_IRQ_CTRL,
-        255,
-        IMX8MP_A53_GIC_BASE,
-        GICV3_OPS);
+	device_register("gic-v3", DEVICE_CLASS_IRQ_CTRL, 255, IMX8MP_A53_GIC_BASE, GICV3_OPS);
 }
-
 
 void irq_register(
-    uint32_t               irq_id,
-    irq_std_handler_t      handler,
-    void*                  ctx,
-    irq_ctrl_ops_trigger_t trigger,
-    uint32_t               target_cpu,
-    uint8_t                priority)
+	uint32_t irq_id,
+	irq_std_handler_t handler,
+	void *ctx,
+	irq_ctrl_ops_trigger_t trigger,
+	uint32_t target_cpu,
+	uint8_t priority
+)
 {
-    irq_register_type(STD_HANDLER, irq_id, target_cpu, handler, ctx);
-    irq_ctrl_config(irq_id, trigger, target_cpu, priority);
+	irq_register_type(STD_HANDLER, irq_id, target_cpu, handler, ctx);
+	irq_ctrl_config(irq_id, trigger, target_cpu, priority);
 }
-
 
 void irq_register_driver(
-    uint32_t               irq_id,
-    const char*            driver_name,
-    device_class_t         driver_class,
-    const void* const      driver_ops,
-    irq_ctrl_ops_trigger_t trigger,
-    cpuid_t                target_cpu,
-    uint8_t                priority)
+	uint32_t irq_id,
+	const char *driver_name,
+	device_class_t driver_class,
+	const void *const driver_ops,
+	irq_ctrl_ops_trigger_t trigger,
+	cpuid_t target_cpu,
+	uint8_t priority
+)
 {
-    ASSERT(driver_class >= 0 && driver_class < DEVICE_CLASS_COUNT);
+	ASSERT(driver_class >= 0 && driver_class < DEVICE_CLASS_COUNT);
 
-    driver_ctx_t* ctx = kmalloc(sizeof(driver_ctx_t));
+	driver_ctx_t *ctx = kmalloc(sizeof(driver_ctx_t));
 
-    size_t size       = strlen(driver_name) + 1;
-    ctx->driver_name  = kmalloc(size);
-    ctx->driver_class = driver_class;
+	size_t size = strlen(driver_name) + 1;
+	ctx->driver_name = kmalloc(size);
+	ctx->driver_class = driver_class;
 
-    strcopy(ctx->driver_name, driver_name, size);
+	strcopy(ctx->driver_name, driver_name, size);
 
-    void (*irq_handle)(driver_handle_t handle) = NULL;
+	void (*irq_handle)(driver_handle_t handle) = NULL;
 
-    switch (driver_class) {
-        case DEVICE_CLASS_IRQ_CTRL:
-            PANIC("DEVICE_CLASS_IRQ_CTRL irq should never be registered");
-            break;
+	switch (driver_class) {
+	case DEVICE_CLASS_IRQ_CTRL:
+		PANIC("DEVICE_CLASS_IRQ_CTRL irq should never be registered");
+		break;
 
-        case DEVICE_CLASS_SERIAL:
-            irq_handle = ((serial_ops_t*)driver_ops)->irq_handle;
-            break;
+	case DEVICE_CLASS_SERIAL:
+		irq_handle = ((serial_ops_t *)driver_ops)->irq_handle;
+		break;
 
-        case DEVICE_CLASS_TIMER:
-            irq_handle = ((timer_ops_t*)driver_ops)->irq_handle;
-            break;
+	case DEVICE_CLASS_TIMER:
+		irq_handle = ((timer_ops_t *)driver_ops)->irq_handle;
+		break;
 
-        case DEVICE_CLASS_CLOCKSOURCE:
-            irq_handle = ((clocksource_ops_t*)driver_ops)->irq_handle;
-            break;
+	case DEVICE_CLASS_CLOCKSOURCE:
+		irq_handle = ((clocksource_ops_t *)driver_ops)->irq_handle;
+		break;
 
-        case DEVICE_CLASS_THERMAL_SENSOR:
-            irq_handle = ((thermal_sensor_ops_t*)driver_ops)->irq_handle;
-            break;
+	case DEVICE_CLASS_THERMAL_SENSOR:
+		irq_handle = ((thermal_sensor_ops_t *)driver_ops)->irq_handle;
+		break;
 
-        case DEVICE_CLASS_GENERIC:
-            PANIC("TODO:");
-        case DEVICE_CLASS_COUNT:
-            PANIC();
-            break;
-    }
+	case DEVICE_CLASS_GENERIC:
+		PANIC("TODO:");
+	case DEVICE_CLASS_COUNT:
+		PANIC();
+		break;
+	}
 
-    irq_register_type(DRIVER_HANDLER, irq_id, target_cpu, irq_handle, ctx);
-    irq_ctrl_config(irq_id, trigger, target_cpu, priority);
+	irq_register_type(DRIVER_HANDLER, irq_id, target_cpu, irq_handle, ctx);
+	irq_ctrl_config(irq_id, trigger, target_cpu, priority);
 }
-
 
 void irq_unregister(uint32_t irq_id, uint32_t target_cpu)
 {
-    ASSERT(irq_id < MAX_IRQS);
+	ASSERT(irq_id < MAX_IRQS);
 
-    irq_entry_t* irq = get_entry(irq_id, target_cpu);
+	irq_entry_t *irq = get_entry(irq_id, target_cpu);
 
-    int  expected = IRQ_REGISTERED;
-    bool ok       = atomic_compare_exchange_strong(
-        &irq->register_status,
-        &expected,
-        IRQ_REGISTERING);
-    ASSERT(ok);
+	int expected = IRQ_REGISTERED;
+	bool ok = atomic_compare_exchange_strong(&irq->register_status, &expected, IRQ_REGISTERING);
+	ASSERT(ok);
 
-    const device_t*       dev = irq_dev();
-    const irq_ctrl_ops_t* ops = get_irq_ctrl_ops(dev);
-    driver_handle_t       h   = irq_driver_handle(dev);
+	const device_t *dev = irq_dev();
+	const irq_ctrl_ops_t *ops = get_irq_ctrl_ops(dev);
+	driver_handle_t h = irq_driver_handle(dev);
 
-    maybe_unused int32_t op_res = ops->irq_disable_id(h, irq_id);
-    DEBUG_ASSERT(op_res >= 0);
+	maybe_unused int32_t op_res = ops->irq_disable_id(h, irq_id);
+	DEBUG_ASSERT(op_res >= 0);
 
+	if (irq->handler_type == DRIVER_HANDLER) {
+		driver_ctx_t *ctx = irq->ctx;
+		kfree(ctx->driver_name);
+		kfree(ctx);
+	}
 
-    if (irq->handler_type == DRIVER_HANDLER) {
-        driver_ctx_t* ctx = irq->ctx;
-        kfree(ctx->driver_name);
-        kfree(ctx);
-    }
+	irq->handler.any = NULL;
+	irq->ctx = NULL;
 
-    irq->handler.any = NULL;
-    irq->ctx         = NULL;
-
-    atomic_store_explicit(
-        &irq->register_status,
-        IRQ_UNREGISTERED,
-        memory_order_release);
+	atomic_store_explicit(&irq->register_status, IRQ_UNREGISTERED, memory_order_release);
 }
-
 
 void irq_dispatch()
 {
-    maybe_unused int32_t  op_res;
-    const device_t*       dev    = irq_dev();
-    const irq_ctrl_ops_t* ops    = get_irq_ctrl_ops(dev);
-    driver_handle_t       handle = irq_driver_handle(dev);
+	maybe_unused int32_t op_res;
+	const device_t *dev = irq_dev();
+	const irq_ctrl_ops_t *ops = get_irq_ctrl_ops(dev);
+	driver_handle_t handle = irq_driver_handle(dev);
 
-    int32_t irq_id = ops->irq_ack(handle);
+	int32_t irq_id = ops->irq_ack(handle);
 
-    if (unlikely(irq_id < 0))
-        return;
+	if (unlikely(irq_id < 0)) {
+		return;
+	}
 
-    if (unlikely(irq_id > MAX_IRQS)) {
-        printf("received irq %d, out of expected MAX_IRQS", irq_id);
-        PANIC();
-    }
+	if (unlikely(irq_id > MAX_IRQS)) {
+		printf("received irq %d, out of expected MAX_IRQS", irq_id);
+		PANIC();
+	}
 
-    irq_entry_t* irq = get_entry(irq_id, get_cpuid());
+	irq_entry_t *irq = get_entry(irq_id, get_cpuid());
 
-    irq_register_status status = atomic_load_explicit(
-        &irq->register_status,
-        memory_order_acquire);
+	irq_register_status status =
+		atomic_load_explicit(&irq->register_status, memory_order_acquire);
 
-    if (unlikely(status != IRQ_REGISTERED)) {
-        dbg_printf(DEBUG_TRACE, "irqid %d arrived but not registered!\n\r", irq_id);
+	if (unlikely(status != IRQ_REGISTERED)) {
+		dbg_printf(DEBUG_TRACE, "irqid %d arrived but not registered!\n\r", irq_id);
 
-        op_res = ops->irq_eoi(handle, irq_id);
-        DEBUG_ASSERT(op_res >= 0);
+		op_res = ops->irq_eoi(handle, irq_id);
+		DEBUG_ASSERT(op_res >= 0);
 
-        return;
-    }
+		return;
+	}
 
-    DEBUG_ASSERT(irq->handler.any != NULL);
+	DEBUG_ASSERT(irq->handler.any != NULL);
 
-    switch (irq->handler_type) {
-        case STD_HANDLER: {
-            irq->handler.std_handler(irq->ctx);
-            break;
-        }
-        case DRIVER_HANDLER: {
-            driver_ctx_t*   dctx    = irq->ctx;
-            const device_t* drv_dev = device_get_by_name(
-                dctx->driver_class,
-                dctx->driver_name);
-            ASSERT(drv_dev != NULL, "irq_dispatch: driver not found");
+	switch (irq->handler_type) {
+	case STD_HANDLER: {
+		irq->handler.std_handler(irq->ctx);
+		break;
+	}
+	case DRIVER_HANDLER: {
+		driver_ctx_t *dctx = irq->ctx;
+		const device_t *drv_dev = device_get_by_name(dctx->driver_class, dctx->driver_name);
+		ASSERT(drv_dev != NULL, "irq_dispatch: driver not found");
 
-            driver_handle_t drv_handle = device_get_driver_handle(drv_dev);
+		driver_handle_t drv_handle = device_get_driver_handle(drv_dev);
 
-            irq->handler.driver_handler(drv_handle);
+		irq->handler.driver_handler(drv_handle);
 
-            break;
-        }
-    }
+		break;
+	}
+	}
 
-    op_res = ops->irq_eoi(handle, irq_id);
-    DEBUG_ASSERT(op_res >= 0);
+	op_res = ops->irq_eoi(handle, irq_id);
+	DEBUG_ASSERT(op_res >= 0);
 }

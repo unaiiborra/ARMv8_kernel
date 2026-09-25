@@ -23,47 +23,39 @@
 
 noreturn void kernel_entry()
 {
-    if (get_cpuid() == 0) {
-        if (!mm_kernel_is_relocated())
-            kernel_early_init();
-        else
-            kernel_init();
+	if (get_cpuid() == 0) {
+		if (!mm_kernel_is_relocated()) {
+			kernel_early_init();
+		} else {
+			kernel_init();
+		}
 
-        smp_init();
+		smp_init();
 
-        dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
-    }
-    else {
-        dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
-        scheduler_loop_cpu_enter();
-        dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
+		dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
+	} else {
+		dbg_printf(DEBUG_LOG, "Core %d initialized\n\r", get_cpuid());
+		scheduler_loop_cpu_enter();
+		dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
 
-        loop asm volatile("wfi");
-    }
+		loop asm volatile("wfi");
+	}
 
-    task_t* proc_a = task_new("Process A");
-    task_t* proc_b = task_new("Process B");
+	task_t *proc_a = task_new("Process A");
+	task_t *proc_b = task_new("Process B");
 
-    uintptr_t entry_a, entry_b;
+	uintptr_t entry_a, entry_b;
 
-    elf_load(
-        proc_a,
-        EMBEDDED_BINARY(demo_a_elf),
-        EMBEDDED_BINARY_SIZE(demo_a_elf),
-        &entry_a);
+	elf_load(proc_a, EMBEDDED_BINARY(demo_a_elf), EMBEDDED_BINARY_SIZE(demo_a_elf), &entry_a);
 
-    elf_load(
-        proc_b,
-        EMBEDDED_BINARY(demo_b_elf),
-        EMBEDDED_BINARY_SIZE(demo_b_elf),
-        &entry_b);
+	elf_load(proc_b, EMBEDDED_BINARY(demo_b_elf), EMBEDDED_BINARY_SIZE(demo_b_elf), &entry_b);
 
-    schedule_ready_thread(proc_a, entry_a);
-    schedule_ready_thread(proc_b, entry_b);
+	schedule_ready_thread(proc_a, entry_a);
+	schedule_ready_thread(proc_b, entry_b);
 
-    scheduler_loop_cpu_enter();
+	scheduler_loop_cpu_enter();
 
-    dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
+	dbg_printf(DEBUG_LOG, "Runqueue %d exited succesfully\n\r", get_cpuid());
 
-    loop asm volatile("wfi");
+	loop asm volatile("wfi");
 }

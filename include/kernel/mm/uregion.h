@@ -7,7 +7,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 // WARNING: This module does not allow for partial frees nor considers merging
 // same attributed regions, which can cause valid buffers from userspace to be
 // considered as not commited or not reserved, for example in a syscall print if
@@ -22,29 +21,27 @@
 typedef struct uregion uregion_t; // used in task
 
 typedef enum {
-    UREGION_OK,
-    UREGION_OVERLAPS,
-    UREGION_ERROR,
+	UREGION_OK,
+	UREGION_OVERLAPS,
+	UREGION_ERROR,
 } uregion_reserve_e;
 
-
 typedef enum {
-    UREGION_F_READ  = 1 << 0,
-    UREGION_F_WRITE = 1 << 1,
-    UREGION_F_EXEC  = 1 << 2,
+	UREGION_F_READ = 1 << 0,
+	UREGION_F_WRITE = 1 << 1,
+	UREGION_F_EXEC = 1 << 2,
 } uregion_flags_e;
 
 #define UREGION_REQUIRED_FLAGS_IGNORE  0
 #define UREGION_FORBIDDEN_FLAGS_IGNORE 0
 
 typedef enum {
-    UREGION_ACCESS_OK,
-    UREGION_ACCESS_NOT_RESERVED,  // some or none pages are reserved
-    UREGION_ACCESS_NOT_COMMITTED, // reserved but not commited fully
-    UREGION_ACCESS_NO_PERMISSION, // required flags not set
-    UREGION_ACCESS_TRUNCATED,     // requested max size reached
+	UREGION_ACCESS_OK,
+	UREGION_ACCESS_NOT_RESERVED,  // some or none pages are reserved
+	UREGION_ACCESS_NOT_COMMITTED, // reserved but not commited fully
+	UREGION_ACCESS_NO_PERMISSION, // required flags not set
+	UREGION_ACCESS_TRUNCATED,     // requested max size reached
 } uregion_access_e;
-
 
 // ─── reserve ─────────────────────────────────────────────────────────────────
 
@@ -61,14 +58,8 @@ typedef enum {
 /// @param exec   userspace execute permission
 /// @returns UREGION_OK, UREGION_OVERLAPS if the range collides with an
 ///          existing region, or UREGION_ERROR on invalid input
-uregion_reserve_e uregion_reserve(
-    task_t*   t,
-    uintptr_t usr_va,
-    uint32_t  pages,
-    bool      read,
-    bool      write,
-    bool      exec);
-
+uregion_reserve_e
+uregion_reserve(task_t *t, uintptr_t usr_va, uint32_t pages, bool read, bool write, bool exec);
 
 /// Reserves a userspace VA range and immediately assigns physical pages.
 /// Both the userspace and kernel mappings are fully set up on return.
@@ -84,14 +75,14 @@ uregion_reserve_e uregion_reserve(
 /// @returns result with UREGION_OK and a valid knl_va on success,
 ///          or UREGION_OVERLAPS / UREGION_ERROR on failure
 uregion_reserve_e uregion_reserve_static(
-    task_t*   t,
-    uintptr_t usr_va,
-    uint32_t  pages,
-    bool      read,
-    bool      write,
-    bool      exec,
-    bool      zeroed);
-
+	task_t *t,
+	uintptr_t usr_va,
+	uint32_t pages,
+	bool read,
+	bool write,
+	bool exec,
+	bool zeroed
+);
 
 // ─── commit ──────────────────────────────────────────────────────────────────
 
@@ -105,8 +96,7 @@ uregion_reserve_e uregion_reserve_static(
 /// @param pages  number of pages to commit
 /// @returns kernel VA for the committed range, or NULL if the range is not
 ///          within a reserved region or is already fully mapped
-void uregion_commit(task_t* t, uintptr_t usr_va, uint32_t pages, bool zeroed);
-
+void uregion_commit(task_t *t, uintptr_t usr_va, uint32_t pages, bool zeroed);
 
 // ─── free ────────────────────────────────────────────────────────────────────
 
@@ -121,8 +111,7 @@ void uregion_commit(task_t* t, uintptr_t usr_va, uint32_t pages, bool zeroed);
 /// @param pages  number of pages to free
 /// @returns true on success, false if no matching region was found or the
 ///          range does not exactly cover a reserved region
-bool uregion_free(task_t* t, uintptr_t usr_va, uint32_t pages);
-
+bool uregion_free(task_t *t, uintptr_t usr_va, uint32_t pages);
 
 // ─── query ───────────────────────────────────────────────────────────────────
 
@@ -134,11 +123,7 @@ bool uregion_free(task_t* t, uintptr_t usr_va, uint32_t pages);
 /// @param size       range size in bytes
 /// @param out_region if non-NULL and the range is reserved, set to the
 ///                   containing region
-bool uregion_is_reserved(
-    const task_t* t,
-    uintptr_t     start,
-    size_t        size,
-    uregion_t**   out_region);
+bool uregion_is_reserved(const task_t *t, uintptr_t start, size_t size, uregion_t **out_region);
 
 /// Returns true if [start, start + size) is fully contained within a reserved
 /// region AND every page in the range has a physical address assigned.
@@ -148,26 +133,20 @@ bool uregion_is_reserved(
 /// @param size       range size in bytes
 /// @param out_region if non-NULL and the range is committed, set to the
 ///                   containing region
-bool uregion_is_committed(
-    const task_t* t,
-    uintptr_t     start,
-    size_t        size,
-    uregion_t**   out_region);
-
-
+bool uregion_is_committed(const task_t *t, uintptr_t start, size_t size, uregion_t **out_region);
 
 /// Checks if [start, start+size) is fully reserved, commited and has the
 /// required flags. Checks multiple regions, not only one region. If any page is
 /// reserved but not commited, it will be commited and zeroed when
 /// commit_on_demand == true.
 uregion_access_e uregions_check_access(
-    task_t*         t,
-    uintptr_t       start,
-    size_t          size,
-    uregion_flags_e required_flags,
-    uregion_flags_e forbidden_flags,
-    bool            commit_on_demand);
-
+	task_t *t,
+	uintptr_t start,
+	size_t size,
+	uregion_flags_e required_flags,
+	uregion_flags_e forbidden_flags,
+	bool commit_on_demand
+);
 
 /// Finds the highest available gap in the userspace address space large enough
 /// to hold `pages` pages. The search is top-down to keep low addresses
@@ -177,44 +156,45 @@ uregion_access_e uregions_check_access(
 /// @param pages number of contiguous pages needed
 /// @param out   set to the page-aligned VA of the free gap on success
 /// @returns     true if a suitable gap was found, false otherwise
-bool uregion_find_free(task_t* t, uint32_t pages, uintptr_t* out);
+bool uregion_find_free(task_t *t, uint32_t pages, uintptr_t *out);
 
 /// Returns the flags of the region, the user must check against uregion_flags_e
 ///
 /// @param region target region
 /// @returns flags
-uint32_t uregion_get_flags(uregion_t* region);
-
+uint32_t uregion_get_flags(uregion_t *region);
 
 typedef enum {
-    UMEMCPY_KNL_TO_USR,
-    UMEMCPY_USR_TO_KNL,
+	UMEMCPY_KNL_TO_USR,
+	UMEMCPY_USR_TO_KNL,
 } umemcpy_type_e;
 
-uregion_access_e umemcpy(
-    task_t*         t,
-    void*           dst,
-    const void*     src,
-    size_t          size,
-    uregion_flags_e required_flags,
-    uregion_flags_e forbidden_flags,
-    bool            commit_on_demand,
-    umemcpy_type_e  type);
+uregion_access_e
+umemcpy(task_t *t,
+	void *dst,
+	const void *src,
+	size_t size,
+	uregion_flags_e required_flags,
+	uregion_flags_e forbidden_flags,
+	bool commit_on_demand,
+	umemcpy_type_e type);
 
 uregion_access_e umemzero(
-    task_t*         t,
-    void*           usr_dst,
-    size_t          size,
-    uregion_flags_e required_flags,
-    uregion_flags_e forbidden_flags,
-    bool            commit_on_demand);
+	task_t *t,
+	void *usr_dst,
+	size_t size,
+	uregion_flags_e required_flags,
+	uregion_flags_e forbidden_flags,
+	bool commit_on_demand
+);
 
 uregion_access_e ustrncpy(
-    const task_t*   t,
-    char*           kernel_buf,
-    char*           usr_string,
-    uregion_flags_e required_flags,
-    uregion_flags_e forbidden_flags,
-    size_t          max);
+	const task_t *t,
+	char *kernel_buf,
+	char *usr_string,
+	uregion_flags_e required_flags,
+	uregion_flags_e forbidden_flags,
+	size_t max
+);
 
-void uregion_flush_icache(task_t* t, uintptr_t usr_start, size_t size);
+void uregion_flush_icache(task_t *t, uintptr_t usr_start, size_t size);

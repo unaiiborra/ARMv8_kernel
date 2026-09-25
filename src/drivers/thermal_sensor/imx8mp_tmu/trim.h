@@ -15,14 +15,15 @@ MMIO_DECLARE_REG32_READER(TMU, TRIM, TRIM_VALUE_STRUCT_NAME, TMU_TRIM_OFFSET);
 MMIO_DECLARE_REG32_WRITER(TMU, TRIM, TRIM_VALUE_STRUCT_NAME, TMU_TRIM_OFFSET);
 
 // Helper
-#define TRIM_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(              \
-        TRIM,                                  \
-        bf_name,                               \
-        TRIM_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define TRIM_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TRIM,                                                                              \
+		bf_name,                                                                           \
+		TRIM_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define BGR_SHIFT 28
 #define BGR_MASK  (0xFu << BGR_SHIFT)

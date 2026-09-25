@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -17,37 +17,36 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(GICR_CTLR_VALUE_STRUCT_NAME);
 
-static inline GICR_CTLR_VALUE_STRUCT_NAME
-GICV3_GICR_CTLR_read(uintptr_t base, size_t n)
+static inline GICR_CTLR_VALUE_STRUCT_NAME GICV3_GICR_CTLR_read(uintptr_t base, size_t n)
 {
-    return (GICR_CTLR_VALUE_STRUCT_NAME) {
-        .val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
-                             (GICR_CTLR_OFFSET)))};
+	return (GICR_CTLR_VALUE_STRUCT_NAME){
+		.val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) + (GICR_CTLR_OFFSET)))
+	};
 }
 
-static inline void
-GICV3_GICR_CTLR_write(uintptr_t base, size_t n, GICR_CTLR_VALUE_STRUCT_NAME v)
+static inline void GICV3_GICR_CTLR_write(uintptr_t base, size_t n, GICR_CTLR_VALUE_STRUCT_NAME v)
 {
-    *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) + (GICR_CTLR_OFFSET))) =
-        v.val;
+	*((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) + (GICR_CTLR_OFFSET))) = v.val;
 }
 
 /* Helpers */
-#define GICR_CTLR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    GICV3_DECLARE_BIT_FIELD_GETTER(                 \
-        GICR_CTLR,                                  \
-        bf_name,                                    \
-        GICR_CTLR_VALUE_STRUCT_NAME,                \
-        T,                                          \
-        bf_name##_SHIFT,                            \
-        bf_name##_MASK)                             \
-    GICV3_DECLARE_BIT_FIELD_SETTER(                 \
-        GICR_CTLR,                                  \
-        bf_name,                                    \
-        GICR_CTLR_VALUE_STRUCT_NAME,                \
-        T,                                          \
-        bf_name##_SHIFT,                            \
-        bf_name##_MASK)
+#define GICR_CTLR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                \
+	GICV3_DECLARE_BIT_FIELD_GETTER(                                                            \
+		GICR_CTLR,                                                                         \
+		bf_name,                                                                           \
+		GICR_CTLR_VALUE_STRUCT_NAME,                                                       \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)                                                                                          \
+	GICV3_DECLARE_BIT_FIELD_SETTER(                                                            \
+		GICR_CTLR,                                                                         \
+		bf_name,                                                                           \
+		GICR_CTLR_VALUE_STRUCT_NAME,                                                       \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)
 
 /* ---------------- UWP [31] (RO) ---------------- */
 #define UWP_SHIFT 31

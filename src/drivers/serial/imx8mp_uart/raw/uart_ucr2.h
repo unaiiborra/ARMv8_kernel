@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, UCR2, UCR2_VALUE_STRUCT_NAME, UART_UCR2_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UCR2, UCR2_VALUE_STRUCT_NAME, UART_UCR2_OFFSET);
 
 // Helper
-#define UCR2_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        UCR2,                                  \
-        bf_name,                               \
-        UCR2_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        UCR2,                                  \
-        bf_name,                               \
-        UCR2_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define UCR2_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UCR2,                                                                              \
+		bf_name,                                                                           \
+		UCR2_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UCR2,                                                                              \
+		bf_name,                                                                           \
+		UCR2_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // ESCI
 #define ESCI_SHIFT 15
@@ -68,9 +70,9 @@ UCR2_DECLARE_BIT_FIELD_FNS(ESCEN, bool);
 #define RTEC_MASK  (0b11 << RTEC_SHIFT)
 
 typedef enum {
-    UART_UCR2_RTEC_RISING_EDGE  = 0b00,
-    UART_UCR2_RTEC_FALLING_EDGE = 0b01,
-    UART_UCR2_RTEC_ANY_EDGE     = 0b10,
+	UART_UCR2_RTEC_RISING_EDGE = 0b00,
+	UART_UCR2_RTEC_FALLING_EDGE = 0b01,
+	UART_UCR2_RTEC_ANY_EDGE = 0b10,
 } UART_UCR2_RTEC;
 
 UCR2_DECLARE_BIT_FIELD_FNS(RTEC, UART_UCR2_RTEC);

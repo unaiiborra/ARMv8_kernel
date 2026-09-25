@@ -9,10 +9,9 @@
 
 typedef uint64_t page_mdt_bf;
 
-
 void page_allocator_init();
 
 /// allocates the early stage memory regions.
 /// checking
-void page_allocator_update_memregs(const early_memreg* mregs, size_t n);
+void page_allocator_update_memregs(const early_memreg *mregs, size_t n);
 void page_allocator_debug();

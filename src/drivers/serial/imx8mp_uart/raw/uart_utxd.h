@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -12,5 +12,5 @@
 
 static inline void UART_UTXD_write(uintptr_t base, uint8_t v)
 {
-    *((reg32_ptr)(base + (0x40UL))) = v;
+	*((reg32_ptr)(base + (0x40UL))) = v;
 }

@@ -19,13 +19,11 @@ int rq_is_locked(cpuid_t rq);
 
 void scheduler_loop_cpu_enter();
 
-void scheduler_ectx_store(arm_ctx_t* ectx);
-void scheduler_ectx_load(arm_ctx_t* ectx);
-
+void scheduler_ectx_store(arm_ctx_t *ectx);
+void scheduler_ectx_load(arm_ctx_t *ectx);
 
 uint64_t scheduler_get_preemptive_duration(cpuid_t cpuid);
 void scheduler_set_preemptive_duration(cpuid_t cpuid, uint64_t microseconds);
-
 
 /// notifies that the next context switch or restore, must schedule a new
 /// thread.
@@ -34,34 +32,30 @@ void schedule(cpuid_t runqueue);
 /* --- Threads --- */
 
 typedef enum {
-    KERNEL_THREAD,
-    USER_THREAD,
+	KERNEL_THREAD,
+	USER_THREAD,
 } thread_type;
 
-
 typedef enum {
-    THREAD_NEW,
-    THREAD_READY,
-    THREAD_RUNNING,
-    THREAD_SLEEPING,
-    THREAD_DEAD,
+	THREAD_NEW,
+	THREAD_READY,
+	THREAD_RUNNING,
+	THREAD_SLEEPING,
+	THREAD_DEAD,
 } thread_state;
 
-
 typedef struct thread {
-    uint64_t             th_uid;
-    task_t*              owner;
-    arm_ctx_t            ctx;
-    uint64_t             last_access_time_us;
-    cpuid_t              sched_cpu;
-    _Atomic thread_state state;
+	uint64_t th_uid;
+	task_t *owner;
+	arm_ctx_t ctx;
+	uint64_t last_access_time_us;
+	cpuid_t sched_cpu;
+	_Atomic thread_state state;
 } thread_t;
-
 
 void scheduler_init();
 
-
-thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
+thread_t *schedule_thread(task_t *owner, uintptr_t entry, bool start_ready);
 
 /// creates a new thread and adds it to the scheduler. The thread will be marked
 /// as new so it will not execute until marked as READY.
@@ -72,44 +66,37 @@ thread_t* schedule_thread(task_t* owner, uintptr_t entry, bool start_ready);
 /// as READY so it will be able to be scheduled directly.
 #define schedule_ready_thread(owner, entry) schedule_thread(owner, entry, true)
 
-
-
 /// deletes a thread and unschedules it
-[[gnu::always_inline]] static inline thread_state unschedule_thread(thread_t* th)
+[[gnu::always_inline]] static inline thread_state unschedule_thread(thread_t *th)
 {
-    return atomic_exchange(&th->state, THREAD_DEAD);
+	return atomic_exchange(&th->state, THREAD_DEAD);
 }
 
-
-static inline void thread_promote_to_ready(thread_t* th)
+static inline void thread_promote_to_ready(thread_t *th)
 {
-    thread_state expected = THREAD_NEW;
-    bool         was_new  = atomic_compare_exchange_strong(
-        &th->state,
-        &expected,
-        THREAD_READY);
+	thread_state expected = THREAD_NEW;
+	bool was_new = atomic_compare_exchange_strong(&th->state, &expected, THREAD_READY);
 
-    ASSERT(
-        was_new,
-        "new_thread_mark_as_ready: attempted to mark a thread as READY from a "
-        "not NEW thread");
+	ASSERT(was_new,
+	       "new_thread_mark_as_ready: attempted to mark a thread as READY from a "
+	       "not NEW thread");
 }
-
 
 #ifdef DEBUG
-thread_t* __get_current_thread_from_runqueue();
+thread_t *__get_current_thread_from_runqueue();
 #endif
 
 /// calling this function without previously calling scheduler_ectx_store()
 /// will cause ub, it is only safe to be called within the saved ctx as it
 /// gives fast access by using sp_el0
-static inline thread_t* get_current_thread()
+static inline thread_t *get_current_thread()
 {
-    uintptr_t th = sysreg_read(sp_el0);
+	uintptr_t th = sysreg_read(sp_el0);
 
-    DEBUG_ASSERT(
-        ((th & KERNEL_BASE) == KERNEL_BASE || th == 0) &&
-        th == (uintptr_t)__get_current_thread_from_runqueue());
+	DEBUG_ASSERT(
+		((th & KERNEL_BASE) == KERNEL_BASE || th == 0) &&
+		th == (uintptr_t)__get_current_thread_from_runqueue()
+	);
 
-    return (thread_t*)th;
+	return (thread_t *)th;
 }

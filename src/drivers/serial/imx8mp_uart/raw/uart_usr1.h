@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, USR1, USR1_VALUE_STRUCT_NAME, UART_USR1_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, USR1, USR1_VALUE_STRUCT_NAME, UART_USR1_OFFSET);
 
 // Helper
-#define USR1_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        USR1,                                  \
-        bf_name,                               \
-        USR1_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        USR1,                                  \
-        bf_name,                               \
-        USR1_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define USR1_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		USR1,                                                                              \
+		bf_name,                                                                           \
+		USR1_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		USR1,                                                                              \
+		bf_name,                                                                           \
+		USR1_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // PARITYERR
 #define PARITYERR_SHIFT 15

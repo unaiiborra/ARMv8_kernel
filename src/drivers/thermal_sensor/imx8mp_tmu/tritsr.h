@@ -13,21 +13,18 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(TRITSR_VALUE_STRUCT_NAME);
 
-MMIO_DECLARE_REG32_READER(
-    TMU,
-    TRITSR,
-    TRITSR_VALUE_STRUCT_NAME,
-    TMU_TRITSR_OFFSET);
+MMIO_DECLARE_REG32_READER(TMU, TRITSR, TRITSR_VALUE_STRUCT_NAME, TMU_TRITSR_OFFSET);
 
 // Helper
-#define TRITSR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(                \
-        TRITSR,                                  \
-        bf_name,                                 \
-        TRITSR_VALUE_STRUCT_NAME,                \
-        T,                                       \
-        bf_name##_SHIFT,                         \
-        bf_name##_MASK);
+#define TRITSR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                   \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TRITSR,                                                                            \
+		bf_name,                                                                           \
+		TRITSR_VALUE_STRUCT_NAME,                                                          \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define V1_SHIFT 31
 #define V1_MASK  (0b1u << V1_SHIFT)

@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <kernel/panic.h>
@@ -19,35 +19,39 @@
 MMIO_DECLARE_REG64_VALUE_STRUCT(GICD_IROUTER_VALUE_STRUCT_NAME);
 
 MMIO_DECLARE_REG64_READER_N_OFFSET(
-    GICV3,
-    GICD_IROUTER,
-    GICD_IROUTER_VALUE_STRUCT_NAME,
-    GICD_IROUTER_OFFSET);
+	GICV3,
+	GICD_IROUTER,
+	GICD_IROUTER_VALUE_STRUCT_NAME,
+	GICD_IROUTER_OFFSET
+);
 
 MMIO_DECLARE_REG64_WRITER_N_OFFSET(
-    GICV3,
-    GICD_IROUTER,
-    GICD_IROUTER_VALUE_STRUCT_NAME,
-    GICD_IROUTER_OFFSET);
+	GICV3,
+	GICD_IROUTER,
+	GICD_IROUTER_VALUE_STRUCT_NAME,
+	GICD_IROUTER_OFFSET
+);
 
 // Helper
-#define GICD_IROUTER_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    MMIO_DECLARE_BIT_FIELD_GETTER(                     \
-        GICV3,                                         \
-        GICD_IROUTER,                                  \
-        bf_name,                                       \
-        GICD_IROUTER_VALUE_STRUCT_NAME,                \
-        T,                                             \
-        bf_name##_SHIFT,                               \
-        bf_name##_MASK)                                \
-    MMIO_DECLARE_BIT_FIELD_SETTER(                     \
-        GICV3,                                         \
-        GICD_IROUTER,                                  \
-        bf_name,                                       \
-        GICD_IROUTER_VALUE_STRUCT_NAME,                \
-        T,                                             \
-        bf_name##_SHIFT,                               \
-        bf_name##_MASK)
+#define GICD_IROUTER_DECLARE_BIT_FIELD_FNS(bf_name, T)                                             \
+	MMIO_DECLARE_BIT_FIELD_GETTER(                                                             \
+		GICV3,                                                                             \
+		GICD_IROUTER,                                                                      \
+		bf_name,                                                                           \
+		GICD_IROUTER_VALUE_STRUCT_NAME,                                                    \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)                                                                                          \
+	MMIO_DECLARE_BIT_FIELD_SETTER(                                                             \
+		GICV3,                                                                             \
+		GICD_IROUTER,                                                                      \
+		bf_name,                                                                           \
+		GICD_IROUTER_VALUE_STRUCT_NAME,                                                    \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)
 
 // Aff3 39:32
 #define Aff3_SHIFT 32

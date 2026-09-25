@@ -15,43 +15,40 @@
 #include "../reloc/reloc.h"
 #include "identity_mapping.h"
 
-
 safe_early void mm_early_init()
 {
-    mm_info_init();
+	mm_info_init();
 
-    // init early kalloc
-    early_kalloc_init();
+	// init early kalloc
+	early_kalloc_init();
 
-    // init MM_MMU_UNMAPPED_LO
-    mm_mmu_early_init();
+	// init MM_MMU_UNMAPPED_LO
+	mm_mmu_early_init();
 
-    // init identity mapping
-    early_identity_mapping();
+	// init identity mapping
+	early_identity_mapping();
 
-    // page allocator
-    page_allocator_init();
+	// page allocator
+	page_allocator_init();
 
-    // virtual allocator
-    vmalloc_init();
+	// virtual allocator
+	vmalloc_init();
 
-    // reserve allocator
-    reserve_malloc_init();
+	// reserve allocator
+	reserve_malloc_init();
 
+	early_memreg *mregs;
+	size_t n;
+	early_kalloc_get_memregs(&mregs, &n);
 
-    early_memreg* mregs;
-    size_t        n;
-    early_kalloc_get_memregs(&mregs, &n);
+	page_allocator_update_memregs(mregs, n);
+	vmalloc_update_memregs(mregs, n);
 
-    page_allocator_update_memregs(mregs, n);
-    vmalloc_update_memregs(mregs, n);
-
-    mm_reloc(as_kva((void*)early_reloc_cfg_end));
+	mm_reloc(as_kva((void *)early_reloc_cfg_end));
 }
-
 
 void mm_init()
 {
-    raw_kmalloc_init();
-    cache_malloc_init();
+	raw_kmalloc_init();
+	cache_malloc_init();
 }

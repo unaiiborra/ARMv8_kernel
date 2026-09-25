@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, UMCR, UMCR_VALUE_STRUCT_NAME, UART_UMCR_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UMCR, UMCR_VALUE_STRUCT_NAME, UART_UMCR_OFFSET);
 
 // Helper
-#define UMCR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        UMCR,                                  \
-        bf_name,                               \
-        UMCR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        UMCR,                                  \
-        bf_name,                               \
-        UMCR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define UMCR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UMCR,                                                                              \
+		bf_name,                                                                           \
+		UMCR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UMCR,                                                                              \
+		bf_name,                                                                           \
+		UMCR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // SLADDR
 #define SLADDR_SHIFT 8

@@ -8,149 +8,140 @@
 #include "lib/lock.h"
 
 typedef struct device_node_t {
-    device_t              device;
-    struct device_node_t *prev, *next;
+	device_t device;
+	struct device_node_t *prev, *next;
 } device_node_t;
 
-
-static spinlock_t     locks[DEVICE_CLASS_COUNT];
-static device_node_t* device_lists[DEVICE_CLASS_COUNT];
-static atomic_ulong   uid_counter;
-
+static spinlock_t locks[DEVICE_CLASS_COUNT];
+static device_node_t *device_lists[DEVICE_CLASS_COUNT];
+static atomic_ulong uid_counter;
 
 void device_ctrl_init()
 {
-    atomic_init(&uid_counter, 1);
+	atomic_init(&uid_counter, 1);
 
-    for (size_t i = 0; i < DEVICE_CLASS_COUNT; i++) {
-        locks[i]        = SPINLOCK_INIT;
-        device_lists[i] = NULL;
-    }
+	for (size_t i = 0; i < DEVICE_CLASS_COUNT; i++) {
+		locks[i] = SPINLOCK_INIT;
+		device_lists[i] = NULL;
+	}
 }
-
-
 
 void device_register(
-    const char*    name,
-    device_class_t class_id,
-    uint8_t        rank,
-    puintptr_t     base,
-    const void*    driver_ops)
+	const char *name,
+	device_class_t class_id,
+	uint8_t rank,
+	puintptr_t base,
+	const void *driver_ops
+)
 {
-    DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
+	DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
 
-    device_node_t* node = kmalloc(sizeof(device_node_t));
+	device_node_t *node = kmalloc(sizeof(device_node_t));
 
-    node->device = (device_t) {
-        .uid          = atomic_fetch_add(&uid_counter, 1),
-        .name         = name,
-        .rank         = rank,
-        .class_id     = class_id,
-        .base_pa      = base,
-        .driver_state = NULL,
-        .driver_ops   = driver_ops,
-    };
-    node->prev = NULL;
-    node->next = NULL;
+	node->device = (device_t){
+		.uid = atomic_fetch_add(&uid_counter, 1),
+		.name = name,
+		.rank = rank,
+		.class_id = class_id,
+		.base_pa = base,
+		.driver_state = NULL,
+		.driver_ops = driver_ops,
+	};
+	node->prev = NULL;
+	node->next = NULL;
 
+	spinlocked_irqsave(&locks[class_id]) {
+		device_node_t **head = &device_lists[class_id];
 
+		if (*head == NULL) {
+			*head = node;
+			return;
+		}
 
-    spinlocked_irqsave(&locks[class_id])
-    {
-        device_node_t** head = &device_lists[class_id];
+		device_node_t *cur = *head;
+		while (cur != NULL && cur->device.rank >= node->device.rank) {
+			cur = cur->next;
+		}
 
-        if (*head == NULL) {
-            *head = node;
-            return;
-        }
+		if (cur == NULL) {
+			device_node_t *tail = *head;
+			while (tail->next != NULL) {
+				tail = tail->next;
+			}
 
-        device_node_t* cur = *head;
-        while (cur != NULL && cur->device.rank >= node->device.rank) {
-            cur = cur->next;
-        }
-
-        if (cur == NULL) {
-            device_node_t* tail = *head;
-            while (tail->next != NULL)
-                tail = tail->next;
-
-            tail->next = node;
-            node->prev = tail;
-        }
-        else if (cur->prev == NULL) {
-            node->next    = *head;
-            (*head)->prev = node;
-            *head         = node;
-        }
-        else {
-            device_node_t* prev = cur->prev;
-            prev->next          = node;
-            node->prev          = prev;
-            node->next          = cur;
-            cur->prev           = node;
-        }
-    }
+			tail->next = node;
+			node->prev = tail;
+		} else if (cur->prev == NULL) {
+			node->next = *head;
+			(*head)->prev = node;
+			*head = node;
+		} else {
+			device_node_t *prev = cur->prev;
+			prev->next = node;
+			node->prev = prev;
+			node->next = cur;
+			cur->prev = node;
+		}
+	}
 }
 
-const device_t* device_get_by_name(device_class_t class_id, const char* name)
+const device_t *device_get_by_name(device_class_t class_id, const char *name)
 {
-    DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
+	DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
 
-    const device_t* device = NULL;
+	const device_t *device = NULL;
 
-    spinlocked_irqsave(&locks[class_id])
-    {
-        device_node_t* cur = device_lists[class_id];
+	spinlocked_irqsave(&locks[class_id]) {
+		device_node_t *cur = device_lists[class_id];
 
-        while (cur != NULL) {
-            if (streq(cur->device.name, name)) {
-                device = &cur->device;
-                break;
-            }
+		while (cur != NULL) {
+			if (streq(cur->device.name, name)) {
+				device = &cur->device;
+				break;
+			}
 
-            cur = cur->next;
-        }
-    }
+			cur = cur->next;
+		}
+	}
 
-    return device;
+	return device;
 }
 
-const device_t* device_get_by_uid(device_class_t class_id, uint64_t uid)
+const device_t *device_get_by_uid(device_class_t class_id, uint64_t uid)
 {
-    DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
+	DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
 
-    const device_t* device = NULL;
+	const device_t *device = NULL;
 
-    spinlocked_irqsave(&locks[class_id])
-    {
-        device_node_t* cur = device_lists[class_id];
+	spinlocked_irqsave(&locks[class_id]) {
+		device_node_t *cur = device_lists[class_id];
 
-        while (cur != NULL) {
-            if (cur->device.uid == uid) {
-                device = &cur->device;
-                break;
-            }
+		while (cur != NULL) {
+			if (cur->device.uid == uid) {
+				device = &cur->device;
+				break;
+			}
 
-            cur = cur->next;
-        }
-    }
+			cur = cur->next;
+		}
+	}
 
-    return device;
+	return device;
 }
 
-const device_t* device_get_primary(device_class_t class_id)
+const device_t *device_get_primary(device_class_t class_id)
 {
-    DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
+	DEBUG_ASSERT(class_id >= 0 && class_id < DEVICE_CLASS_COUNT);
 
-    const device_t* device = NULL;
+	const device_t *device = NULL;
 
-    spinlocked_irqsave(&locks[class_id])
-    {
-        if (device_lists[class_id] == NULL)
-            return NULL;
+	spinlocked_irqsave(&locks[class_id]) {
+		if (device_lists[class_id] == NULL) {
+			return NULL;
+		}
 
-        device = &device_lists[class_id]->device;
-    }
+		device = &device_lists[class_id]->device;
+	}
 
-    return device;
+	return device;
 }

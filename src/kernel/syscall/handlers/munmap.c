@@ -9,60 +9,57 @@
 #include "lib/branch.h"
 #include "lib/lock.h"
 
-
 typedef enum {
-    SYSC_MUNMAP_OK                  = 0,
-    SYSC_MUNMAP_ERR                 = -1,
-    SYSC_MUNMAP_ALIGN_NOT_SUPPORTED = -2,
+	SYSC_MUNMAP_OK = 0,
+	SYSC_MUNMAP_ERR = -1,
+	SYSC_MUNMAP_ALIGN_NOT_SUPPORTED = -2,
 } sysc_munmap_res;
 
 int64_t syscall64_munmap(
-    sysarg_t        addr,
-    sysarg_t        lenght,
-    unused_sysarg_t a2,
-    unused_sysarg_t a3,
-    unused_sysarg_t a4,
-    unused_sysarg_t a5)
+	sysarg_t addr,
+	sysarg_t lenght,
+	unused_sysarg_t a2,
+	unused_sysarg_t a3,
+	unused_sysarg_t a4,
+	unused_sysarg_t a5
+)
 {
-    if (unlikely(addr > KERNEL_BASE)) {
-        dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (addr > KERNEL_BASE)");
-        return SYSC_MUNMAP_ERR;
-    }
+	if (unlikely(addr > KERNEL_BASE)) {
+		dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (addr > KERNEL_BASE)");
+		return SYSC_MUNMAP_ERR;
+	}
 
-    if (unlikely(lenght == 0)) {
-        dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (lenght == 0)");
-        return SYSC_MUNMAP_ERR;
-    }
+	if (unlikely(lenght == 0)) {
+		dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (lenght == 0)");
+		return SYSC_MUNMAP_ERR;
+	}
 
-    if (unlikely(!is_aligned(addr, PAGE_ALIGN) || lenght % PAGE_SIZE != 0)) {
-        dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ALIGN_NOT_SUPPORTED");
-        return SYSC_MUNMAP_ALIGN_NOT_SUPPORTED;
-    }
+	if (unlikely(!is_aligned(addr, PAGE_ALIGN) || lenght % PAGE_SIZE != 0)) {
+		dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ALIGN_NOT_SUPPORTED");
+		return SYSC_MUNMAP_ALIGN_NOT_SUPPORTED;
+	}
 
-    task_t* owner = get_current_thread()->owner;
-    size_t  pages = lenght / PAGE_SIZE;
-    bool    freed;
+	task_t *owner = get_current_thread()->owner;
+	size_t pages = lenght / PAGE_SIZE;
+	bool freed;
 
+	irqflags_t irqflags = spinlock_acquire_irqsave(&owner->memory_lock);
+	{
+		freed = uregion_free(owner, addr, pages);
+	}
+	spinlock_release_irqrestore(&owner->memory_lock, irqflags);
 
-    irqflags_t irqflags = spinlock_acquire_irqsave(&owner->memory_lock);
-    {
-        freed = uregion_free(owner, addr, pages);
-    }
-    spinlock_release_irqrestore(&owner->memory_lock, irqflags);
+	if (unlikely(!freed)) {
+		dbg_sysc_print(SYSC_MUNMAP, "SYSC_MUNMAP_ERR (uregion_free() returned false)");
+		return SYSC_MUNMAP_ERR;
+	}
 
+	dbg_sysc_print(
+		SYSC_MUNMAP,
+		"SYSC_MUNMAP_OK (freed %p %d pages)",
+		(void *)addr,
+		(uint32_t)pages
+	);
 
-    if (unlikely(!freed)) {
-        dbg_sysc_print(
-            SYSC_MUNMAP,
-            "SYSC_MUNMAP_ERR (uregion_free() returned false)");
-        return SYSC_MUNMAP_ERR;
-    }
-
-    dbg_sysc_print(
-        SYSC_MUNMAP,
-        "SYSC_MUNMAP_OK (freed %p %d pages)",
-        (void*)addr,
-        (uint32_t)pages);
-
-    return SYSC_MUNMAP_OK;
+	return SYSC_MUNMAP_OK;
 }

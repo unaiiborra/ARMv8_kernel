@@ -12,44 +12,44 @@
 typedef bitfield64 mdt_bf;
 
 typedef struct vmalloc_pa_mdt {
-    struct vmalloc_pa_mdt* next;
-    vmalloc_pa_info        info;
+	struct vmalloc_pa_mdt *next;
+	vmalloc_pa_info info;
 } vmalloc_pa_mdt;
-
 
 struct vmalloc_mdt_container;
 
 typedef struct {
-    struct vmalloc_mdt_container* next;
-    struct vmalloc_mdt_container* prev;
+	struct vmalloc_mdt_container *next;
+	struct vmalloc_mdt_container *prev;
 } vmalloc_mdt_container_hdr;
 
-
-#define PA_MDT_CONTAINER_NODES \
-    ((PAGE_SIZE - sizeof(vmalloc_mdt_container_hdr)) / sizeof(vmalloc_pa_mdt))
+#define PA_MDT_CONTAINER_NODES                                                                     \
+	((PAGE_SIZE - sizeof(vmalloc_mdt_container_hdr)) / sizeof(vmalloc_pa_mdt))
 #define PA_MDT_BF_COUNT BITFIELD_COUNT_FOR(PA_MDT_CONTAINER_NODES, mdt_bf)
 
 typedef struct vmalloc_mdt_container {
-    _Alignas(PAGE_ALIGN) vmalloc_mdt_container_hdr hdr;
+	_Alignas(PAGE_ALIGN) vmalloc_mdt_container_hdr hdr;
 
-    bitfield64     reserved_entries[PA_MDT_BF_COUNT];
-    vmalloc_pa_mdt entries[PA_MDT_CONTAINER_NODES];
+	bitfield64 reserved_entries[PA_MDT_BF_COUNT];
+	vmalloc_pa_mdt entries[PA_MDT_CONTAINER_NODES];
 } vmalloc_mdt_container;
 
 _Static_assert(
-    sizeof(vmalloc_mdt_container) <= PAGE_SIZE,
-    "vmalloc_mdt_container size must fit in one kernel page");
+	sizeof(vmalloc_mdt_container) <= PAGE_SIZE,
+	"vmalloc_mdt_container size must fit in one kernel page"
+);
 
 _Static_assert(
-    _Alignof(vmalloc_mdt_container) == PAGE_ALIGN,
-    "vmalloc_mdt_container alignment must match PAGE_ALIGN");
+	_Alignof(vmalloc_mdt_container) == PAGE_ALIGN,
+	"vmalloc_mdt_container alignment must match PAGE_ALIGN"
+);
 
 _Static_assert(
-    BITFIELD_CAPACITY(mdt_bf) * PA_MDT_BF_COUNT >= PA_MDT_CONTAINER_NODES,
-    "mdt_bf bitfield does not cover PA_MDT_CONTAINER_NODES");
-
+	BITFIELD_CAPACITY(mdt_bf) * PA_MDT_BF_COUNT >= PA_MDT_CONTAINER_NODES,
+	"mdt_bf bitfield does not cover PA_MDT_CONTAINER_NODES"
+);
 
 void vmalloc_pa_mdt_init();
 
-void vmalloc_pa_mdt_push(rva_node* n, size_t o, puintptr_t pa, vuintptr_t va);
-void vmalloc_pa_mdt_free(rva_node* n);
+void vmalloc_pa_mdt_push(rva_node *n, size_t o, puintptr_t pa, vuintptr_t va);
+void vmalloc_pa_mdt_free(rva_node *n);

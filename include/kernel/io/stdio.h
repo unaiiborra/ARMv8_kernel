@@ -4,12 +4,12 @@
 #include <lib/ansi.h>
 #include <lib/lock.h>
 
-extern spinlock_t* const IO_LOCK;
+extern spinlock_t *const IO_LOCK;
 
 void io_init();
 
-void printf(const char* s, ...);
-void print(const char* s);
+void printf(const char *s, ...);
+void print(const char *s);
 
 // // debug
 // #define dbg_printf(lv, s, ...) printf(IO_STDOUT, DEBUG_TRACE_PREFIX s,
@@ -22,41 +22,35 @@ void print(const char* s);
 #define dbg_printf(lv, s, ...) __dbg_printf_##lv(s, __VA_ARGS__)
 
 #ifdef DEBUG
-extern spinlock_t* const DEBUG_TRACE_LOCK;
+extern spinlock_t *const DEBUG_TRACE_LOCK;
 
-#    define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
-#    define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_ANSI_FG_COLOR s ANSI_RESET
+#define DEBUG_ANSI_FG_COLOR             ANSI_FG_RGB(100, 100, 100)
+#define DEBUG_TRACE_ANSI_WRAP_STRING(s) DEBUG_ANSI_FG_COLOR s ANSI_RESET
 
-#    define __dbg_print_DEBUG_LOG(s)                                  \
-        do {                                                          \
-            spinlocked_irqsave(DEBUG_TRACE_LOCK)                      \
-            {                                                         \
-                printf(                                               \
-                    DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
-                    get_cpuid());                                     \
-            }                                                         \
-        } while (0)
-#    define __dbg_printf_DEBUG_LOG(s, ...)                            \
-        do {                                                          \
-            spinlocked_irqsave(DEBUG_TRACE_LOCK)                      \
-            {                                                         \
-                printf(                                               \
-                    DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), \
-                    get_cpuid(),                                      \
-                    __VA_ARGS__);                                     \
-            }                                                         \
-        } while (0)
-#    if DEBUG == DEBUG_LOG
-#        define __dbg_print_DEBUG_TRACE(s)
-#        define __dbg_printf_DEBUG_TRACE(s, ...)
-#    elif DEBUG == DEBUG_TRACE
-#        define __dbg_print_DEBUG_TRACE(s) __dbg_print_DEBUG_LOG(s)
-#        define __dbg_printf_DEBUG_TRACE(s, ...) \
-            __dbg_printf_DEBUG_LOG(s, __VA_ARGS__)
-#    endif
+#define __dbg_print_DEBUG_LOG(s)                                                                   \
+	do {                                                                                       \
+		spinlocked_irqsave(DEBUG_TRACE_LOCK) {                                             \
+			printf(DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s), get_cpuid());     \
+		}                                                                                  \
+	} while (0)
+#define __dbg_printf_DEBUG_LOG(s, ...)                                                             \
+	do {                                                                                       \
+		spinlocked_irqsave(DEBUG_TRACE_LOCK) {                                             \
+			printf(DEBUG_TRACE_ANSI_WRAP_STRING("(dbg core %d) " s),                   \
+			       get_cpuid(),                                                        \
+			       __VA_ARGS__);                                                       \
+		}                                                                                  \
+	} while (0)
+#if DEBUG == DEBUG_LOG
+#define __dbg_print_DEBUG_TRACE(s)
+#define __dbg_printf_DEBUG_TRACE(s, ...)
+#elif DEBUG == DEBUG_TRACE
+#define __dbg_print_DEBUG_TRACE(s)       __dbg_print_DEBUG_LOG(s)
+#define __dbg_printf_DEBUG_TRACE(s, ...) __dbg_printf_DEBUG_LOG(s, __VA_ARGS__)
+#endif
 #else
-#    define __dbg_print_DEBUG_LOG(s)
-#    define __dbg_printf_DEBUG_LOG(s, ...)
-#    define __dbg_print_DEBUG_TRACE(s)
-#    define __dbg_printf_DEBUG_TRACE(s, ...)
+#define __dbg_print_DEBUG_LOG(s)
+#define __dbg_printf_DEBUG_LOG(s, ...)
+#define __dbg_print_DEBUG_TRACE(s)
+#define __dbg_printf_DEBUG_TRACE(s, ...)
 #endif

@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,21 +22,23 @@ MMIO_DECLARE_REG32_READER(UART, UTS, UTS_VALUE_STRUCT_NAME, UART_UTS_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UTS, UTS_VALUE_STRUCT_NAME, UART_UTS_OFFSET);
 
 // Helper
-#define UTS_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(            \
-        UTS,                                  \
-        bf_name,                              \
-        UTS_VALUE_STRUCT_NAME,                \
-        T,                                    \
-        bf_name##_SHIFT,                      \
-        bf_name##_MASK);                      \
-    UART_DECLARE_BIT_FIELD_SETTER(            \
-        UTS,                                  \
-        bf_name,                              \
-        UTS_VALUE_STRUCT_NAME,                \
-        T,                                    \
-        bf_name##_SHIFT,                      \
-        bf_name##_MASK);
+#define UTS_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                      \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UTS,                                                                               \
+		bf_name,                                                                           \
+		UTS_VALUE_STRUCT_NAME,                                                             \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UTS,                                                                               \
+		bf_name,                                                                           \
+		UTS_VALUE_STRUCT_NAME,                                                             \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // FRCPERR
 #define FRCPERR_SHIFT 13

@@ -9,48 +9,49 @@
 #include "lib/lock.h"
 
 typedef enum {
-    SYSC_KILL_OK        = 0,
-    SYSC_KILL_NOT_FOUND = -1,
+	SYSC_KILL_OK = 0,
+	SYSC_KILL_NOT_FOUND = -1,
 } sysc_kill_res_e;
 
 int64_t syscall64_kill(
-    sysarg_t        thid,
-    unused_sysarg_t a1,
-    unused_sysarg_t a2,
-    unused_sysarg_t a3,
-    unused_sysarg_t a4,
-    unused_sysarg_t a5)
+	sysarg_t thid,
+	unused_sysarg_t a1,
+	unused_sysarg_t a2,
+	unused_sysarg_t a3,
+	unused_sysarg_t a4,
+	unused_sysarg_t a5
+)
 {
-    thread_t* th      = get_current_thread();
-    bool      deleted = false;
+	thread_t *th = get_current_thread();
+	bool deleted = false;
 
-    spinlocked_irqsave(&th->owner->threads_lock)
-    {
-        thread_t* thread = task_get_thread(th->owner, thid);
+	spinlocked_irqsave(&th->owner->threads_lock) {
+		thread_t *thread = task_get_thread(th->owner, thid);
 
-        if (thread == NULL)
-            break;
+		if (thread == NULL) {
+			break;
+		}
 
-        thread_state old_state = unschedule_thread(thread);
+		thread_state old_state = unschedule_thread(thread);
 
-        DEBUG_ASSERT(old_state != THREAD_NEW);
-        deleted = (old_state != THREAD_DEAD);
+		DEBUG_ASSERT(old_state != THREAD_NEW);
+		deleted = (old_state != THREAD_DEAD);
 
-        if (deleted) {
-            dbg_sysc_print(SYSC_KILL, "SYSC_KILL_OK thread %d", thread->th_uid);
+		if (deleted) {
+			dbg_sysc_print(SYSC_KILL, "SYSC_KILL_OK thread %d", thread->th_uid);
 
-            return SYSC_KILL_OK;
-        }
-        else {
-            dbg_sysc_print(
-                SYSC_KILL,
-                "SYSC_KILL_NOT_FOUND (already deleted thread %d (%d))",
-                thread->th_uid);
+			return SYSC_KILL_OK;
+		} else {
+			dbg_sysc_print(
+				SYSC_KILL,
+				"SYSC_KILL_NOT_FOUND (already deleted thread %d (%d))",
+				thread->th_uid
+			);
 
-            return SYSC_KILL_NOT_FOUND;
-        }
-    }
+			return SYSC_KILL_NOT_FOUND;
+		}
+	}
 
-    dbg_sysc_print(SYSC_KILL, "SYSC_KILL_NOT_FOUND (non existant thread)");
-    return SYSC_KILL_NOT_FOUND;
+	dbg_sysc_print(SYSC_KILL, "SYSC_KILL_NOT_FOUND (non existant thread)");
+	return SYSC_KILL_NOT_FOUND;
 }

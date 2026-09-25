@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <arm/cpu.h>
@@ -18,42 +18,40 @@
 
 MMIO_DECLARE_REG64_VALUE_STRUCT(GICR_TYPER_VALUE_STRUCT_NAME);
 
-static inline GICR_TYPER_VALUE_STRUCT_NAME
-GICV3_GICR_TYPER_read(uintptr_t base, size_t n)
+static inline GICR_TYPER_VALUE_STRUCT_NAME GICV3_GICR_TYPER_read(uintptr_t base, size_t n)
 {
-    return (GICR_TYPER_VALUE_STRUCT_NAME) {
-        .val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
-                             (uintptr_t)(GICR_TYPER_OFFSET)))};
+	return (GICR_TYPER_VALUE_STRUCT_NAME){
+		.val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
+				     (uintptr_t)(GICR_TYPER_OFFSET)))
+	};
 }
 
-static inline void
-GICV3_GICR_TYPER_write(uintptr_t base, size_t n, GICR_TYPER_VALUE_STRUCT_NAME v)
+static inline void GICV3_GICR_TYPER_write(uintptr_t base, size_t n, GICR_TYPER_VALUE_STRUCT_NAME v)
 {
-    *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
-                  (uintptr_t)(GICR_TYPER_OFFSET))) = v.val;
+	*((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) + (uintptr_t)(GICR_TYPER_OFFSET))) =
+		v.val;
 }
 
 /* Helper */
-#define GICR_TYPER_DECLARE_BIT_FIELD_GETTER(bf_name, T) \
-    GICV3_DECLARE_BIT_FIELD_GETTER(                     \
-        GICR_TYPER,                                     \
-        bf_name,                                        \
-        GICR_TYPER_VALUE_STRUCT_NAME,                   \
-        T,                                              \
-        bf_name##_SHIFT,                                \
-        bf_name##_MASK)
+#define GICR_TYPER_DECLARE_BIT_FIELD_GETTER(bf_name, T)                                            \
+	GICV3_DECLARE_BIT_FIELD_GETTER(                                                            \
+		GICR_TYPER,                                                                        \
+		bf_name,                                                                           \
+		GICR_TYPER_VALUE_STRUCT_NAME,                                                      \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)
 
 /* ---------------- AffinityValue [63:32] ---------------- */
 #define AffinityValue_SHIFT 32
 #define AffinityValue_MASK  (0xFFFFFFFFULL << AffinityValue_SHIFT)
 
-static inline arm_cpu_affinity
-GICV3_GICR_TYPER_BF_get_AffinityValue(const GicrTyper r)
+static inline arm_cpu_affinity GICV3_GICR_TYPER_BF_get_AffinityValue(const GicrTyper r)
 {
-    uint32_t affinity =
-        (uint32_t)((r.val & AffinityValue_MASK) >> AffinityValue_SHIFT);
+	uint32_t affinity = (uint32_t)((r.val & AffinityValue_MASK) >> AffinityValue_SHIFT);
 
-    return CPU_AFFINITY_FROM_U32(affinity);
+	return CPU_AFFINITY_FROM_U32(affinity);
 }
 
 /* ---------------- PPInum [31:27] ---------------- */

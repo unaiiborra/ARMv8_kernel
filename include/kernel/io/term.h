@@ -5,30 +5,28 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 typedef uint64_t term_id;
 
 // < 0: not taken, else taken
-typedef int32_t (*term_out)(const char c, void* ctx);
+typedef int32_t (*term_out)(const char c, void *ctx);
 
 typedef struct {
-    size_t              size;
-    size_t              allocated_size;
-    struct term_buffer* head_buf;
-    struct term_buffer* tail_buf;
+	size_t size;
+	size_t allocated_size;
+	struct term_buffer *head_buf;
+	struct term_buffer *tail_buf;
 } term_buffer_handle;
 
 typedef struct {
-    term_id            id_;
-    spinlock_t         lock_;
-    term_out           out_;
-    void*              ctx;
-    term_buffer_handle buf_;
+	term_id id_;
+	spinlock_t lock_;
+	term_out out_;
+	void *ctx;
+	term_buffer_handle buf_;
 } term_handle;
 
-
-void term_new(term_handle* out, term_out output, void* ctx);
-void term_delete(term_handle* h);
+void term_new(term_handle *out, term_out output, void *ctx);
+void term_delete(term_handle *h);
 
 /*
  *  Prints
@@ -37,16 +35,16 @@ void term_delete(term_handle* h);
  *   data, in which case the term will fill the term_out function until a not
  *   taken (< 0) is received
  */
-bool    term_printc(term_handle* h, const char c);
-bool    term_prints(term_handle* h, const char* s);
-bool    term_print_slice(term_handle* h, const char* s, size_t len);
-bool    term_printf(term_handle* h, const char* s, va_list ap);
-size_t term_remove_head(term_handle* h, char* buf, size_t count);
+bool term_printc(term_handle *h, const char c);
+bool term_prints(term_handle *h, const char *s);
+bool term_print_slice(term_handle *h, const char *s, size_t len);
+bool term_printf(term_handle *h, const char *s, va_list ap);
+size_t term_remove_head(term_handle *h, char *buf, size_t count);
 
 /*
  *  notifies that the provided term_out is ready to receive more data.
  *  @return: true if no more notifications are needed. Else notifications when
  *  ready are still needed
  */
-bool term_notify_ready(term_handle* h);
-void term_flush(term_handle* h);
+bool term_notify_ready(term_handle *h);
+void term_flush(term_handle *h);

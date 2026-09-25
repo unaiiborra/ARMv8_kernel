@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -22,27 +22,29 @@ MMIO_DECLARE_REG32_READER(UART, UCR3, UCR3_VALUE_STRUCT_NAME, UART_UCR3_OFFSET);
 MMIO_DECLARE_REG32_WRITER(UART, UCR3, UCR3_VALUE_STRUCT_NAME, UART_UCR3_OFFSET);
 
 // Helper
-#define UCR3_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    UART_DECLARE_BIT_FIELD_GETTER(             \
-        UCR3,                                  \
-        bf_name,                               \
-        UCR3_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);                       \
-    UART_DECLARE_BIT_FIELD_SETTER(             \
-        UCR3,                                  \
-        bf_name,                               \
-        UCR3_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define UCR3_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	UART_DECLARE_BIT_FIELD_GETTER(                                                             \
+		UCR3,                                                                              \
+		bf_name,                                                                           \
+		UCR3_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	UART_DECLARE_BIT_FIELD_SETTER(                                                             \
+		UCR3,                                                                              \
+		bf_name,                                                                           \
+		UCR3_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 // DPEC (unused)
 #define DPEC_SHIFT 14
 #define DPEC_MASK  (0b11 << DPEC_SHIFT)
 typedef enum {
-    UART_UCR3_DPEC_UNUSED = 0b00, // All values unused on this chip
+	UART_UCR3_DPEC_UNUSED = 0b00, // All values unused on this chip
 } UART_UCR3_DPEC;
 UCR3_DECLARE_BIT_FIELD_FNS(DPEC, UART_UCR3_DPEC);
 

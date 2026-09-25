@@ -13,34 +13,28 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(TMHTATR_VALUE_STRUCT_NAME);
 
-MMIO_DECLARE_REG32_READER(
-    TMU,
-    TMHTATR,
-    TMHTATR_VALUE_STRUCT_NAME,
-    TMU_TMHTATR_OFFSET);
+MMIO_DECLARE_REG32_READER(TMU, TMHTATR, TMHTATR_VALUE_STRUCT_NAME, TMU_TMHTATR_OFFSET);
 
-MMIO_DECLARE_REG32_WRITER(
-    TMU,
-    TMHTATR,
-    TMHTATR_VALUE_STRUCT_NAME,
-    TMU_TMHTATR_OFFSET);
+MMIO_DECLARE_REG32_WRITER(TMU, TMHTATR, TMHTATR_VALUE_STRUCT_NAME, TMU_TMHTATR_OFFSET);
 
 // Helper
-#define TMHTATR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(                 \
-        TMHTATR,                                  \
-        bf_name,                                  \
-        TMHTATR_VALUE_STRUCT_NAME,                \
-        T,                                        \
-        bf_name##_SHIFT,                          \
-        bf_name##_MASK);                          \
-    TMU_DECLARE_BIT_FIELD_SETTER(                 \
-        TMHTATR,                                  \
-        bf_name,                                  \
-        TMHTATR_VALUE_STRUCT_NAME,                \
-        T,                                        \
-        bf_name##_SHIFT,                          \
-        bf_name##_MASK);
+#define TMHTATR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                  \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TMHTATR,                                                                           \
+		bf_name,                                                                           \
+		TMHTATR_VALUE_STRUCT_NAME,                                                         \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	TMU_DECLARE_BIT_FIELD_SETTER(                                                              \
+		TMHTATR,                                                                           \
+		bf_name,                                                                           \
+		TMHTATR_VALUE_STRUCT_NAME,                                                         \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define EN1_SHIFT 31
 #define EN1_MASK  (0b1u << EN1_SHIFT)

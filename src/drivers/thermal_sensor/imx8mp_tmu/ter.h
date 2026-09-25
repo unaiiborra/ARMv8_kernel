@@ -18,21 +18,23 @@ MMIO_DECLARE_REG32_READER(TMU, TER, TER_VALUE_STRUCT_NAME, TMU_TER_OFFSET);
 MMIO_DECLARE_REG32_WRITER(TMU, TER, TER_VALUE_STRUCT_NAME, TMU_TER_OFFSET);
 
 // Helper
-#define TER_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(             \
-        TER,                                  \
-        bf_name,                              \
-        TER_VALUE_STRUCT_NAME,                \
-        T,                                    \
-        bf_name##_SHIFT,                      \
-        bf_name##_MASK);                      \
-    TMU_DECLARE_BIT_FIELD_SETTER(             \
-        TER,                                  \
-        bf_name,                              \
-        TER_VALUE_STRUCT_NAME,                \
-        T,                                    \
-        bf_name##_SHIFT,                      \
-        bf_name##_MASK);
+#define TER_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                      \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TER,                                                                               \
+		bf_name,                                                                           \
+		TER_VALUE_STRUCT_NAME,                                                             \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);                                                                                         \
+	TMU_DECLARE_BIT_FIELD_SETTER(                                                              \
+		TER,                                                                               \
+		bf_name,                                                                           \
+		TER_VALUE_STRUCT_NAME,                                                             \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define EN_SHIFT 31
 #define EN_MASK  (0b1u << EN_SHIFT)
@@ -43,10 +45,10 @@ TER_DECLARE_BIT_FIELD_FNS(EN, bool);
 TER_DECLARE_BIT_FIELD_FNS(ADC_PD, bool);
 
 typedef enum {
-    TER_ALPF_VALUE_1     = 0x0u,
-    TER_ALPF_VALUE_0_5   = 0x1u,
-    TER_ALPF_VALUE_0_25  = 0x2u,
-    TER_ALPF_VALUE_0_125 = 0x3u,
+	TER_ALPF_VALUE_1 = 0x0u,
+	TER_ALPF_VALUE_0_5 = 0x1u,
+	TER_ALPF_VALUE_0_25 = 0x2u,
+	TER_ALPF_VALUE_0_125 = 0x3u,
 } TER_ALPF_VALUE;
 
 #define ALPF_SHIFT 0

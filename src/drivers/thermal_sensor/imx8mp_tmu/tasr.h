@@ -17,14 +17,15 @@ MMIO_DECLARE_REG32_READER(TMU, TASR, TASR_VALUE_STRUCT_NAME, TMU_TASR_OFFSET);
 MMIO_DECLARE_REG32_WRITER(TMU, TASR, TASR_VALUE_STRUCT_NAME, TMU_TASR_OFFSET);
 
 // Helper
-#define TASR_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(              \
-        TASR,                                  \
-        bf_name,                               \
-        TASR_VALUE_STRUCT_NAME,                \
-        T,                                     \
-        bf_name##_SHIFT,                       \
-        bf_name##_MASK);
+#define TASR_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                     \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TASR,                                                                              \
+		bf_name,                                                                           \
+		TASR_VALUE_STRUCT_NAME,                                                            \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define BUF_SLOP_SEL_SHIFT 16
 #define BUF_SLOP_SEL_MASK  (0xFu << BUF_SLOP_SEL_SHIFT)

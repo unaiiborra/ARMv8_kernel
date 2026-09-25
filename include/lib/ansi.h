@@ -51,7 +51,6 @@
 #define ANSI_INVERSE   "\033[7m"
 #define ANSI_STRIKE    "\033[9m"
 
-
 // 256-color (xterm palette)
 #define ANSI_FG256(n) "\033[38;5;" #n "m"
 #define ANSI_BG256(n) "\033[48;5;" #n "m"

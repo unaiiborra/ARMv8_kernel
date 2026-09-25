@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -15,37 +15,38 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(GICR_WAKER_VALUE_STRUCT_NAME);
 
-static inline GICR_WAKER_VALUE_STRUCT_NAME
-GICV3_GICR_WAKER_read(uintptr_t base, size_t n)
+static inline GICR_WAKER_VALUE_STRUCT_NAME GICV3_GICR_WAKER_read(uintptr_t base, size_t n)
 {
-    return (GICR_WAKER_VALUE_STRUCT_NAME) {
-        .val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
-                             (uintptr_t)(GICR_WAKER_OFFSET)))};
+	return (GICR_WAKER_VALUE_STRUCT_NAME){
+		.val = *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
+				     (uintptr_t)(GICR_WAKER_OFFSET)))
+	};
 }
 
-static inline void
-GICV3_GICR_WAKER_write(uintptr_t base, size_t n, GICR_WAKER_VALUE_STRUCT_NAME v)
+static inline void GICV3_GICR_WAKER_write(uintptr_t base, size_t n, GICR_WAKER_VALUE_STRUCT_NAME v)
 {
-    *((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) +
-                  (uintptr_t)(GICR_WAKER_OFFSET))) = v.val;
+	*((reg32_ptr)(GICV3_REDISTRIBUTOR_N_OFFSET(base, n) + (uintptr_t)(GICR_WAKER_OFFSET))) =
+		v.val;
 }
 
 /* Helper */
-#define GICR_WAKER_DECLARE_BIT_FIELD_GETTER(bf_name, T) \
-    GICV3_DECLARE_BIT_FIELD_GETTER(                     \
-        GICR_WAKER,                                     \
-        bf_name,                                        \
-        GICR_WAKER_VALUE_STRUCT_NAME,                   \
-        T,                                              \
-        bf_name##_SHIFT,                                \
-        bf_name##_MASK)                                 \
-    GICV3_DECLARE_BIT_FIELD_SETTER(                     \
-        GICR_WAKER,                                     \
-        bf_name,                                        \
-        GICR_WAKER_VALUE_STRUCT_NAME,                   \
-        T,                                              \
-        bf_name##_SHIFT,                                \
-        bf_name##_MASK)
+#define GICR_WAKER_DECLARE_BIT_FIELD_GETTER(bf_name, T)                                            \
+	GICV3_DECLARE_BIT_FIELD_GETTER(                                                            \
+		GICR_WAKER,                                                                        \
+		bf_name,                                                                           \
+		GICR_WAKER_VALUE_STRUCT_NAME,                                                      \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)                                                                                          \
+	GICV3_DECLARE_BIT_FIELD_SETTER(                                                            \
+		GICR_WAKER,                                                                        \
+		bf_name,                                                                           \
+		GICR_WAKER_VALUE_STRUCT_NAME,                                                      \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)
 
 // IMPLEMENTTATION DEFINED 31
 #define GICR_WAKER_BIT31_SHIFT 31

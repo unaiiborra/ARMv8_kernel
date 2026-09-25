@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef DRIVERS
-#    error "This header should only be imported by a driver"
+#error "This header should only be imported by a driver"
 #endif
 
 #include <lib/mmio/mmio_macros.h>
@@ -15,21 +15,18 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(GICD_TYPER_VALUE_STRUCT_NAME);
 
-MMIO_DECLARE_REG32_READER(
-    GICV3,
-    GICD_TYPER,
-    GICD_TYPER_VALUE_STRUCT_NAME,
-    GICD_TYPER_OFFSET);
+MMIO_DECLARE_REG32_READER(GICV3, GICD_TYPER, GICD_TYPER_VALUE_STRUCT_NAME, GICD_TYPER_OFFSET);
 
 /* Helper: RO bitfields only */
-#define GICD_TYPER_DECLARE_BIT_FIELD_GETTER(bf_name, T) \
-    GICV3_DECLARE_BIT_FIELD_GETTER(                     \
-        GICD_TYPER,                                     \
-        bf_name,                                        \
-        GICD_TYPER_VALUE_STRUCT_NAME,                   \
-        T,                                              \
-        bf_name##_SHIFT,                                \
-        bf_name##_MASK)
+#define GICD_TYPER_DECLARE_BIT_FIELD_GETTER(bf_name, T)                                            \
+	GICV3_DECLARE_BIT_FIELD_GETTER(                                                            \
+		GICD_TYPER,                                                                        \
+		bf_name,                                                                           \
+		GICD_TYPER_VALUE_STRUCT_NAME,                                                      \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	)
 
 /* ================= Bits [31:27] ================= */
 /* ESPI_range */

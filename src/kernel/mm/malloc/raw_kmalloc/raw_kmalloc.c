@@ -18,323 +18,290 @@
 #include "kernel/hardware.h"
 #include "kernel/smp.h"
 
-
-static const raw_kmalloc_cfg KMAP_CFG = (raw_kmalloc_cfg) {
-    .assign_pa    = true,
-    .fill_reserve = true,
-    .device_mem   = false,
-    .permanent    = false,
-    .kmap         = true,
-    .init_zeroed  = false,
+static const raw_kmalloc_cfg KMAP_CFG = (raw_kmalloc_cfg){
+	.assign_pa = true,
+	.fill_reserve = true,
+	.device_mem = false,
+	.permanent = false,
+	.kmap = true,
+	.init_zeroed = false,
 };
 
-static const raw_kmalloc_cfg DYNAMIC_CFG = (raw_kmalloc_cfg) {
-    .assign_pa    = true,
-    .fill_reserve = true,
-    .device_mem   = false,
-    .permanent    = false,
-    .kmap         = false,
-    .init_zeroed  = false,
+static const raw_kmalloc_cfg DYNAMIC_CFG = (raw_kmalloc_cfg){
+	.assign_pa = true,
+	.fill_reserve = true,
+	.device_mem = false,
+	.permanent = false,
+	.kmap = false,
+	.init_zeroed = false,
 };
 
-const raw_kmalloc_cfg* const RAW_KMALLOC_KMAP_CFG    = &KMAP_CFG;
-const raw_kmalloc_cfg* const RAW_KMALLOC_DYNAMIC_CFG = &DYNAMIC_CFG;
+const raw_kmalloc_cfg *const RAW_KMALLOC_KMAP_CFG = &KMAP_CFG;
+const raw_kmalloc_cfg *const RAW_KMALLOC_DYNAMIC_CFG = &DYNAMIC_CFG;
 
-
-static const mmu_pg_cfg STD_MMU_KMEM_CFG = (mmu_pg_cfg) {
-    .attr_index   = 0,
-    .ap           = MMU_AP_EL0_NONE_EL1_RW,
-    .shareability = MMU_SH_INNER_SHAREABLE,
-    .non_secure   = false,
-    .access_flag  = 1,
-    .pxn          = 0,
-    .uxn          = 1,
-    .sw           = 0,
+static const mmu_pg_cfg STD_MMU_KMEM_CFG = (mmu_pg_cfg){
+	.attr_index = 0,
+	.ap = MMU_AP_EL0_NONE_EL1_RW,
+	.shareability = MMU_SH_INNER_SHAREABLE,
+	.non_secure = false,
+	.access_flag = 1,
+	.pxn = 0,
+	.uxn = 1,
+	.sw = 0,
 };
 
-static const mmu_pg_cfg STD_MMU_DEVICE_CFG = (mmu_pg_cfg) {
-    .attr_index   = 1,
-    .ap           = MMU_AP_EL0_NONE_EL1_RW,
-    .shareability = MMU_SH_NON_SHAREABLE,
-    .non_secure   = false,
-    .access_flag  = 1,
-    .pxn          = 1,
-    .uxn          = 1,
-    .sw           = 0,
+static const mmu_pg_cfg STD_MMU_DEVICE_CFG = (mmu_pg_cfg){
+	.attr_index = 1,
+	.ap = MMU_AP_EL0_NONE_EL1_RW,
+	.shareability = MMU_SH_NON_SHAREABLE,
+	.non_secure = false,
+	.access_flag = 1,
+	.pxn = 1,
+	.uxn = 1,
+	.sw = 0,
 };
-
 
 static cpulock_t lock;
 
-
-static inline vmalloc_cfg vmalloc_cfg_from_raw_kmalloc_cfg(
-    const raw_kmalloc_cfg* cfg,
-    puintptr_t             kmap_pa)
+static inline vmalloc_cfg
+vmalloc_cfg_from_raw_kmalloc_cfg(const raw_kmalloc_cfg *cfg, puintptr_t kmap_pa)
 {
-    return (vmalloc_cfg) {
-        .assign_pa  = cfg->assign_pa,
-        .device_mem = cfg->device_mem,
-        .permanent  = cfg->permanent,
-        .kmap =
-            {
-                .use_kmap = cfg->kmap,
-                .kmap_pa  = cfg->kmap ? kmap_pa : 0,
-            },
-    };
+	return (vmalloc_cfg){
+		.assign_pa = cfg->assign_pa,
+		.device_mem = cfg->device_mem,
+		.permanent = cfg->permanent,
+		.kmap = {
+			.use_kmap = cfg->kmap,
+			.kmap_pa = cfg->kmap ? kmap_pa : 0,
+		},
+	};
 }
 
-
-static void* raw_kmalloc_kmap(
-    size_t                 pages,
-    const char*            tag,
-    const raw_kmalloc_cfg* cfg,
-    raw_kmalloc_info*      info)
+static void *
+raw_kmalloc_kmap(size_t pages, const char *tag, const raw_kmalloc_cfg *cfg, raw_kmalloc_info *info)
 {
-    DEBUG_ASSERT(cfg->kmap && cfg->assign_pa);
+	DEBUG_ASSERT(cfg->kmap && cfg->assign_pa);
 
-    ASSERT(is_pow2(pages), "only pow2 n pages can be kmapped");
+	ASSERT(is_pow2(pages), "only pow2 n pages can be kmapped");
 
-    size_t o = log2_floor(pages);
+	size_t o = log2_floor(pages);
 
-    puintptr_t pa = page_malloc(
-        o,
-        (mm_page_data) {
-            .tag        = tag,
-            .device_mem = cfg->device_mem,
-            .permanent  = cfg->permanent,
-        });
+	puintptr_t pa = page_malloc(
+		o,
+		(mm_page_data){
+			.tag = tag,
+			.device_mem = cfg->device_mem,
+			.permanent = cfg->permanent,
+		}
+	);
 
-    vuintptr_t va = vmalloc(
-        pages,
-        tag,
-        vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa),
-        NULL);
+	vuintptr_t va = vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, pa), NULL);
 
-    DEBUG_ASSERT(ptrs_are_kmapped(pv_ptr_new(pa, va)));
+	DEBUG_ASSERT(ptrs_are_kmapped(pv_ptr_new(pa, va)));
 
-    const mmu_pg_cfg* mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG
-                                                : &STD_MMU_KMEM_CFG;
+	const mmu_pg_cfg *mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
 
-    mmu_map_result mmu_res = mmu_map(
-        MM_MMU_KERNEL_MAPPING,
-        va,
-        pa,
-        pages * PAGE_SIZE,
-        *mmu_cfg,
-        NULL);
-    ASSERT(mmu_res == MMU_MAP_OK);
+	mmu_map_result mmu_res =
+		mmu_map(MM_MMU_KERNEL_MAPPING, va, pa, pages * PAGE_SIZE, *mmu_cfg, NULL);
+	ASSERT(mmu_res == MMU_MAP_OK);
 
-    if (info) {
-        info->raw_kmalloc_type = RAW_KMALLOC_KMAP;
-        info->MMU_CFG          = mmu_cfg;
-        info->info.kmap.order  = o;
-        info->info.kmap.pv     = (pv_ptr) {pa, va};
-    }
+	if (info) {
+		info->raw_kmalloc_type = RAW_KMALLOC_KMAP;
+		info->MMU_CFG = mmu_cfg;
+		info->info.kmap.order = o;
+		info->info.kmap.pv = (pv_ptr){pa, va};
+	}
 
-    return (void*)va;
+	return (void *)va;
 }
 
-
-static void* raw_kmalloc_dynamic(
-    size_t                 pages,
-    const char*            tag,
-    const raw_kmalloc_cfg* cfg,
-    raw_kmalloc_info*      info)
+static void *raw_kmalloc_dynamic(
+	size_t pages,
+	const char *tag,
+	const raw_kmalloc_cfg *cfg,
+	raw_kmalloc_info *info
+)
 {
-    DEBUG_ASSERT(!cfg->kmap);
-    ASSERT(cfg->assign_pa, "vmalloc: TODO: NOT IMPLEMENTED YET");
+	DEBUG_ASSERT(!cfg->kmap);
+	ASSERT(cfg->assign_pa, "vmalloc: TODO: NOT IMPLEMENTED YET");
 
-    const mmu_pg_cfg* mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG
-                                                : &STD_MMU_KMEM_CFG;
+	const mmu_pg_cfg *mmu_cfg = cfg->device_mem ? &STD_MMU_DEVICE_CFG : &STD_MMU_KMEM_CFG;
 
-    vmalloc_token vtoken;
-    vuintptr_t    start = vmalloc(
-        pages,
-        tag,
-        vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0),
-        &vtoken);
+	vmalloc_token vtoken;
+	vuintptr_t start = vmalloc(pages, tag, vmalloc_cfg_from_raw_kmalloc_cfg(cfg, 0), &vtoken);
 
-    vuintptr_t va  = start;
-    size_t     rem = pages;
+	vuintptr_t va = start;
+	size_t rem = pages;
 
-    while (rem > 0) {
-        size_t o           = log2_floor(rem);
-        size_t order_bytes = power_of2(o) * PAGE_SIZE;
+	while (rem > 0) {
+		size_t o = log2_floor(rem);
+		size_t order_bytes = power_of2(o) * PAGE_SIZE;
 
-        /*
-         *  get phys page
-         */
-        puintptr_t pa = page_malloc(
-            o,
-            (mm_page_data) {
-                .tag        = tag,
-                .device_mem = cfg->device_mem,
-                .permanent  = cfg->permanent,
-            });
+		/*
+		 *  get phys page
+		 */
+		puintptr_t pa = page_malloc(
+			o,
+			(mm_page_data){
+				.tag = tag,
+				.device_mem = cfg->device_mem,
+				.permanent = cfg->permanent,
+			}
+		);
 
-        /*
-         *  save in vmalloc the order and corresponding va for that pa
-         */
-        vmalloc_push_pa(vtoken, o, pa, va);
+		/*
+		 *  save in vmalloc the order and corresponding va for that pa
+		 */
+		vmalloc_push_pa(vtoken, o, pa, va);
 
-        /*
-         *  mmu map the pages
-         */
+		/*
+		 *  mmu map the pages
+		 */
 
-        bool mmu_res = mmu_map(
-            MM_MMU_KERNEL_MAPPING,
-            va,
-            pa,
-            order_bytes,
-            *mmu_cfg,
-            NULL);
-        ASSERT(mmu_res == MMU_MAP_OK);
+		bool mmu_res = mmu_map(MM_MMU_KERNEL_MAPPING, va, pa, order_bytes, *mmu_cfg, NULL);
+		ASSERT(mmu_res == MMU_MAP_OK);
 
+		va += order_bytes;
+		rem -= power_of2(o);
+	}
 
-        va += order_bytes;
-        rem -= power_of2(o);
-    }
+	DEBUG_ASSERT(start + (pages * PAGE_SIZE) == va);
 
-    DEBUG_ASSERT(start + (pages * PAGE_SIZE) == va);
+	if (info) {
+		info->raw_kmalloc_type = RAW_KMALLOC_DYNAMIC;
+		info->MMU_CFG = mmu_cfg;
+		info->info.dynamic.vtoken = vtoken;
+	}
 
-    if (info) {
-        info->raw_kmalloc_type    = RAW_KMALLOC_DYNAMIC;
-        info->MMU_CFG             = mmu_cfg;
-        info->info.dynamic.vtoken = vtoken;
-    }
-
-    return (void*)start;
+	return (void *)start;
 }
-
 
 void raw_kmalloc_init()
 {
-    lock = CPULOCK_INIT;
+	lock = CPULOCK_INIT;
 }
 
-void* raw_kmalloc(
-    size_t                 pages,
-    const char*            tag,
-    const raw_kmalloc_cfg* cfg,
-    raw_kmalloc_info*      info)
+void *raw_kmalloc(size_t pages, const char *tag, const raw_kmalloc_cfg *cfg, raw_kmalloc_info *info)
 {
-    void* va = NULL;
+	void *va = NULL;
 
-    cfg = (cfg != NULL) ? cfg : RAW_KMALLOC_DYNAMIC_CFG;
+	cfg = (cfg != NULL) ? cfg : RAW_KMALLOC_DYNAMIC_CFG;
 
-    ASSERT(cfg->assign_pa, "TODO: dynamic mapping not implemented yet");
+	ASSERT(cfg->assign_pa, "TODO: dynamic mapping not implemented yet");
 
-    irqlocked() cpulocked(&lock)
-    {
-        if (cfg->kmap)
-            va = raw_kmalloc_kmap(pages, tag, cfg, info);
-        else
-            va = raw_kmalloc_dynamic(pages, tag, cfg, info);
+	irqlocked() {
+		cpulocked(&lock) {
+			if (cfg->kmap) {
+				va = raw_kmalloc_kmap(pages, tag, cfg, info);
+			} else {
+				va = raw_kmalloc_dynamic(pages, tag, cfg, info);
+			}
 
-        DEBUG_ASSERT((vuintptr_t)va % PAGE_ALIGN == 0);
+			DEBUG_ASSERT((vuintptr_t)va % PAGE_ALIGN == 0);
 
-        if (cfg->fill_reserve)
-            reserve_malloc_fill();
-    }
+			if (cfg->fill_reserve) {
+				reserve_malloc_fill();
+			}
+		}
+	}
 
-    if (cfg->init_zeroed) {
-        memzero64(va, pages * PAGE_SIZE);
+	if (cfg->init_zeroed) {
+		memzero64(va, pages * PAGE_SIZE);
 
 #ifdef DEBUG
-        uint64_t* ptr = (uint64_t*)va;
-        DEBUG_ASSERT((uintptr_t)va % PAGE_SIZE == 0);
-        for (size_t i = 0; i < (pages * PAGE_SIZE) / sizeof(uint64_t); i++)
-            DEBUG_ASSERT(ptr[i] == 0);
+		uint64_t *ptr = (uint64_t *)va;
+		DEBUG_ASSERT((uintptr_t)va % PAGE_SIZE == 0);
+		for (size_t i = 0; i < (pages * PAGE_SIZE) / sizeof(uint64_t); i++) {
+			DEBUG_ASSERT(ptr[i] == 0);
+		}
 #endif
-    }
+	}
 
-    return va;
+	return va;
 }
 
-
-void raw_kfree(void* ptr)
+void raw_kfree(void *ptr)
 {
-    vmalloc_token              vtoken;
-    vmalloc_allocated_area_mdt vinfo;
-    bool                       result;
+	vmalloc_token vtoken;
+	vmalloc_allocated_area_mdt vinfo;
+	bool result;
 
-    irqlocked() cpulocked(&lock)
-    {
-        vtoken = vmalloc_get_token(ptr);
-        vinfo  = vmalloc_get_mdt(vtoken);
+	irqlocked() {
+		cpulocked(&lock) {
+			vtoken = vmalloc_get_token(ptr);
+			vinfo = vmalloc_get_mdt(vtoken);
 
-        if (vinfo.kmapped) {
-            size_t bytes = vfree(vtoken, NULL);
+			if (vinfo.kmapped) {
+				size_t bytes = vfree(vtoken, NULL);
 
-            DEBUG_ASSERT(is_pow2(bytes));
+				DEBUG_ASSERT(is_pow2(bytes));
 
-            page_free(kva_to_kpa((vuintptr_t)ptr));
+				page_free(kva_to_kpa((vuintptr_t)ptr));
 
+				if (vinfo.pa_assigned) {
+					result = mmu_unmap(
+						MM_MMU_KERNEL_MAPPING,
+						(vuintptr_t)ptr,
+						bytes,
+						NULL
+					);
+					ASSERT(result);
+				}
+			}
+			//  dynamic
+			else {
+				const size_t N = vmalloc_get_pa_count(vtoken);
 
-            if (vinfo.pa_assigned) {
-                result = mmu_unmap(
-                    MM_MMU_KERNEL_MAPPING,
-                    (vuintptr_t)ptr,
-                    bytes,
-                    NULL);
-                ASSERT(result);
-            }
-        }
-        //  dynamic
-        else {
-            const size_t N = vmalloc_get_pa_count(vtoken);
+				vmalloc_pa_info pages[N];
 
-            vmalloc_pa_info pages[N];
+				result = vmalloc_get_pa_info(vtoken, pages, N);
+				ASSERT(result);
 
-            result = vmalloc_get_pa_info(vtoken, pages, N);
-            ASSERT(result);
+				for (size_t i = 0; i < N; i++) {
+					page_free(pages[i].pa);
+				}
 
-            for (size_t i = 0; i < N; i++)
-                page_free(pages[i].pa);
+				size_t bytes = vfree(vtoken, NULL);
 
-
-            size_t bytes = vfree(vtoken, NULL);
-
-            result = mmu_unmap(
-                MM_MMU_KERNEL_MAPPING,
-                (vuintptr_t)ptr,
-                bytes,
-                NULL);
-            ASSERT(result);
-        }
-    }
+				result = mmu_unmap(
+					MM_MMU_KERNEL_MAPPING,
+					(vuintptr_t)ptr,
+					bytes,
+					NULL
+				);
+				ASSERT(result);
+			}
+		}
+	}
 }
-
 
 struct kmalloc_irqlock_flags {
-    alignas(CACHE_LINE) irqflags_t irqlock;
+	alignas(CACHE_LINE) irqflags_t irqlock;
 };
 static struct kmalloc_irqlock_flags irqlock_flags[NUM_CPUS];
 
 void raw_kmalloc_lock()
 {
-    irqlock_flags[get_cpuid()].irqlock = irqsave();
-    cpulock_acquire(&lock);
+	irqlock_flags[get_cpuid()].irqlock = irqsave();
+	cpulock_acquire(&lock);
 }
-
 
 void raw_kmalloc_unlock()
 {
-    cpulock_release(&lock);
-    irqrestore(irqlock_flags[get_cpuid()].irqlock);
+	cpulock_release(&lock);
+	irqrestore(irqlock_flags[get_cpuid()].irqlock);
 }
-
 
 int raw_kmalloc_lock_defer()
 {
-    irqlock_flags[get_cpuid()].irqlock = irqsave();
-    cpulock_acquire(&lock);
+	irqlock_flags[get_cpuid()].irqlock = irqsave();
+	cpulock_acquire(&lock);
 
-    return 1;
+	return 1;
 }
 
-void raw_kmalloc_unlock_defer(maybe_unused int* cleanup)
+void raw_kmalloc_unlock_defer(maybe_unused int *cleanup)
 {
-    cpulock_release(&lock);
-    irqrestore(irqlock_flags[get_cpuid()].irqlock);
+	cpulock_release(&lock);
+	irqrestore(irqlock_flags[get_cpuid()].irqlock);
 }

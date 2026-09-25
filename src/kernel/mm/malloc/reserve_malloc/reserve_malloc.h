@@ -11,12 +11,10 @@
  * initial allocation, it must allocate new pages for refilling the reserve.
  */
 
-
 extern const size_t RESERVE_MALLOC_RESERVE_SIZE;
-
 
 void reserve_malloc_init();
 
-pv_ptr reserve_malloc(const char* new_tag);
+pv_ptr reserve_malloc(const char *new_tag);
 
 void reserve_malloc_fill();

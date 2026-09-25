@@ -11,26 +11,19 @@
 
 MMIO_DECLARE_REG32_VALUE_STRUCT(TCALIV1_VALUE_STRUCT_NAME);
 
-MMIO_DECLARE_REG32_READER(
-    TMU,
-    TCALIV1,
-    TCALIV1_VALUE_STRUCT_NAME,
-    TMU_TCALIV1_OFFSET);
-MMIO_DECLARE_REG32_WRITER(
-    TMU,
-    TCALIV1,
-    TCALIV1_VALUE_STRUCT_NAME,
-    TMU_TCALIV1_OFFSET);
+MMIO_DECLARE_REG32_READER(TMU, TCALIV1, TCALIV1_VALUE_STRUCT_NAME, TMU_TCALIV1_OFFSET);
+MMIO_DECLARE_REG32_WRITER(TMU, TCALIV1, TCALIV1_VALUE_STRUCT_NAME, TMU_TCALIV1_OFFSET);
 
 // Helper
-#define TCALIV1_DECLARE_BIT_FIELD_FNS(bf_name, T) \
-    TMU_DECLARE_BIT_FIELD_GETTER(                 \
-        TCALIV1,                                  \
-        bf_name,                                  \
-        TCALIV1_VALUE_STRUCT_NAME,                \
-        T,                                        \
-        bf_name##_SHIFT,                          \
-        bf_name##_MASK);
+#define TCALIV1_DECLARE_BIT_FIELD_FNS(bf_name, T)                                                  \
+	TMU_DECLARE_BIT_FIELD_GETTER(                                                              \
+		TCALIV1,                                                                           \
+		bf_name,                                                                           \
+		TCALIV1_VALUE_STRUCT_NAME,                                                         \
+		T,                                                                                 \
+		bf_name##_SHIFT,                                                                   \
+		bf_name##_MASK                                                                     \
+	);
 
 #define EN_SHIFT 31
 #define EN_MASK  (0b1u << EN_SHIFT)

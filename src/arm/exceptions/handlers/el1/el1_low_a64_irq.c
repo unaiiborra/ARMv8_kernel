@@ -2,12 +2,11 @@
 
 #include "kernel/scheduler.h"
 
-
-void el1_low_a64_irq_handler(arm_ctx_t* ectx)
+void el1_low_a64_irq_handler(arm_ctx_t *ectx)
 {
-    scheduler_ectx_store(ectx);
+	scheduler_ectx_store(ectx);
 
-    irq_dispatch();
+	irq_dispatch();
 
-    scheduler_ectx_load(ectx);
+	scheduler_ectx_load(ectx);
 }

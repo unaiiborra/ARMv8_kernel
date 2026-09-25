@@ -6,34 +6,35 @@
 #include "kernel/devices/driver_ops/irq_ctrl.h"
 #include "kernel/smp.h"
 
-typedef void (*irq_std_handler_t)(void* ctx);
+typedef void (*irq_std_handler_t)(void *ctx);
 typedef void (*irq_driver_handler_t)(driver_handle_t handle);
 
 typedef union {
-    void*                any;
-    irq_std_handler_t    std_handler;
-    irq_driver_handler_t driver_handler;
+	void *any;
+	irq_std_handler_t std_handler;
+	irq_driver_handler_t driver_handler;
 } irq_handler_t;
-
 
 void irq_ctrl_init();
 
 void irq_register(
-    uint32_t               irq_id,
-    irq_std_handler_t      handler,
-    void*                  ctx,
-    irq_ctrl_ops_trigger_t trigger,
-    uint32_t               target_cpu,
-    uint8_t                priority);
+	uint32_t irq_id,
+	irq_std_handler_t handler,
+	void *ctx,
+	irq_ctrl_ops_trigger_t trigger,
+	uint32_t target_cpu,
+	uint8_t priority
+);
 
 void irq_register_driver(
-    uint32_t               irq_id,
-    const char*            driver_name,
-    device_class_t         driver_class,
-    const void* const      driver_ops,
-    irq_ctrl_ops_trigger_t trigger,
-    cpuid_t                target_cpu,
-    uint8_t                priority);
+	uint32_t irq_id,
+	const char *driver_name,
+	device_class_t driver_class,
+	const void *const driver_ops,
+	irq_ctrl_ops_trigger_t trigger,
+	cpuid_t target_cpu,
+	uint8_t priority
+);
 
 void irq_unregister(uint32_t irq_id, uint32_t target_cpu);
 
