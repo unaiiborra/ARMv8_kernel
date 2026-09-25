@@ -6,15 +6,15 @@
 
 /* ---- Memory barriers ---- */
 
-#define dsb_sy() __asm__ volatile("dsb sy" ::: "memory");
-#define isb()    __asm__ volatile("isb" ::: "memory");
-#define wfe()    __asm__ volatile("wfe" ::: "memory");
-#define wfi()    __asm__ volatile("wfi" ::: "memory");
+#define dsb_sy() __asm__ volatile("dsb sy" ::: "memory")
+#define isb()    __asm__ volatile("isb" ::: "memory")
+#define wfe()    __asm__ volatile("wfe" ::: "memory")
+#define wfi()    __asm__ volatile("wfi" ::: "memory")
 
 /* ---- Event barriers ---- */
 
-#define sev()  __asm__ volatile("sev" ::: "memory");
-#define sevl() __asm__ volatile("sevl" ::: "memory");
+#define sev()  __asm__ volatile("sev" ::: "memory")
+#define sevl() __asm__ volatile("sevl" ::: "memory")
 
 /* ---- Irqlock ---- */
 
