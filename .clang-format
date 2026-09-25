@@ -1,93 +1,48 @@
-# ===============================
-# Estilo moderno y legible C / C++
-# ===============================
-
-Language: C
+---
 BasedOnStyle: LLVM
 
-ColumnLimit: 80
-PenaltyExcessCharacter: 100
+UseTab: ForContinuationAndIndentation
+TabWidth: 8
+IndentWidth: 8
+ContinuationIndentWidth: 8
+ConstructorInitializerIndentWidth: 8
+ColumnLimit: 100
 
-BinPackParameters: false
+AlignAfterOpenBracket: BlockIndent
 BinPackArguments: false
-AlignAfterOpenBracket: AlwaysBreak
-AllowAllParametersOfDeclarationOnNextLine: false
+BinPackParameters: false
 AllowAllArgumentsOnNextLine: false
-PenaltyBreakBeforeFirstCallParameter: 0
-AlwaysBreakAfterDefinitionReturnType: false
-PenaltyReturnTypeOnItsOwnLine: 1000000
-PenaltyBreakAssignment: 1000
+AllowAllParametersOfDeclarationOnNextLine: false
 
-IndentWidth: 4
-TabWidth: 4
-UseTab: Never
-ContinuationIndentWidth: 4
-IndentCaseLabels: true
-IndentCaseBlocks: false
-IndentGotoLabels: false
-IndentExternBlock: AfterExternBlock
-
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterFunction: true
-  AfterControlStatement: false
-  AfterClass: false
-  AfterStruct: false
-  AfterEnum: false
-  AfterNamespace: false
-  AfterUnion: false
-  BeforeElse: true
-  BeforeCatch: true
-  IndentBraces: false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
-
-SpaceBeforeParens: ControlStatements
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCpp11BracedList: true
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-SpacesInAngles: false
-SpaceAfterCStyleCast: false
-SpacesInConditionalStatement: false
-
-AlignOperands: Align
-AlignTrailingComments: true
-AlignEscapedNewlines: Left
-AlignConsecutiveDeclarations: true
-AlignConsecutiveAssignments: true
-AlignConsecutiveMacros: true
-
-AllowShortFunctionsOnASingleLine: InlineOnly
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
+BreakBeforeBraces: Linux
+InsertBraces: true
 AllowShortBlocksOnASingleLine: Never
-AlwaysBreakTemplateDeclarations: Yes
-BreakConstructorInitializers: AfterColon
-BreakInheritanceList: AfterColon
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
 
-SortIncludes: true
-IncludeBlocks: Regroup
+AlignConsecutiveMacros: AcrossComments
+BitFieldColonSpacing: After
+IndentCaseLabels: false
+IndentGotoLabels: false
+InsertNewlineAtEOF: true
+SpaceBeforeInheritanceColon: false
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+
+SortIncludes: Never
 IncludeCategories:
-  - Regex: "^<.*>"
-    Priority: 1
-  - Regex: '^".*"'
-    Priority: 2
+        - Regex: '^".*\.h"$'
+          Priority: 0
+        - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|limits|locale|math|setjmp|signal|stdarg|stdbool|stddef|stdint|stdio|stdlib|string|tgmath|time|wchar|wctype)\.h>$'
+          Priority: 1
+        - Regex: ".*"
+          Priority: 2
 
-ReflowComments: true
-CommentPragmas: "^ IWYU pragma:"
-
-PointerAlignment: Left
-DerivePointerAlignment: false
-
-Standard: Latest
-Cpp11BracedListStyle: true
-FixNamespaceComments: true
-
-IndentPPDirectives: AfterHash
-
-KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 4
-EmptyLineAfterAccessModifier: Always
-EmptyLineBeforeAccessModifier: LogicalBlock
+ForEachMacros:
+        - "irqlocked"
+        - "spinlocked"
+        - "cpulocked"
+        - "spinlocked_irqsave"
+        - "cpulocked_irqsave"
