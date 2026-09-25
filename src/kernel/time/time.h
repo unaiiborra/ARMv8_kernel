@@ -6,14 +6,14 @@
 typedef struct timer_node {
 	struct timer_node *prev, *next;
 	uint64_t id;
-	clock_t *clock;
+	kclock_t *clock;
 	// timepoint reltive to the clock (with offset already added)
 	timepoint_t expires;
 	timer_callback_t event;
 	void *ctx;
 } timer_node_t;
 
-typedef struct clock {
+typedef struct kclock {
 	const device_t *dev_clocksource, *dev_timer;
 	uint32_t mult, shift, inv_mult, inv_shift;
 	duration_ns_t offset; // offset to epoch
@@ -22,10 +22,10 @@ typedef struct clock {
 
 	// used only if dev_timer != NULL
 	timer_node_t *event_list;
-} clock_t;
+} kclock_t;
 
 void clock_new_static(
-	clock_t *new,
+	kclock_t *new,
 	const device_t *clocksource,
 	const device_t *timer,
 	duration_ns_t offset,

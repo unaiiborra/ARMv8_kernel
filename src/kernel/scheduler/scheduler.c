@@ -371,7 +371,7 @@ void scheduler_loop_cpu_enter()
 		set_thread_mapping(th);
 
 		runqueue[cpuid].preemptive_event = timer_create_event_delta(
-			HRTIMER(),
+			hrtimer_get_cpu_local(),
 			event_preemptive_scheduling,
 			NULL,
 			atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000
@@ -855,7 +855,7 @@ static thread_t *runqueue_schedule()
 		}
 
 		runqueue[cpuid].preemptive_event = timer_create_event_delta(
-			HRTIMER(),
+			hrtimer_get_cpu_local(),
 			event_preemptive_scheduling,
 			NULL,
 			atomic_load(&runqueue[cpuid].preemptive_duration_microsec) * 1000

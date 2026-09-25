@@ -20,7 +20,7 @@ static atomic_ulong timer_event_uid_counter = 0;
 static void handle_events(void *clock);
 
 /// setup the timer for the closest expiration time
-static inline void setup_head_timer(clock_t *clock)
+static inline void setup_head_timer(kclock_t *clock)
 {
 	const timer_ops_t *t_ops = get_timer_ops(clock->dev_timer);
 
@@ -43,12 +43,12 @@ static void handle_events(void *clock)
 {
 	defer(kvec_delete) kvec(timer_node_t *) events = kvec_new(timer_node_t *);
 
-	clock_t *clk = clock;
+	kclock_t *clk = clock;
 
 	spinlocked_irqsave(&clk->timer_lock) {
 		timer_node_t *cur = clk->event_list;
 
-		while (cur && clock_now(cur->clock) >= cur->expires) {
+		while (cur && kclock_now(cur->clock) >= cur->expires) {
 			kvec_push(&events, &cur);
 
 			cur = cur->next;
@@ -80,7 +80,7 @@ static void handle_events(void *clock)
 	}
 }
 
-timer_event_t timer_create_event(clock_t *clock, timer_callback_t cb, void *ctx, timepoint_t t)
+timer_event_t timer_create_event(kclock_t *clock, timer_callback_t cb, void *ctx, timepoint_t t)
 {
 	if (unlikely(clock->dev_timer == NULL)) {
 		PANIC("timer: provided clock does not support timer operations");
@@ -145,14 +145,14 @@ timer_event_t timer_create_event(clock_t *clock, timer_callback_t cb, void *ctx,
 }
 
 timer_event_t
-timer_create_event_delta(clock_t *clock, timer_callback_t cb, void *ctx, duration_ns_t delta_ns)
+timer_create_event_delta(kclock_t *clock, timer_callback_t cb, void *ctx, duration_ns_t delta_ns)
 {
-	return timer_create_event(clock, cb, ctx, clock_now(clock) + delta_ns);
+	return timer_create_event(clock, cb, ctx, kclock_now(clock) + delta_ns);
 }
 
 bool timer_cancel_event(timer_event_t event)
 {
-	clock_t *clock = event.clock;
+	kclock_t *clock = event.clock;
 
 	spinlocked_irqsave(&clock->timer_lock) {
 		timer_node_t *curr = clock->event_list;

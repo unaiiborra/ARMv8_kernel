@@ -8,13 +8,13 @@
 
 #include "time.h"
 
-static inline uint64_t clocksource_now_ticks(const clock_t *clock)
+static inline uint64_t clocksource_now_ticks(const kclock_t *clock)
 {
 	return get_clocksource_ops(clock->dev_clocksource)
 		->get_tick(device_get_driver_handle(clock->dev_clocksource));
 }
 
-static inline duration_ns_t clocksource_now_ns(const clock_t *clock)
+static inline duration_ns_t clocksource_now_ns(const kclock_t *clock)
 {
 	return tick_to_ns(clocksource_now_ticks(clock), clock->mult, clock->shift);
 }
@@ -69,8 +69,8 @@ static clock_init_t init_clocksource_and_timer(const device_t *clocksource, cons
 	};
 }
 
-static inline clock_t *setup_new_clock(
-	clock_t *out,
+static inline kclock_t *setup_new_clock(
+	kclock_t *out,
 	const device_t *clocksource,
 	const device_t *timer,
 	int64_t offset,
@@ -81,7 +81,7 @@ static inline clock_t *setup_new_clock(
 	bool mutable
 )
 {
-	*out = (clock_t){
+	*out = (kclock_t){
 		.dev_clocksource = clocksource,
 		.dev_timer = timer,
 		.mult = mult,
@@ -97,7 +97,7 @@ static inline clock_t *setup_new_clock(
 	return out;
 }
 
-clock_t *clock_new(
+kclock_t *kclock_new(
 	const device_t *clocksource,
 	const device_t *timer,
 	timepoint_t current_time,
@@ -110,7 +110,7 @@ clock_t *clock_new(
 
 	int64_t offset = current_time - tick_to_ns(ticks, init.mult, init.shift);
 
-	clock_t *c = kmalloc(sizeof(clock_t));
+	kclock_t *c = kmalloc(sizeof(kclock_t));
 
 	return setup_new_clock(
 		c,
@@ -125,7 +125,7 @@ clock_t *clock_new(
 	);
 }
 
-clock_t *clock_new_offset(
+kclock_t *kclock_new_offset(
 	const device_t *clocksource,
 	const device_t *timer,
 	duration_ns_t offset,
@@ -134,7 +134,7 @@ clock_t *clock_new_offset(
 {
 	clock_init_t init = init_clocksource_and_timer(clocksource, timer);
 
-	clock_t *c = kmalloc(sizeof(clock_t));
+	kclock_t *c = kmalloc(sizeof(kclock_t));
 
 	return setup_new_clock(
 		c,
@@ -150,7 +150,7 @@ clock_t *clock_new_offset(
 }
 
 void clock_new_static(
-	clock_t *new,
+	kclock_t *new,
 	const device_t *clocksource,
 	const device_t *timer,
 	duration_ns_t offset,
@@ -172,29 +172,29 @@ void clock_new_static(
 	);
 }
 
-void clock_delete(clock_t *clock)
+void kclock_delete(kclock_t *clock)
 {
 	kfree((void *)clock);
 }
 
 /// sets the current time, it will panic if the clock is immutable
-void clock_set_time(clock_t *clock, timepoint_t current_time)
+void kclock_set_time(kclock_t *clock, timepoint_t current_time)
 {
 	ASSERT(clock->mutable, "clock_set_time: cannot set time on an immutable clock");
 	clock->offset = current_time - clocksource_now_ns(clock);
 }
 
-timepoint_t clock_now(clock_t *clock)
+timepoint_t kclock_now(kclock_t *clock)
 {
 	return clocksource_now_ns(clock) + clock->offset;
 }
 
-timepoint_t clock_now_uninterrupted(clock_t *clock)
+timepoint_t clock_now_uninterrupted(kclock_t *clock)
 {
 	return clocksource_now_ns(clock) + clock->offset;
 }
 
-duration_ns_t clock_time_until(clock_t *clock, timepoint_t tp)
+duration_ns_t kclock_time_until(kclock_t *clock, timepoint_t tp)
 {
-	return tp - clock_now(clock);
+	return tp - kclock_now(clock);
 }

@@ -80,5 +80,5 @@ void kernel_cpu_local_init()
 
 	irq_ops->init_cpu(handle, arm_get_cpu_affinity().aff0);
 
-	time_ctrl_init_cpu(); // clock and timer ctrl init
+	kclock_init_cpu(); // clock and timer ctrl init
 }
