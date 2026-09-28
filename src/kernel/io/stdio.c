@@ -68,7 +68,7 @@ void printf(const char *s, ...)
 	va_list va;
 	va_start(va, s);
 
-	scoped_kvec(char) string = kvec_new(char);
+	scoped_kvec(char) string = KVEC_INIT(char);
 
 	fmt_string(&string, s, va);
 

@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define IS_POW2(x)       ((x) != 0 && (((x) & ((x) - 1)) == 0))
+#define IS_ALIGNED(x, a) (((x) & ((a) - 1)) == 0)
+
 static inline uint32_t log2_floor_u32(uint32_t x)
 {
 	return x ? 31u - __builtin_clz(x) : 0;

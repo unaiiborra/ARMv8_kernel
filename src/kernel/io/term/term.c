@@ -127,7 +127,7 @@ size_t term_remove_head(term_handle *h, char *buf, size_t count)
 bool term_outf(term_handle *h, const char *s, va_list ap)
 {
 	// format the string
-	defer(kvec_delete) kvec(char) string = kvec_new(char);
+	defer(kvec_delete) kvec(char) string = KVEC_INIT(char);
 	fmt_string(&string, s, ap);
 	return term_prints(h, kvec_data(&string));
 }

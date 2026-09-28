@@ -771,7 +771,7 @@ uregion_access_e uregions_check_access(
 {
 	DEBUG_ASSERT_TASK_IS_MEMORY_LOCKED(t);
 
-	scoped_kvec(uma_t) to_commit = kvec_new(uma_t);
+	scoped_kvec(uma_t) to_commit = KVEC_INIT(uma_t);
 	uintptr_t end = align_up(start + size, PAGE_ALIGN);
 	start = align_down(start, PAGE_ALIGN);
 	uintptr_t cursor = start;
